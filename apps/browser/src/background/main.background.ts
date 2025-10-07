@@ -236,7 +236,13 @@ import { SearchService } from "@bitwarden/common/vault/services/search.service";
 import { TotpService } from "@bitwarden/common/vault/services/totp.service";
 import { VaultSettingsService } from "@bitwarden/common/vault/services/vault-settings/vault-settings.service";
 import { DefaultTaskService, TaskService } from "@bitwarden/common/vault/tasks";
-import { GenerateRequest, Type } from "@bitwarden/generator-core";
+import {
+  CredentialGeneratorService,
+  // @TODO
+  // DefaultCredentialGeneratorService,
+  GenerateRequest,
+  Type,
+} from "@bitwarden/generator-core";
 import { GeneratedCredential } from "@bitwarden/generator-history";
 import {
   legacyPasswordGenerationServiceFactory,
@@ -396,6 +402,7 @@ export default class MainBackground {
   passwordGenerationService: PasswordGenerationServiceAbstraction;
   syncService: SyncService;
   passwordStrengthService: PasswordStrengthServiceAbstraction;
+  credentialGeneratorService: CredentialGeneratorService;
   totpService: TotpServiceAbstraction;
   autofillService: AutofillServiceAbstraction;
   containerService: ContainerService;
@@ -1579,6 +1586,9 @@ export default class MainBackground {
       this.authService,
     );
 
+    // @TODO
+    // this.credentialGeneratorService = new DefaultCredentialGeneratorService()
+
     // Synchronous startup
     if (this.webPushConnectionService instanceof WorkerWebPushConnectionService) {
       this.webPushConnectionService.start();
@@ -2045,6 +2055,7 @@ export default class MainBackground {
       this.accountService,
       this.yieldGeneratedPassword,
       this.addPasswordToHistory,
+      this.credentialGeneratorService,
     );
 
     this.autofillBadgeUpdaterService = new AutofillBadgeUpdaterService(
