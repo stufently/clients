@@ -14,7 +14,7 @@ export default {
   title: "Component Library/Form/Switch",
   component: SwitchComponent,
   decorators: [
-    componentWrapperDecorator((story) => {
+    componentWrapperDecorator((story: string) => {
       return /* HTML */ `<div class="tw-max-w-[600px] ">${story}</div>`;
     }),
     moduleMetadata({
@@ -58,7 +58,7 @@ export default {
 type Story = StoryObj<SwitchComponent & { disabled?: boolean; selected?: boolean }>;
 
 export const Default: Story = {
-  render: (args) => ({
+  render: (args: Story["args"]) => ({
     props: {
       formObj: new FormGroup({
         switch: new FormControl(0),
@@ -78,7 +78,7 @@ export const Default: Story = {
 };
 
 export const WithLongLabel: Story = {
-  render: (args) => ({
+  render: (args: Story["args"]) => ({
     props: {
       formObj: new FormGroup({
         switch: new FormControl(0),
@@ -101,7 +101,7 @@ export const WithLongLabel: Story = {
 };
 
 export const WithForm: Story = {
-  render: (args) => ({
+  render: (args: Story["args"]) => ({
     props: {
       formObj: new FormGroup({
         switch: new FormControl(0),
@@ -119,7 +119,7 @@ export const WithForm: Story = {
 };
 
 export const Disabled: Story = {
-  render: (args) => ({
+  render: (args: Story["args"]) => ({
     props: args,
     template: /* HTML */ `
       <bit-switch
