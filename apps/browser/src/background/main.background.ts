@@ -236,7 +236,13 @@ import { SearchService } from "@bitwarden/common/vault/services/search.service";
 import { TotpService } from "@bitwarden/common/vault/services/totp.service";
 import { VaultSettingsService } from "@bitwarden/common/vault/services/vault-settings/vault-settings.service";
 import { DefaultTaskService, TaskService } from "@bitwarden/common/vault/tasks";
-import { GenerateRequest, Type } from "@bitwarden/generator-core";
+import {
+  createCredentialGeneratorService,
+  createRandomizer,
+  CredentialGeneratorService,
+  GenerateRequest,
+  Type,
+} from "@bitwarden/generator-core";
 import { GeneratedCredential } from "@bitwarden/generator-history";
 import {
   legacyPasswordGenerationServiceFactory,
@@ -394,6 +400,7 @@ export default class MainBackground {
   vaultTimeoutService?: VaultTimeoutService;
   vaultTimeoutSettingsService: VaultTimeoutSettingsService;
   passwordGenerationService: PasswordGenerationServiceAbstraction;
+  credentialGeneratorService: CredentialGeneratorService;
   syncService: SyncService;
   passwordStrengthService: PasswordStrengthServiceAbstraction;
   totpService: TotpServiceAbstraction;
@@ -1579,9 +1586,6 @@ export default class MainBackground {
       this.authService,
     );
 
-    // TODO: Integrate CredentialGeneratorService for checking autogeneration capability
-    // See: libs/tools/generator/core/src/services/default-credential-generator.service.ts
-
     // Synchronous startup
     if (this.webPushConnectionService instanceof WorkerWebPushConnectionService) {
       this.webPushConnectionService.start();
@@ -2030,6 +2034,23 @@ export default class MainBackground {
       return;
     }
 
+    this.credentialGeneratorService = await createCredentialGeneratorService(
+      createSystemServiceProvider(
+        new KeyServiceLegacyEncryptorProvider(this.encryptService, this.keyService),
+        this.stateProvider,
+        this.policyService,
+        buildExtensionRegistry(),
+        this.logService,
+        this.platformUtilsService,
+        this.configService,
+      ),
+      createRandomizer(),
+      new KeyServiceLegacyEncryptorProvider(this.encryptService, this.keyService),
+      this.stateProvider,
+      this.i18nService,
+      this.apiService,
+    );
+
     this.overlayBackground = new OverlayBackground(
       this.logService,
       this.cipherService,
@@ -2048,6 +2069,7 @@ export default class MainBackground {
       this.accountService,
       this.yieldGeneratedPassword,
       this.addPasswordToHistory,
+      this.credentialGeneratorService,
     );
 
     this.autofillBadgeUpdaterService = new AutofillBadgeUpdaterService(
