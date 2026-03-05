@@ -13,6 +13,7 @@ import {
   Subscription,
   switchMap,
   throttleTime,
+  timeout,
 } from "rxjs";
 import { parse } from "tldts";
 
@@ -292,11 +293,15 @@ export class OverlayBackground implements OverlayBackgroundInterface {
             // Track all inline menu credentials — both InlineMenuInit and InlineMenu
             // are shown to the user. InlineMenuInit fires inside handlePortOnConnect,
             // so the password is rendered in the same async turn it is generated.
-            await trackGeneratedCredential(
-              this.generatorHistoryService,
-              this.accountService.activeAccount$,
-              generated,
-            );
+            try {
+              await trackGeneratedCredential(
+                this.generatorHistoryService,
+                this.accountService.activeAccount$,
+                generated,
+              );
+            } catch (e) {
+              this.logService.error(e);
+            }
             return generated.credential;
           }),
         )
@@ -2063,7 +2068,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
    * Awaits the next non-empty credential emitted by the credential pipeline.
    */
   private waitForNextCredential() {
-    return firstValueFrom(this.credential$.pipe(skip(1), filter(Boolean)));
+    return firstValueFrom(this.credential$.pipe(skip(1), filter(Boolean), timeout(10_000)));
   }
 
   /**
@@ -3422,7 +3427,11 @@ export class OverlayBackground implements OverlayBackgroundInterface {
         source: PasswordGenerateRequestSource.InlineMenuInit,
         type: Type.password,
       });
-      await this.waitForNextCredential();
+      try {
+        await this.waitForNextCredential();
+      } catch (e) {
+        this.logService.error(e);
+      }
     }
 
     return true;
@@ -3462,7 +3471,10 @@ export class OverlayBackground implements OverlayBackgroundInterface {
       return;
     }
 
-    handler({ message, port });
+    const handlerResponse = handler({ message, port });
+    if (handlerResponse instanceof Promise) {
+      handlerResponse.catch((error) => this.logService.error(error));
+    }
   };
 
   /**
