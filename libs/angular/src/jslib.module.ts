@@ -51,11 +51,7 @@ import { IconComponent } from "./vault/components/icon.component";
  */
 @NgModule({
   imports: [
-    ToastModule.forRoot({
-      maxOpened: 5,
-      autoDismiss: true,
-      closeButton: true,
-    }),
+    ToastModule,
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
