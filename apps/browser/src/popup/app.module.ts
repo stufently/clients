@@ -16,7 +16,6 @@ import {
   AvatarModule,
   ButtonModule,
   FormFieldModule,
-  ToastModule,
   CalloutModule,
   LinkModule,
 } from "@bitwarden/components";
@@ -47,7 +46,6 @@ import "../platform/popup/locales";
     AppRoutingModule,
     AutofillComponent,
     AccountSecurityComponent,
-    ToastModule,
     BrowserAnimationsModule,
     BrowserModule,
     DragDropModule,
