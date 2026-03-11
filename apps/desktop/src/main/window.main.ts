@@ -8,11 +8,11 @@ import { app, BrowserWindow, ipcMain, nativeTheme, screen, session } from "elect
 import { concatMap, firstValueFrom, pairwise } from "rxjs";
 
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
-import { AbstractStorageService } from "@bitwarden/common/platform/abstractions/storage.service";
 import { ThemeTypes, Theme } from "@bitwarden/common/platform/enums";
 import { processisolations } from "@bitwarden/desktop-napi";
 import { BiometricStateService } from "@bitwarden/key-management";
 
+import { ElectronStorageService } from "../platform/main/electron-storage.service";
 import { WindowState } from "../platform/models/domain/window-state";
 import { applyMainWindowStyles, applyPopupModalStyles } from "../platform/popup-modal-styles";
 import { DesktopSettingsService } from "../platform/services/desktop-settings.service";
@@ -45,7 +45,7 @@ export class WindowMain {
   constructor(
     private biometricStateService: BiometricStateService,
     private logService: LogService,
-    private storageService: AbstractStorageService,
+    private storageService: ElectronStorageService,
     private desktopSettingsService: DesktopSettingsService,
     private argvCallback: (argv: string[]) => void = null,
     private createWindowCallback: (win: BrowserWindow) => void,

@@ -51,6 +51,8 @@ import { NativeAutofillMain } from "./platform/main/autofill/native-autofill.mai
 import { ClipboardMain } from "./platform/main/clipboard.main";
 import { DesktopCredentialStorageListener } from "./platform/main/desktop-credential-storage-listener";
 import { ElectronStorageService } from "./platform/main/electron-storage.service";
+import { CachedBackend } from "./platform/main/storage/cached-backend";
+import { ElectronStoreBackend } from "./platform/main/storage/electron-store-backend";
 import { VersionMain } from "./platform/main/version.main";
 import { DesktopSettingsService } from "./platform/services/desktop-settings.service";
 import { ElectronLogMainService } from "./platform/services/electron-log.main.service";
@@ -126,8 +128,9 @@ export class Main {
 
     this.logService = new ElectronLogMainService(null, app.getPath("userData"));
 
-    const storageDefaults: any = {};
-    this.storageService = new ElectronStorageService(app.getPath("userData"), storageDefaults);
+    const electronStoreBackend = new ElectronStoreBackend(app.getPath("userData"));
+    const cachedBackend = new CachedBackend(electronStoreBackend);
+    this.storageService = new ElectronStorageService(cachedBackend);
     this.memoryStorageService = new MemoryStorageService();
     this.memoryStorageForStateProviders = new SerializedMemoryStorageService();
     const storageServiceProvider = new StorageServiceProvider(
@@ -308,6 +311,7 @@ export class Main {
 
     app.on("will-quit", () => {
       this.mainDesktopAutotypeService.dispose();
+      this.storageService.flush();
     });
   }
 
