@@ -76,11 +76,9 @@ export class IpcBackgroundService extends IpcService {
         IpcClient.newWithClientManagedSessions(this.communicationBackend, this.sessionRepository),
       );
 
-      if (this.platformUtilsService.isDev()) {
-        await ipcRegisterDiscoverHandler(this.client, {
-          version: await this.platformUtilsService.getApplicationVersion(),
-        });
-      }
+      await ipcRegisterDiscoverHandler(this.client, {
+        version: await this.platformUtilsService.getApplicationVersion(),
+      });
     } catch (e) {
       this.logService.error("[IPC] Initialization failed", e);
     }

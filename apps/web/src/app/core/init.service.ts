@@ -3,6 +3,7 @@ import { firstValueFrom } from "rxjs";
 
 import { AbstractThemingService } from "@bitwarden/angular/platform/services/theming/theming.service.abstraction";
 import { WINDOW } from "@bitwarden/angular/services/injection-tokens";
+import { LockService } from "@bitwarden/auth/common";
 import { EventUploadService as EventUploadServiceAbstraction } from "@bitwarden/common/abstractions/event/event-upload.service";
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { TwoFactorService } from "@bitwarden/common/auth/two-factor";
@@ -18,6 +19,7 @@ import { UserAutoUnlockKeyService } from "@bitwarden/common/platform/services/us
 import { EventUploadService } from "@bitwarden/common/services/event/event-upload.service";
 import { TaskService } from "@bitwarden/common/vault/tasks";
 import { KeyService as KeyServiceAbstraction } from "@bitwarden/key-management";
+import { setup_shared_unlock_follower } from "@bitwarden/common/key-management/shared-unlock";
 
 import { VersionService } from "../platform/version.service";
 
@@ -33,6 +35,7 @@ export class InitService {
     private keyService: KeyServiceAbstraction,
     private themingService: AbstractThemingService,
     private encryptService: EncryptService,
+    private lockService: LockService,
     private userAutoUnlockKeyService: UserAutoUnlockKeyService,
     private accountService: AccountService,
     private versionService: VersionService,
@@ -64,7 +67,14 @@ export class InitService {
       htmlEl.classList.add("locale_" + this.i18nService.translationLocale);
       this.themingService.applyThemeChangesTo(this.document);
       this.versionService.applyVersionToWindow();
-      void this.ipcService.init();
+      await this.ipcService.init();
+      await setup_shared_unlock_follower(
+        this.ipcService,
+        this.accountService,
+        this.lockService,
+        this.keyService,
+      );
+
       this.taskService.listenForTaskNotifications();
 
       const containerService = new ContainerService(this.keyService, this.encryptService);

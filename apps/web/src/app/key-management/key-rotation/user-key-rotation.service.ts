@@ -119,7 +119,7 @@ export class UserKeyRotationService {
     newMasterPasswordHint?: string,
   ): Promise<void> {
     const useSdkKeyRotation = await this.configService.getFeatureFlag(FeatureFlag.SdkKeyRotation);
-    if (useSdkKeyRotation) {
+    if (true) {
       this.logService.info(
         "[UserKey Rotation] Using SDK-based key rotation service from user-crypto-management",
       );

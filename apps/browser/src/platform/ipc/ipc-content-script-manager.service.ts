@@ -1,4 +1,4 @@
-import { mergeMap } from "rxjs";
+import { mergeMap,of } from "rxjs";
 
 import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
 import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
@@ -14,8 +14,7 @@ export class IpcContentScriptManagerService {
       return;
     }
 
-    configService
-      .getFeatureFlag$(FeatureFlag.ContentScriptIpcChannelFramework)
+    of(true)
       .pipe(
         mergeMap(async (enabled) => {
           if (!enabled) {

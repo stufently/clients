@@ -197,6 +197,9 @@ import {
   PasswordStrengthService,
   PasswordStrengthServiceAbstraction,
 } from "@bitwarden/common/tools/password-strength";
+import {
+  setup_shared_unlock_leader
+} from "@bitwarden/common/key-management/shared-unlock";
 import { createSystemServiceProvider } from "@bitwarden/common/tools/providers";
 import { SendApiService } from "@bitwarden/common/tools/send/services/send-api.service";
 import { SendApiService as SendApiServiceAbstraction } from "@bitwarden/common/tools/send/services/send-api.service.abstraction";
@@ -1639,6 +1642,7 @@ export default class MainBackground {
 
     await this.initOverlayAndTabsBackground();
     await this.ipcService.init();
+    setup_shared_unlock_leader(this.ipcService, this.accountService, this.lockService, this.keyService);
     this.badgeService.startListening();
 
     return new Promise<void>((resolve) => {
