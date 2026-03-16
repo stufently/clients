@@ -11,8 +11,8 @@ import { LogService } from "@bitwarden/common/platform/abstractions/log.service"
 import { ThemeTypes, Theme } from "@bitwarden/common/platform/enums";
 import { processisolations } from "@bitwarden/desktop-napi";
 import { BiometricStateService } from "@bitwarden/key-management";
+import { AbstractStorageService } from "@bitwarden/storage-core";
 
-import { ElectronStorageService } from "../platform/main/electron-storage.service";
 import { WindowState } from "../platform/models/domain/window-state";
 import { applyMainWindowStyles, applyPopupModalStyles } from "../platform/popup-modal-styles";
 import { DesktopSettingsService } from "../platform/services/desktop-settings.service";
@@ -45,7 +45,7 @@ export class WindowMain {
   constructor(
     private biometricStateService: BiometricStateService,
     private logService: LogService,
-    private storageService: ElectronStorageService,
+    private storageService: AbstractStorageService,
     private desktopSettingsService: DesktopSettingsService,
     private argvCallback: (argv: string[]) => void = null,
     private createWindowCallback: (win: BrowserWindow) => void,
