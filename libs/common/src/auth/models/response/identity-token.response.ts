@@ -3,7 +3,6 @@
 // This import has been flagged as unallowed for this class. It may be involved in a circular dependency loop.
 // eslint-disable-next-line no-restricted-imports
 import { Argon2KdfConfig, KdfConfig, KdfType, PBKDF2KdfConfig } from "@bitwarden/key-management";
-// eslint-disable-next-line no-restricted-imports
 import { KeyConnectorUnlockData } from "@bitwarden/unlock";
 
 import { EncString } from "../../../key-management/crypto/models/enc-string";
