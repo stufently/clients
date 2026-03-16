@@ -24,7 +24,7 @@ export class CachedBackend implements StorageBackend {
   }
 
   read(): Record<string, unknown> {
-    return { ...this.cache };
+    return this.cache;
   }
 
   update(updater: (store: Record<string, unknown>) => Record<string, unknown>): void {
@@ -36,9 +36,9 @@ export class CachedBackend implements StorageBackend {
   flush(): void {
     this.clearTimers();
     if (this.dirty) {
-      this.dirty = false;
       const snapshot = { ...this.cache };
       this.inner.update(() => snapshot);
+      this.dirty = false;
     }
   }
 
