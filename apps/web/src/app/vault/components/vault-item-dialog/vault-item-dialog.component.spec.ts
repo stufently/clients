@@ -3,7 +3,7 @@ import { By } from "@angular/platform-browser";
 import { provideNoopAnimations } from "@angular/platform-browser/animations";
 import { ActivatedRoute, Router } from "@angular/router";
 import { mock } from "jest-mock-extended";
-import { of } from "rxjs";
+import { EMPTY, of } from "rxjs";
 
 import { CollectionService } from "@bitwarden/admin-console/common";
 import { ApiService } from "@bitwarden/common/abstractions/api.service";
@@ -28,9 +28,7 @@ import { CipherType } from "@bitwarden/common/vault/enums";
 import { CipherAuthorizationService } from "@bitwarden/common/vault/services/cipher-authorization.service";
 import { TaskService } from "@bitwarden/common/vault/tasks";
 import { DialogRef, DIALOG_DATA, DialogService, ToastService } from "@bitwarden/components";
-import { RoutedVaultFilterService } from "@bitwarden/vault";
-
-import { VaultItemDialogComponent } from "./vault-item-dialog.component";
+import { VaultItemDialogComponent, RoutedVaultFilterService } from "@bitwarden/vault";
 
 // Create a test subclass to more easily access protected members
 class TestVaultItemDialogComponent extends VaultItemDialogComponent {
@@ -109,7 +107,7 @@ describe("VaultItemDialogComponent", () => {
           provide: BillingAccountProfileStateService,
           useValue: { hasPremiumFromAnySource$: () => ({}) },
         },
-        { provide: PremiumUpgradePromptService, useValue: {} },
+        { provide: PremiumUpgradePromptService, useValue: { upgradeConfirmed$: EMPTY } },
         { provide: CipherAuthorizationService, useValue: {} },
         { provide: ApiService, useValue: {} },
         { provide: EventCollectionService, useValue: {} },
