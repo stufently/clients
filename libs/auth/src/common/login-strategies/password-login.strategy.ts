@@ -62,7 +62,7 @@ export class PasswordLoginStrategy extends LoginStrategy {
   localMasterKeyHash$: Observable<string | null>;
 
   protected cache: BehaviorSubject<PasswordLoginStrategyData>;
-  
+
   // Cache the feature flag state in the service, so that every time the service is accessed, the value is the same.
   // Changing the feature flag state during runtime could lead to unintended behavior, since there are multiple times
   // where this value is checked.
@@ -84,10 +84,12 @@ export class PasswordLoginStrategy extends LoginStrategy {
       map((state) => state.tokenRequest.masterPasswordHash),
     );
     this.localMasterKeyHash$ = this.cache.pipe(map((state) => state.localMasterKeyHash));
-    
+
     // Set the feature flag state; this will run in the background since the constructor itself cannot be async
     void (async () => {
-      this.unlockServiceForPasswordLogin = await this.configService.getFeatureFlag(FeatureFlag.UseUnlockServiceForPasswordLogin);
+      this.unlockServiceForPasswordLogin = await this.configService.getFeatureFlag(
+        FeatureFlag.UseUnlockServiceForPasswordLogin,
+      );
     })();
   }
 
@@ -145,10 +147,7 @@ export class PasswordLoginStrategy extends LoginStrategy {
     userId: UserId,
   ): Promise<void> {
     if (this.unlockServiceForPasswordLogin) {
-      await this.unlockService.unlockWithMasterPassword(
-        userId,
-        this.cache.value.masterPassword,
-      );
+      await this.unlockService.unlockWithMasterPassword(userId, this.cache.value.masterPassword);
     } else {
       // If migration is required, we won't have a user key to set yet.
       if (this.encryptionKeyMigrationRequired(response)) {

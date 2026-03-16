@@ -57,13 +57,14 @@ import { UserDecryptionOptionsService } from "../user-decryption-options/user-de
 
 import { LoginStrategyService } from "./login-strategy.service";
 import { CACHE_EXPIRATION_KEY } from "./login-strategy.state";
+import { UnlockService } from "@bitwarden/unlock";
 
 describe("LoginStrategyService", () => {
   let sut: LoginStrategyService;
 
   let accountService: FakeAccountService;
   let masterPasswordService: FakeMasterPasswordService;
-  let masterPasswordUnlockService: MockProxy<MasterPasswordUnlockService>;
+  let unlockService: MockProxy<UnlockService>;
   let keyService: MockProxy<KeyService>;
   let apiService: MockProxy<ApiService>;
   let tokenService: MockProxy<TokenService>;
@@ -97,7 +98,7 @@ describe("LoginStrategyService", () => {
   beforeEach(() => {
     accountService = mockAccountServiceWith(userId);
     masterPasswordService = new FakeMasterPasswordService();
-    masterPasswordUnlockService = mock<MasterPasswordUnlockService>();
+    unlockService = mock<UnlockService>();
     keyService = mock<KeyService>();
     apiService = mock<ApiService>();
     tokenService = mock<TokenService>();
@@ -127,7 +128,7 @@ describe("LoginStrategyService", () => {
     sut = new LoginStrategyService(
       accountService,
       masterPasswordService,
-      masterPasswordUnlockService,
+      unlockService,
       keyService,
       apiService,
       tokenService,
