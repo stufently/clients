@@ -73,7 +73,6 @@ export class UserApiLoginStrategy extends LoginStrategy {
       response.canUnlockWithKeyConnector() &&
       (await this.configService.getFeatureFlag(FeatureFlag.UnlockKeyConnectorWithSdk))
     ) {
-      await this.masterPasswordService.setMasterKeyEncryptedUserKey(response.key, userId);
       await this.unlockService.unlockWithKeyConnector(
         userId,
         response.intoKeyConnectorUnlockData(),
