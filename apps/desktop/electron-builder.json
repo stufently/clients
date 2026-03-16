@@ -95,7 +95,8 @@
     "target": ["portable", "nsis-web", "appx"],
     "signExts": [".dll", ".node"],
     "signtoolOptions": {
-      "sign": "./sign.js"
+      "sign": "./sign.js",
+      "publisherName": "Bitwarden Inc."
     },
     "extraFiles": [
       {
@@ -164,7 +165,6 @@
   },
   "nsisWeb": {
     "oneClick": false,
-    "publisherName": "Bitwarden Inc.",
     "perMachine": false,
     "allowToChangeInstallationDirectory": false,
     "artifactName": "${productName}-Installer-${version}.${ext}",
