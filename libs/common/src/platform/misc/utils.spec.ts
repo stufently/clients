@@ -302,7 +302,7 @@ describe("Utils Service", () => {
       expect(b64String).toBe(b64HelloWorldString);
     });
 
-    runInBothEnvironments("should return an empty string for an empty ArrayBuffer", () => {
+    runInBothEnvironments("should return empty string for an empty ArrayBuffer", () => {
       const buffer = new Uint8Array([]).buffer;
       const b64String = Utils.fromBufferToB64(buffer);
       expect(b64String).toBe("");
@@ -311,6 +311,81 @@ describe("Utils Service", () => {
     runInBothEnvironments("should return null for null input", () => {
       const b64String = Utils.fromBufferToB64(null);
       expect(b64String).toBeNull();
+    });
+
+    runInBothEnvironments("returns null for undefined input", () => {
+      const b64 = Utils.fromBufferToB64(undefined as unknown as ArrayBuffer);
+      expect(b64).toBeNull();
+    });
+
+    runInBothEnvironments("returns empty string for empty input", () => {
+      const b64 = Utils.fromBufferToB64(new ArrayBuffer(0));
+      expect(b64).toBe("");
+    });
+
+    runInBothEnvironments("accepts Uint8Array directly", () => {
+      const u8 = new Uint8Array(asciiHelloWorldArray);
+      const b64 = Utils.fromBufferToB64(u8);
+      expect(b64).toBe(b64HelloWorldString);
+    });
+
+    runInBothEnvironments("respects byteOffset/byteLength (view window)", () => {
+      // [xx, 'hello world', yy] — view should only encode the middle slice
+      const prefix = [1, 2, 3];
+      const suffix = [4, 5];
+      const all = new Uint8Array([...prefix, ...asciiHelloWorldArray, ...suffix]);
+      const view = new Uint8Array(all.buffer, prefix.length, asciiHelloWorldArray.length);
+      const b64 = Utils.fromBufferToB64(view);
+      expect(b64).toBe(b64HelloWorldString);
+    });
+
+    runInBothEnvironments("handles DataView (ArrayBufferView other than Uint8Array)", () => {
+      const u8 = new Uint8Array(asciiHelloWorldArray);
+      const dv = new DataView(u8.buffer, 0, u8.byteLength);
+      const b64 = Utils.fromBufferToB64(dv);
+      expect(b64).toBe(b64HelloWorldString);
+    });
+
+    runInBothEnvironments("handles DataView with offset/length window", () => {
+      // Buffer: [xx, 'hello world', yy]
+      const prefix = [9, 9, 9];
+      const suffix = [8, 8];
+      const all = new Uint8Array([...prefix, ...asciiHelloWorldArray, ...suffix]);
+
+      // DataView over just the "hello world" window
+      const dv = new DataView(all.buffer, prefix.length, asciiHelloWorldArray.length);
+
+      const b64 = Utils.fromBufferToB64(dv);
+      expect(b64).toBe(b64HelloWorldString);
+    });
+
+    runInBothEnvironments(
+      "encodes empty view (offset-length window of zero) as empty string",
+      () => {
+        const backing = new Uint8Array([1, 2, 3, 4]);
+        const emptyView = new Uint8Array(backing.buffer, 2, 0);
+        const b64 = Utils.fromBufferToB64(emptyView);
+        expect(b64).toBe("");
+      },
+    );
+
+    runInBothEnvironments("does not mutate the input", () => {
+      const original = new Uint8Array(asciiHelloWorldArray);
+      const copyBefore = new Uint8Array(original); // snapshot
+      Utils.fromBufferToB64(original);
+      expect(original).toEqual(copyBefore); // unchanged
+    });
+
+    it("produces the same Base64 in Node vs non-Node mode", () => {
+      const bytes = new Uint8Array(asciiHelloWorldArray);
+
+      Utils.isNode = true;
+      const nodeB64 = Utils.fromBufferToB64(bytes);
+
+      Utils.isNode = false;
+      const browserB64 = Utils.fromBufferToB64(bytes);
+
+      expect(browserB64).toBe(nodeB64);
     });
   });
 
@@ -340,6 +415,200 @@ describe("Utils Service", () => {
     //     Utils.fromB64ToArrayBuffer(invalidB64String);
     //   }).toThrow();
     // });
+  });
+
+  describe("fromArrayToHex(...)", () => {
+    const originalIsNode = Utils.isNode;
+
+    afterEach(() => {
+      Utils.isNode = originalIsNode;
+    });
+
+    runInBothEnvironments("should convert a Uint8Array to a hex string", () => {
+      const arr = new Uint8Array([0x00, 0x01, 0x02, 0x0a, 0xff]);
+      const hexString = Utils.fromArrayToHex(arr);
+      expect(hexString).toBe("0001020aff");
+    });
+
+    runInBothEnvironments("should return null for null input", () => {
+      const hexString = Utils.fromArrayToHex(null);
+      expect(hexString).toBeNull();
+    });
+
+    runInBothEnvironments("should return empty string for an empty Uint8Array", () => {
+      const arr = new Uint8Array([]);
+      const hexString = Utils.fromArrayToHex(arr);
+      expect(hexString).toBe("");
+    });
+  });
+
+  describe("fromArrayToB64(...)", () => {
+    const originalIsNode = Utils.isNode;
+
+    afterEach(() => {
+      Utils.isNode = originalIsNode;
+    });
+
+    runInBothEnvironments("should convert a Uint8Array to a b64 string", () => {
+      const arr = new Uint8Array(asciiHelloWorldArray);
+      const b64String = Utils.fromArrayToB64(arr);
+      expect(b64String).toBe(b64HelloWorldString);
+    });
+
+    runInBothEnvironments("should return null for null input", () => {
+      const b64String = Utils.fromArrayToB64(null);
+      expect(b64String).toBeNull();
+    });
+
+    runInBothEnvironments("should return empty string for an empty Uint8Array", () => {
+      const arr = new Uint8Array([]);
+      const b64String = Utils.fromArrayToB64(arr);
+      expect(b64String).toBe("");
+    });
+  });
+
+  describe("fromArrayToUrlB64(...)", () => {
+    const originalIsNode = Utils.isNode;
+
+    afterEach(() => {
+      Utils.isNode = originalIsNode;
+    });
+
+    runInBothEnvironments("should convert a Uint8Array to a URL-safe b64 string", () => {
+      // Input that produces +, /, and = in standard base64
+      const arr = new Uint8Array([251, 255, 254]);
+      const urlB64String = Utils.fromArrayToUrlB64(arr);
+      // Standard b64 would be "+//+" with padding, URL-safe removes padding and replaces chars
+      expect(urlB64String).not.toContain("+");
+      expect(urlB64String).not.toContain("/");
+      expect(urlB64String).not.toContain("=");
+    });
+
+    runInBothEnvironments("should return null for null input", () => {
+      const urlB64String = Utils.fromArrayToUrlB64(null);
+      expect(urlB64String).toBeNull();
+    });
+
+    runInBothEnvironments("should return empty string for an empty Uint8Array", () => {
+      const arr = new Uint8Array([]);
+      const urlB64String = Utils.fromArrayToUrlB64(arr);
+      expect(urlB64String).toBe("");
+    });
+  });
+
+  describe("fromBufferToUrlB64(...) - SSO PKCE scenario", () => {
+    // Simulates a SHA-256 digest that produces padding in standard base64.
+    // The PKCE code_challenge (RFC 7636 4.2) MUST be unpadded URL-safe base64.
+    const sha256DigestBytes = new Uint8Array([
+      0xbb, 0xff, 0xbb, 0xf1, 0xfe, 0xef, 0x9b, 0xf1, 0xbe, 0xef, 0x9b, 0xf1, 0xbe, 0xef, 0x9b,
+      0xf1, 0xbe, 0xef, 0xdb, 0xf1, 0xba, 0xef, 0x9b, 0xf1, 0xfe, 0xef, 0x9b, 0xf1, 0xfe, 0xef,
+      0x9b, 0xf1,
+    ]);
+
+    const TEST_VECTOR_URL_BASE64 = "u_-78f7vm_G-75vxvu-b8b7v2_G675vx_u-b8f7vm_E";
+    it("should output the correct value for the test value", () => {
+      const result = Utils.fromBufferToUrlB64(sha256DigestBytes.buffer);
+      expect(result).toBe(TEST_VECTOR_URL_BASE64);
+    });
+  });
+
+  describe("fromArrayToUrlB64(...) - SSO PKCE scenario", () => {
+    const sha256DigestBytes = new Uint8Array([
+      0xbb, 0xff, 0xbb, 0xf1, 0xfe, 0xef, 0x9b, 0xf1, 0xbe, 0xef, 0x9b, 0xf1, 0xbe, 0xef, 0x9b,
+      0xf1, 0xbe, 0xef, 0xdb, 0xf1, 0xba, 0xef, 0x9b, 0xf1, 0xfe, 0xef, 0x9b, 0xf1, 0xfe, 0xef,
+      0x9b, 0xf1,
+    ]);
+
+    const TEST_VECTOR_URL_BASE64 = "u_-78f7vm_G-75vxvu-b8b7v2_G675vx_u-b8f7vm_E";
+    it("should output the correct value for the test value", () => {
+      const result = Utils.fromArrayToUrlB64(sha256DigestBytes);
+      expect(result).toBe(TEST_VECTOR_URL_BASE64);
+    });
+  });
+
+  describe("fromBufferToUrlB64 and fromArrayToUrlB64 parity", () => {
+    const testCases = [
+      {
+        name: "SHA-256 digest (produces padding)",
+        bytes: new Uint8Array([
+          0xbb, 0xff, 0xbb, 0xf1, 0xfe, 0xef, 0x9b, 0xf1, 0xbe, 0xef, 0x9b, 0xf1, 0xbe, 0xef, 0x9b,
+          0xf1, 0xbe, 0xef, 0xdb, 0xf1, 0xba, 0xef, 0x9b, 0xf1, 0xfe, 0xef, 0x9b, 0xf1, 0xfe, 0xef,
+          0x9b, 0xf1,
+        ]),
+      },
+      {
+        name: "3 bytes (produces + and / in standard base64)",
+        bytes: new Uint8Array([251, 255, 254]),
+      },
+      { name: "empty input", bytes: new Uint8Array([]) },
+      { name: "single byte", bytes: new Uint8Array([0xff]) },
+      { name: "two bytes (produces 1 padding char)", bytes: new Uint8Array([0xab, 0xcd]) },
+    ];
+
+    testCases.forEach(({ name, bytes }) => {
+      it(`should produce identical output for: ${name}`, () => {
+        const fromBuffer = Utils.fromBufferToUrlB64(bytes.buffer);
+        const fromArray = Utils.fromArrayToUrlB64(bytes);
+        expect(fromArray).toBe(fromBuffer);
+      });
+    });
+  });
+
+  describe("fromArrayToByteString(...)", () => {
+    const originalIsNode = Utils.isNode;
+
+    afterEach(() => {
+      Utils.isNode = originalIsNode;
+    });
+
+    runInBothEnvironments("should convert a Uint8Array to a byte string", () => {
+      const arr = new Uint8Array(asciiHelloWorldArray);
+      const byteString = Utils.fromArrayToByteString(arr);
+      expect(byteString).toBe(asciiHelloWorld);
+    });
+
+    runInBothEnvironments("should return null for null input", () => {
+      const byteString = Utils.fromArrayToByteString(null);
+      expect(byteString).toBeNull();
+    });
+
+    runInBothEnvironments("should return empty string for an empty Uint8Array", () => {
+      const arr = new Uint8Array([]);
+      const byteString = Utils.fromArrayToByteString(arr);
+      expect(byteString).toBe("");
+    });
+  });
+
+  describe("fromArrayToUtf8(...)", () => {
+    const originalIsNode = Utils.isNode;
+
+    afterEach(() => {
+      Utils.isNode = originalIsNode;
+    });
+
+    runInBothEnvironments("should convert a Uint8Array to a UTF-8 string", () => {
+      const arr = new Uint8Array(asciiHelloWorldArray);
+      const utf8String = Utils.fromArrayToUtf8(arr);
+      expect(utf8String).toBe(asciiHelloWorld);
+    });
+
+    runInBothEnvironments("should return null for null input", () => {
+      const utf8String = Utils.fromArrayToUtf8(null);
+      expect(utf8String).toBeNull();
+    });
+
+    runInBothEnvironments("should return empty string for an empty Uint8Array", () => {
+      const arr = new Uint8Array([]);
+      const utf8String = Utils.fromArrayToUtf8(arr);
+      expect(utf8String).toBe("");
+    });
+
+    runInBothEnvironments("should handle multi-byte UTF-8 characters", () => {
+      // "日本" in UTF-8 bytes
+      const arr = new Uint8Array([0xe6, 0x97, 0xa5, 0xe6, 0x9c, 0xac]);
+      const utf8String = Utils.fromArrayToUtf8(arr);
+      expect(utf8String).toBe("日本");
+    });
   });
 
   describe("Base64 and ArrayBuffer round trip conversions", () => {
@@ -372,10 +641,10 @@ describe("Utils Service", () => {
       "should correctly round trip convert from base64 to ArrayBuffer and back",
       () => {
         // Convert known base64 string to ArrayBuffer
-        const bufferFromB64 = Utils.fromB64ToArray(b64HelloWorldString).buffer;
+        const bufferFromB64 = Utils.fromB64ToArray(b64HelloWorldString);
 
         // Convert the ArrayBuffer back to a base64 string
-        const roundTrippedB64String = Utils.fromBufferToB64(bufferFromB64);
+        const roundTrippedB64String = Utils.fromArrayToB64(bufferFromB64);
 
         // Compare the original base64 string with the round-tripped base64 string
         expect(roundTrippedB64String).toBe(b64HelloWorldString);
@@ -611,6 +880,32 @@ describe("Utils Service", () => {
       expect(
         Utils.normalizePath("api/sends/access/..%2f..%2f..%2fapi%2fsends%2faccess%2fsendkey"),
       ).toBe(path.normalize("api/sends/access/sendkey"));
+    });
+  });
+
+  describe("invalidUrlPatterns", () => {
+    it("should return false if no invalid patterns are found", () => {
+      const urlString = "https://www.example.com/api/my/account/status";
+
+      const actual = Utils.invalidUrlPatterns(urlString);
+
+      expect(actual).toBe(false);
+    });
+
+    it("should return true if an invalid pattern is found", () => {
+      const urlString = "https://www.example.com/api/%2e%2e/secret";
+
+      const actual = Utils.invalidUrlPatterns(urlString);
+
+      expect(actual).toBe(true);
+    });
+
+    it("should return true if an invalid pattern is found in a param", () => {
+      const urlString = "https://www.example.com/api/history?someToken=../secret";
+
+      const actual = Utils.invalidUrlPatterns(urlString);
+
+      expect(actual).toBe(true);
     });
   });
 

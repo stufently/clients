@@ -55,6 +55,11 @@ export class WindowMain {
     // Perform a hard reload of the render process by crashing it. This is suboptimal but ensures that all memory gets
     // cleared, as the process itself will be completely garbage collected.
     ipcMain.on("reload-process", async () => {
+      if (isDev()) {
+        this.logService.info("Process reload requested, but skipping in development mode");
+        return;
+      }
+
       this.logService.info("Reloading render process");
       // User might have changed theme, ensure the window is updated.
       this.win.setBackgroundColor(await this.getBackgroundColor());
@@ -82,7 +87,12 @@ export class WindowMain {
 
     ipcMain.on("window-hide", () => {
       if (this.win != null) {
-        this.win.hide();
+        if (isWindows()) {
+          // On windows, to return focus we need minimize
+          this.win.minimize();
+        } else {
+          this.win.hide();
+        }
       }
     });
 
@@ -95,10 +105,10 @@ export class WindowMain {
             applyMainWindowStyles(this.win, this.windowStates[mainWindowSizeKey]);
             // Because modal is used in front of another app, UX wise it makes sense to hide the main window when leaving modal mode.
             this.win.hide();
-          } else if (!lastValue.isModalModeActive && newValue.isModalModeActive) {
+          } else if (newValue.isModalModeActive) {
             // Apply the popup modal styles
             this.logService.info("Applying popup modal styles", newValue.modalPosition);
-            applyPopupModalStyles(this.win, newValue.modalPosition);
+            applyPopupModalStyles(this.win, newValue.showTrafficButtons, newValue.modalPosition);
             this.win.show();
           }
         }),
@@ -180,6 +190,7 @@ export class WindowMain {
 
           await this.createWindow();
           resolve();
+
           if (this.argvCallback != null) {
             this.argvCallback(process.argv);
           }
@@ -267,7 +278,7 @@ export class WindowMain {
     this.win = new BrowserWindow({
       width: this.windowStates[mainWindowSizeKey].width,
       height: this.windowStates[mainWindowSizeKey].height,
-      minWidth: 680,
+      minWidth: 600,
       minHeight: 500,
       x: this.windowStates[mainWindowSizeKey].x,
       y: this.windowStates[mainWindowSizeKey].y,
@@ -298,7 +309,9 @@ export class WindowMain {
       this.win.webContents.zoomFactor = this.windowStates[mainWindowSizeKey].zoomFactor ?? 1.0;
     });
 
-    // Persist zoom changes immediately when user zooms in/out or resets zoom
+    // Persist zoom changes from mouse wheel and programmatic zoom operations
+    // NOTE: This event does NOT fire for keyboard shortcuts (Ctrl+/-/0, Cmd+/-/0)
+    // which are handled by custom menu click handlers in ViewMenu
     // We can't depend on higher level web events (like close) to do this
     // because locking the vault resets window state.
     this.win.webContents.on("zoom-changed", async () => {
@@ -427,6 +440,11 @@ export class WindowMain {
     await this.desktopSettingsService.setAlwaysOnTop(this.enableAlwaysOnTop);
   }
 
+  async saveZoomFactor(zoomFactor: number) {
+    this.windowStates[mainWindowSizeKey].zoomFactor = zoomFactor;
+    await this.desktopSettingsService.setWindow(this.windowStates[mainWindowSizeKey]);
+  }
+
   private windowStateChangeHandler(configKey: string, win: BrowserWindow) {
     global.clearTimeout(this.windowStateChangeTimer);
     this.windowStateChangeTimer = global.setTimeout(async () => {
@@ -500,9 +518,9 @@ export class WindowMain {
         displayBounds.x !== state.displayBounds.x ||
         displayBounds.y !== state.displayBounds.y
       ) {
-        state.x = undefined;
-        state.y = undefined;
         displayBounds = screen.getPrimaryDisplay().bounds;
+        state.x = displayBounds.x + displayBounds.width / 2 - state.width / 2;
+        state.y = displayBounds.y + displayBounds.height / 2 - state.height / 2;
       }
     }
 

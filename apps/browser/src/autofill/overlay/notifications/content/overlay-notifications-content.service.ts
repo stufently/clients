@@ -1,7 +1,6 @@
-// FIXME: Update this file to be type safe and remove this and next line
-// @ts-strict-ignore
 import { EVENTS } from "@bitwarden/common/autofill/constants";
 
+import { BrowserApi } from "../../../../platform/browser/browser-api";
 import {
   NotificationBarIframeInitData,
   NotificationType,
@@ -14,39 +13,32 @@ import {
   OverlayNotificationsExtensionMessageHandlers,
 } from "../abstractions/overlay-notifications-content.service";
 
-export class OverlayNotificationsContentService
-  implements OverlayNotificationsContentServiceInterface
-{
+export class OverlayNotificationsContentService implements OverlayNotificationsContentServiceInterface {
+  private notificationBarRootElement: HTMLElement | null = null;
   private notificationBarElement: HTMLElement | null = null;
   private notificationBarIframeElement: HTMLIFrameElement | null = null;
+  private notificationBarShadowRoot: ShadowRoot | null = null;
   private currentNotificationBarType: NotificationType | null = null;
-  private notificationRefreshFlag: boolean = false;
-  private getNotificationBarStyles(): Partial<CSSStyleDeclaration> {
-    const styles: Partial<CSSStyleDeclaration> = {
-      height: "400px",
-      width: "430px",
-      maxWidth: "calc(100% - 20px)",
-      minHeight: "initial",
-      top: "10px",
-      right: "0px",
-      padding: "0",
-      position: "fixed",
-      zIndex: "2147483647",
-      visibility: "visible",
-      borderRadius: "4px",
-      border: "none",
-      backgroundColor: "transparent",
-      overflow: "hidden",
-      transition: "box-shadow 0.15s ease",
-      transitionDelay: "0.15s",
-    };
+  private readonly extensionOrigin: string;
+  private notificationBarContainerStyles: Partial<CSSStyleDeclaration> = {
+    height: "400px",
+    width: "430px",
+    maxWidth: "calc(100% - 20px)",
+    minHeight: "initial",
+    top: "10px",
+    right: "0px",
+    padding: "0",
+    position: "fixed",
+    zIndex: "2147483647",
+    visibility: "visible",
+    borderRadius: "4px",
+    border: "none",
+    backgroundColor: "transparent",
+    overflow: "hidden",
+    transition: "box-shadow 0.15s ease",
+    transitionDelay: "0.15s",
+  };
 
-    if (!this.notificationRefreshFlag) {
-      styles.height = "82px";
-      styles.right = "10px";
-    }
-    return styles;
-  }
   private notificationBarIframeElementStyles: Partial<CSSStyleDeclaration> = {
     width: "100%",
     height: "100%",
@@ -57,6 +49,7 @@ export class OverlayNotificationsContentService
     borderRadius: "4px",
     colorScheme: "auto",
   };
+
   private readonly extensionMessageHandlers: OverlayNotificationsExtensionMessageHandlers = {
     openNotificationBar: ({ message }) => this.handleOpenNotificationBarMessage(message),
     closeNotificationBar: ({ message }) => this.handleCloseNotificationBarMessage(message),
@@ -66,6 +59,7 @@ export class OverlayNotificationsContentService
   };
 
   constructor() {
+    this.extensionOrigin = BrowserApi.getRuntimeURL("")?.slice(0, -1);
     void sendExtensionMessage("checkNotificationQueue");
   }
 
@@ -88,10 +82,15 @@ export class OverlayNotificationsContentService
     }
     const { type, typeData, params } = message.data;
 
+    if (!typeData) {
+      return;
+    }
+
     if (this.currentNotificationBarType && type !== this.currentNotificationBarType) {
       this.closeNotificationBar();
     }
-    const initData = {
+
+    const initData: NotificationBarIframeInitData = {
       type: type as NotificationType,
       isVaultLocked: typeData.isVaultLocked,
       theme: typeData.theme,
@@ -100,10 +99,6 @@ export class OverlayNotificationsContentService
       launchTimestamp: typeData.launchTimestamp,
       params,
     };
-
-    await sendExtensionMessage("notificationRefreshFlagValue").then((notificationRefreshFlag) => {
-      this.notificationRefreshFlag = !!notificationRefreshFlag;
-    });
 
     if (globalThis.document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", () => this.openNotificationBar(initData));
@@ -123,7 +118,9 @@ export class OverlayNotificationsContentService
     const closedByUser =
       typeof message.data?.closedByUser === "boolean" ? message.data.closedByUser : true;
     if (message.data?.fadeOutNotification) {
-      setElementStyles(this.notificationBarIframeElement, { opacity: "0" }, true);
+      if (this.notificationBarIframeElement) {
+        setElementStyles(this.notificationBarIframeElement, { opacity: "0" }, true);
+      }
       globalThis.setTimeout(() => this.closeNotificationBar(closedByUser), 150);
       return;
     }
@@ -168,12 +165,14 @@ export class OverlayNotificationsContentService
    * @private
    */
   private openNotificationBar(initData: NotificationBarIframeInitData) {
-    if (!this.notificationBarElement && !this.notificationBarIframeElement) {
+    if (!this.notificationBarRootElement && !this.notificationBarIframeElement) {
       this.createNotificationBarIframeElement(initData);
       this.createNotificationBarElement();
 
       this.setupInitNotificationBarMessageListener(initData);
-      globalThis.document.body.appendChild(this.notificationBarElement);
+      if (this.notificationBarRootElement) {
+        globalThis.document.body.appendChild(this.notificationBarRootElement);
+      }
     }
   }
 
@@ -186,10 +185,14 @@ export class OverlayNotificationsContentService
     const isNotificationFresh =
       initData.launchTimestamp && Date.now() - initData.launchTimestamp < 250;
 
-    this.currentNotificationBarType = initData.type;
+    this.currentNotificationBarType = initData.type ?? null;
     this.notificationBarIframeElement = globalThis.document.createElement("iframe");
     this.notificationBarIframeElement.id = "bit-notification-bar-iframe";
-    this.notificationBarIframeElement.src = chrome.runtime.getURL("notification/bar.html");
+    const parentOrigin = globalThis.location.origin;
+    const iframeUrl = new URL(BrowserApi.getRuntimeURL("notification/bar.html"));
+    iframeUrl.searchParams.set("parentOrigin", parentOrigin);
+    this.notificationBarIframeElement.src = iframeUrl.toString();
+    this.notificationBarIframeElement.setAttribute("credentialless", "");
     setElementStyles(
       this.notificationBarIframeElement,
       {
@@ -210,34 +213,40 @@ export class OverlayNotificationsContentService
    * This will animate the notification bar into view.
    */
   private handleNotificationBarIframeOnLoad = () => {
-    setElementStyles(
-      this.notificationBarIframeElement,
-      { transform: "translateX(0)", opacity: "1" },
-      true,
-    );
-    if (!this.notificationRefreshFlag) {
+    if (this.notificationBarIframeElement) {
       setElementStyles(
-        this.notificationBarElement,
-        { boxShadow: "2px 4px 6px 0px #0000001A" },
+        this.notificationBarIframeElement,
+        { transform: "translateX(0)", opacity: "1" },
         true,
       );
     }
-    this.notificationBarIframeElement.removeEventListener(
+
+    this.notificationBarIframeElement?.removeEventListener(
       EVENTS.LOAD,
       this.handleNotificationBarIframeOnLoad,
     );
   };
 
   /**
-   * Creates the container for the notification bar iframe.
+   * Creates the container for the notification bar iframe with shadow DOM.
    */
   private createNotificationBarElement() {
     if (this.notificationBarIframeElement) {
+      this.notificationBarRootElement = globalThis.document.createElement(
+        "bit-notification-bar-root",
+      );
+
+      this.notificationBarShadowRoot = this.notificationBarRootElement.attachShadow({
+        mode: "closed",
+        delegatesFocus: true,
+      });
+
       this.notificationBarElement = globalThis.document.createElement("div");
       this.notificationBarElement.id = "bit-notification-bar";
 
-      setElementStyles(this.notificationBarElement, this.getNotificationBarStyles(), true);
+      setElementStyles(this.notificationBarElement, this.notificationBarContainerStyles, true);
 
+      this.notificationBarShadowRoot.appendChild(this.notificationBarElement);
       this.notificationBarElement.appendChild(this.notificationBarIframeElement);
     }
   }
@@ -252,13 +261,18 @@ export class OverlayNotificationsContentService
     const handleInitNotificationBarMessage = (event: MessageEvent) => {
       const { source, data } = event;
       if (
+        !this.notificationBarIframeElement?.contentWindow ||
         source !== this.notificationBarIframeElement.contentWindow ||
         data?.command !== "initNotificationBar"
       ) {
         return;
       }
 
-      this.sendMessageToNotificationBarIframe({ command: "initNotificationBar", initData });
+      this.sendMessageToNotificationBarIframe({
+        command: "initNotificationBar",
+        initData,
+        parentOrigin: globalThis.location.origin,
+      });
       globalThis.removeEventListener("message", handleInitNotificationBarMessage);
     };
 
@@ -274,15 +288,19 @@ export class OverlayNotificationsContentService
    * @param closedByUserAction - Whether the notification bar was closed by the user.
    */
   private closeNotificationBar(closedByUserAction: boolean = false) {
-    if (!this.notificationBarElement && !this.notificationBarIframeElement) {
+    if (!this.notificationBarRootElement && !this.notificationBarIframeElement) {
       return;
     }
 
-    this.notificationBarIframeElement.remove();
+    this.notificationBarIframeElement?.remove();
     this.notificationBarIframeElement = null;
 
-    this.notificationBarElement.remove();
+    this.notificationBarElement?.remove();
     this.notificationBarElement = null;
+    this.notificationBarShadowRoot = null;
+
+    this.notificationBarRootElement?.remove();
+    this.notificationBarRootElement = null;
 
     const removableNotificationTypes = new Set([
       NotificationTypes.Add,
@@ -290,7 +308,11 @@ export class OverlayNotificationsContentService
       NotificationTypes.AtRiskPassword,
     ] as NotificationType[]);
 
-    if (closedByUserAction && removableNotificationTypes.has(this.currentNotificationBarType)) {
+    if (
+      closedByUserAction &&
+      this.currentNotificationBarType &&
+      removableNotificationTypes.has(this.currentNotificationBarType)
+    ) {
       void sendExtensionMessage("bgRemoveTabFromNotificationQueue");
     }
 
@@ -303,8 +325,8 @@ export class OverlayNotificationsContentService
    * @param message - The message to send to the notification bar iframe.
    */
   private sendMessageToNotificationBarIframe(message: Record<string, any>) {
-    if (this.notificationBarIframeElement) {
-      this.notificationBarIframeElement.contentWindow.postMessage(message, "*");
+    if (this.notificationBarIframeElement?.contentWindow) {
+      this.notificationBarIframeElement.contentWindow.postMessage(message, this.extensionOrigin);
     }
   }
 
