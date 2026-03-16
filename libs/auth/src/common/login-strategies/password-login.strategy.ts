@@ -14,12 +14,12 @@ import { IdentitySsoRequiredResponse } from "@bitwarden/common/auth/models/respo
 import { IdentityTokenResponse } from "@bitwarden/common/auth/models/response/identity-token.response";
 import { IdentityTwoFactorResponse } from "@bitwarden/common/auth/models/response/identity-two-factor.response";
 import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
-import { MasterPasswordUnlockService } from "@bitwarden/common/key-management/master-password/abstractions/master-password-unlock.service";
 import { HashPurpose } from "@bitwarden/common/platform/enums";
 import { SymmetricCryptoKey } from "@bitwarden/common/platform/models/domain/symmetric-crypto-key";
 import { PasswordStrengthServiceAbstraction } from "@bitwarden/common/tools/password-strength";
 import { UserId } from "@bitwarden/common/types/guid";
 import { MasterKey } from "@bitwarden/common/types/key";
+import { UnlockService } from "@bitwarden/unlock";
 
 import { LoginStrategyServiceAbstraction } from "../abstractions";
 import { PasswordLoginCredentials } from "../models/domain/login-credentials";
@@ -62,13 +62,18 @@ export class PasswordLoginStrategy extends LoginStrategy {
   localMasterKeyHash$: Observable<string | null>;
 
   protected cache: BehaviorSubject<PasswordLoginStrategyData>;
+  
+  // Cache the feature flag state in the service, so that every time the service is accessed, the value is the same.
+  // Changing the feature flag state during runtime could lead to unintended behavior, since there are multiple times
+  // where this value is checked.
+  unlockServiceForPasswordLogin = false;
 
   constructor(
     data: PasswordLoginStrategyData,
     private passwordStrengthService: PasswordStrengthServiceAbstraction,
     private policyService: PolicyService,
     private loginStrategyService: LoginStrategyServiceAbstraction,
-    private masterPasswordUnlockService: MasterPasswordUnlockService,
+    private unlockService: UnlockService,
     ...sharedDeps: ConstructorParameters<typeof LoginStrategy>
   ) {
     super(...sharedDeps);
@@ -79,6 +84,11 @@ export class PasswordLoginStrategy extends LoginStrategy {
       map((state) => state.tokenRequest.masterPasswordHash),
     );
     this.localMasterKeyHash$ = this.cache.pipe(map((state) => state.localMasterKeyHash));
+    
+    // Set the feature flag state; this will run in the background since the constructor itself cannot be async
+    void (async () => {
+      this.unlockServiceForPasswordLogin = await this.configService.getFeatureFlag(FeatureFlag.UseUnlockServiceForPasswordLogin);
+    })();
   }
 
   override async logIn(credentials: PasswordLoginCredentials): Promise<AuthResult> {
@@ -123,44 +133,39 @@ export class PasswordLoginStrategy extends LoginStrategy {
   }
 
   protected override async setMasterKey(response: IdentityTokenResponse, userId: UserId) {
-    if (await this.shouldUseUnlockServiceForPasswordLogin()) {
-      return;
+    if (!this.unlockServiceForPasswordLogin) {
+      const { masterKey, localMasterKeyHash } = this.cache.value;
+      await this.masterPasswordService.setMasterKey(masterKey, userId);
+      await this.masterPasswordService.setMasterKeyHash(localMasterKeyHash, userId);
     }
-
-    const { masterKey, localMasterKeyHash } = this.cache.value;
-    await this.masterPasswordService.setMasterKey(masterKey, userId);
-    await this.masterPasswordService.setMasterKeyHash(localMasterKeyHash, userId);
   }
 
   protected override async setUserKey(
     response: IdentityTokenResponse,
     userId: UserId,
   ): Promise<void> {
-    // If migration is required, we won't have a user key to set yet.
-    if (this.encryptionKeyMigrationRequired(response)) {
-      return;
-    }
-
-    if (response.key) {
-      await this.masterPasswordService.setMasterKeyEncryptedUserKey(response.key, userId);
-    }
-
-    if (await this.shouldUseUnlockServiceForPasswordLogin()) {
-      const userKey = await this.masterPasswordUnlockService.unlockWithMasterPassword(
+    if (this.unlockServiceForPasswordLogin) {
+      await this.unlockService.unlockWithMasterPassword(
+        userId,
         this.cache.value.masterPassword,
-        userId,
       );
-      await this.keyService.setUserKey(userKey, userId);
-      return;
-    }
-
-    const masterKey = await firstValueFrom(this.masterPasswordService.masterKey$(userId));
-    if (masterKey) {
-      const userKey = await this.masterPasswordService.decryptUserKeyWithMasterKey(
-        masterKey,
-        userId,
-      );
-      await this.keyService.setUserKey(userKey, userId);
+    } else {
+      // If migration is required, we won't have a user key to set yet.
+      if (this.encryptionKeyMigrationRequired(response)) {
+        return;
+      }
+      await this.masterPasswordService.setMasterKeyEncryptedUserKey(response.key, userId);
+      // Warning: State is accessed right after state is set. This could lead to a race condition
+      // in some cases where decryptUserKeyWithMasterKey will get a null encrypted user-key!!
+      // https://github.com/bitwarden/clients/tree/afc45ee0c8fc823301bb361b0dcac581eb0aff0c/libs/state#updating-state-with-update
+      const masterKey = await firstValueFrom(this.masterPasswordService.masterKey$(userId));
+      if (masterKey) {
+        const userKey = await this.masterPasswordService.decryptUserKeyWithMasterKey(
+          masterKey,
+          userId,
+        );
+        await this.keyService.setUserKey(userKey, userId);
+      }
     }
   }
 
@@ -263,10 +268,6 @@ export class PasswordLoginStrategy extends LoginStrategy {
     )?.score;
 
     return this.policyService.evaluateMasterPassword(passwordStrength, masterPassword, options);
-  }
-
-  private async shouldUseUnlockServiceForPasswordLogin(): Promise<boolean> {
-    return await this.configService.getFeatureFlag(FeatureFlag.UseUnlockServiceForPasswordLogin);
   }
 
   exportCache(): CacheData {

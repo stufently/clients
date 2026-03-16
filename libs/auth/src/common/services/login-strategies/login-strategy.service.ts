@@ -528,7 +528,7 @@ export class LoginStrategyService implements LoginStrategyServiceAbstraction {
               this.passwordStrengthService,
               this.policyService,
               this,
-              this.masterPasswordUnlockService,
+              this.unlockService,
               ...sharedDeps,
             );
           case AuthenticationType.Sso:
