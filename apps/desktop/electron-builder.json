@@ -92,7 +92,6 @@
   },
   "win": {
     "electronUpdaterCompatibility": ">=0.0.1",
-    "publisherName": "Bitwarden Inc.",
     "target": ["portable", "nsis-web", "appx"],
     "signExts": [".dll", ".node"],
     "signtoolOptions": {
@@ -165,6 +164,7 @@
   },
   "nsisWeb": {
     "oneClick": false,
+    "publisherName": "Bitwarden Inc.",
     "perMachine": false,
     "allowToChangeInstallationDirectory": false,
     "artifactName": "${productName}-Installer-${version}.${ext}",
