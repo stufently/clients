@@ -44,6 +44,7 @@ import {
 } from "@bitwarden/common/tools/password-strength";
 import { UserId } from "@bitwarden/common/types/guid";
 import { KdfConfigService, KeyService, PBKDF2KdfConfig } from "@bitwarden/key-management";
+import { UnlockService } from "@bitwarden/unlock";;
 
 import { LoginStrategyServiceAbstraction } from "../abstractions";
 import { InternalUserDecryptionOptionsServiceAbstraction } from "../abstractions/user-decryption-options.service.abstraction";
@@ -51,7 +52,6 @@ import { PasswordLoginCredentials } from "../models";
 import { UserDecryptionOptions } from "../models/domain/user-decryption-options";
 
 import { PasswordLoginStrategy, PasswordLoginStrategyData } from "./password-login.strategy";
-import { UnlockService } from "../../../../unlock/src/unlock.service";
 
 const email = "hello@world.com";
 const masterPassword = "password";

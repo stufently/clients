@@ -47,6 +47,7 @@ import {
   KeyService,
   PBKDF2KdfConfig,
 } from "@bitwarden/key-management";
+import { UnlockService } from "@bitwarden/unlock";
 
 import {
   AuthRequestServiceAbstraction,
@@ -57,7 +58,6 @@ import { UserDecryptionOptionsService } from "../user-decryption-options/user-de
 
 import { LoginStrategyService } from "./login-strategy.service";
 import { CACHE_EXPIRATION_KEY } from "./login-strategy.state";
-import { UnlockService } from "@bitwarden/unlock";
 
 describe("LoginStrategyService", () => {
   let sut: LoginStrategyService;
