@@ -19,7 +19,7 @@ import { MasterKey } from "@bitwarden/common/types/key";
 import { BiometricsService, KdfConfig, KdfConfigService } from "@bitwarden/key-management";
 import { LogService } from "@bitwarden/logging";
 import {
-EncString,
+  EncString,
   Kdf,
   MasterPasswordUnlockData,
   PasswordProtectedKeyEnvelope,
@@ -154,7 +154,9 @@ export class DefaultUnlockService implements UnlockService {
   }
 
   async unlockWithKeyConnector(userId: UserId, keyConnectorUnlockData: KeyConnectorUnlockData): Promise<void> {
-    // Now that we have the decrypted user key from the key connector, we can initialize the SDK with it to complete the unlock process.
+    // The SDK is responsible for fetching the key-connector-key from the key-connector using the
+    // key-connector-unlock-data. It will unwrap the provided key and set it to state, unlocking
+    // the vault.
     const startTime = performance.now();
     await firstValueFrom(
       this.registerSdkService.registerClient$(userId).pipe(
