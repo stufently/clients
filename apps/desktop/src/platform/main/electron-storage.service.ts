@@ -56,7 +56,7 @@ export class ElectronStorageService implements AbstractStorageService {
   }
 
   has(key: string): Promise<boolean> {
-    const val = this.backend.read()[key] != null;
+    const val = this.backend.read()[key];
     return Promise.resolve(val != null);
   }
 
