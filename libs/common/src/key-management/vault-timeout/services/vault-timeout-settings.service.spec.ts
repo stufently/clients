@@ -365,8 +365,9 @@ describe("VaultTimeoutSettingsService", () => {
         );
       });
 
-      it("preserves explicit LogOut preference when only LogOut is available", async () => {
-        // TDE user explicitly chose LogOut then removed PIN — preference must survive
+      it("resets stored LogOut to null when only LogOut is available (master-password-less)", async () => {
+        // TDE user removed PIN — stored LogOut must be cleared so that re-enabling PIN later
+        // defaults back to Lock instead of staying on LogOut.
         userDecryptionOptionsSubject.next(new UserDecryptionOptions({ hasMasterPassword: false }));
         pinStateService.pinSet$.mockReturnValue(of(false));
         biometricStateService.biometricUnlockEnabled$.mockReturnValue(of(false));
@@ -376,14 +377,16 @@ describe("VaultTimeoutSettingsService", () => {
           VaultTimeoutAction.LogOut,
           mockUserId,
         );
-        const stateFake = stateProvider.singleUser.getFake(mockUserId, VAULT_TIMEOUT_ACTION);
-        stateFake.nextMock.mockClear();
 
         await firstValueFrom(
           vaultTimeoutSettingsService.getVaultTimeoutActionByUserId$(mockUserId),
         );
 
-        expect(stateFake.nextMock).not.toHaveBeenCalled();
+        // State must be reset to null; no token migration since the effective action didn't change
+        expect(
+          stateProvider.singleUser.getFake(mockUserId, VAULT_TIMEOUT_ACTION).nextMock,
+        ).toHaveBeenCalledWith(null);
+        expect(tokenService.setTokens).not.toHaveBeenCalled();
       });
 
       it("does not write when state is already null and only one action is available", async () => {
@@ -403,13 +406,15 @@ describe("VaultTimeoutSettingsService", () => {
         expect(stateFake.nextMock).not.toHaveBeenCalled();
       });
 
-      it("stores policy-forced LogOut when multiple actions are available (wasForced = false)", async () => {
+      it("stores policy-forced LogOut when multiple actions are available", async () => {
         // User with PIN — both Lock and LogOut available; policy forces LogOut
         userDecryptionOptionsSubject.next(new UserDecryptionOptions({ hasMasterPassword: false }));
         pinStateService.pinSet$.mockReturnValue(of(true));
         biometricStateService.biometricUnlockEnabled$.mockReturnValue(of(false));
         policyService.policiesByType$.mockReturnValue(
-          of([{ data: { action: VaultTimeoutAction.LogOut } }] as unknown as Policy[]),
+          of([
+            { data: { action: VaultTimeoutAction.LogOut, type: "never" } },
+          ] as unknown as Policy[]),
         );
 
         await stateProvider.setUserState(VAULT_TIMEOUT_ACTION, null, mockUserId);

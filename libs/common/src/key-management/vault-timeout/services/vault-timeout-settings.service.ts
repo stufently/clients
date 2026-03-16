@@ -311,17 +311,16 @@ export class VaultTimeoutSettingsService implements VaultTimeoutSettingsServiceA
           const oneActionAvailable = availableVaultTimeoutActions.length === 1;
           if (oneActionAvailable) {
             const availableAction = availableVaultTimeoutActions[0];
-            // Reset to default only if the stored action is incompatible with the forced option
-            // (e.g. "lock" stored when only LogOut is available). Keep if it matches
-            // (explicit user preference) or is null (nothing to clear).
-            if (
-              currentVaultTimeoutAction !== null &&
-              currentVaultTimeoutAction !== availableAction
-            ) {
+            // Always reset to null when only one action is available — even if the stored action
+            // matches. Ensures the default (Lock) is used when an unlock method (e.g. PIN) is
+            // re-enabled later.
+            if (currentVaultTimeoutAction !== null) {
               await this.stateProvider.setUserState(VAULT_TIMEOUT_ACTION, null, userId);
-              // Tokens were stored for the previous action (e.g. on disk for Lock);
-              // migrate them to the location required by the now-forced action.
-              await this.migrateTokenStorage(userId, availableAction, vaultTimeout);
+              // Only migrate tokens if the actual action changes (e.g. Lock → LogOut).
+              // No migration needed when stored action already matches the only available one.
+              if (currentVaultTimeoutAction !== availableAction) {
+                await this.migrateTokenStorage(userId, availableAction, vaultTimeout);
+              }
             }
           } else if (vaultTimeoutAction !== currentVaultTimeoutAction) {
             await this.stateProvider.setUserState(VAULT_TIMEOUT_ACTION, vaultTimeoutAction, userId);
