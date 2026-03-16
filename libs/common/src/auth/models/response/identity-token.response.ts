@@ -116,5 +116,5 @@ export class IdentityTokenResponse extends BaseResponse {
       url: this.userDecryptionOptions!.keyConnectorOption.keyConnectorUrl,
       keyConnectorKeyWrappedUserKey: this.key.toSdk(),
     };
-  } 
+  }
 }

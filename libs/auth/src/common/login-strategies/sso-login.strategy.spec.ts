@@ -512,13 +512,10 @@ describe("SsoLoginStrategy", () => {
 
       await ssoLoginStrategy.logIn(credentials);
 
-      expect(unlockService.unlockWithKeyConnector).toHaveBeenCalledWith(
-        userId,
-        {
-          url: keyConnectorUrl,
-          keyConnectorKeyWrappedUserKey: tokenResponse.key!.encryptedString!,
-        },
-      );
+      expect(unlockService.unlockWithKeyConnector).toHaveBeenCalledWith(userId, {
+        url: keyConnectorUrl,
+        keyConnectorKeyWrappedUserKey: tokenResponse.key!.encryptedString!,
+      });
       expect(keyConnectorService.setMasterKeyFromUrl).not.toHaveBeenCalled();
     });
 

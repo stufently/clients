@@ -137,7 +137,7 @@ export class SsoLoginStrategy extends LoginStrategy {
         );
       } else {
         const keyConnectorUrl = this.getKeyConnectorUrl(tokenResponse);
-        if (!await this.configService.getFeatureFlag(FeatureFlag.UnlockKeyConnectorWithSdk)) {
+        if (!(await this.configService.getFeatureFlag(FeatureFlag.UnlockKeyConnectorWithSdk))) {
           await this.keyConnectorService.setMasterKeyFromUrl(keyConnectorUrl, userId);
         }
       }
@@ -190,7 +190,10 @@ export class SsoLoginStrategy extends LoginStrategy {
 
     const userDecryptionOptions = tokenResponse?.userDecryptionOptions;
 
-    if (tokenResponse.canUnlockWithKeyConnector() && await this.configService.getFeatureFlag(FeatureFlag.UnlockKeyConnectorWithSdk)) {
+    if (
+      tokenResponse.canUnlockWithKeyConnector() &&
+      (await this.configService.getFeatureFlag(FeatureFlag.UnlockKeyConnectorWithSdk))
+    ) {
       await this.unlockService.unlockWithKeyConnector(
         userId,
         tokenResponse.intoKeyConnectorUnlockData(),
@@ -217,7 +220,7 @@ export class SsoLoginStrategy extends LoginStrategy {
     } else if (
       masterKeyEncryptedUserKey != null &&
       this.getKeyConnectorUrl(tokenResponse) != null &&
-      !await this.configService.getFeatureFlag(FeatureFlag.UnlockKeyConnectorWithSdk)
+      !(await this.configService.getFeatureFlag(FeatureFlag.UnlockKeyConnectorWithSdk))
     ) {
       // Key connector enabled for user
       await this.trySetUserKeyWithMasterKey(userId);

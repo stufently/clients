@@ -40,7 +40,7 @@ export type KeyConnectorUnlockData = {
    * The user-key wrapped by the key-connector-key
    */
   keyConnectorKeyWrappedUserKey: EncString;
-}
+};
 
 export class DefaultUnlockService implements UnlockService {
   constructor(
@@ -153,7 +153,10 @@ export class DefaultUnlockService implements UnlockService {
     this.logService.measure(startTime, "Unlock", "DefaultUnlockService", "unlockWithBiometrics");
   }
 
-  async unlockWithKeyConnector(userId: UserId, keyConnectorUnlockData: KeyConnectorUnlockData): Promise<void> {
+  async unlockWithKeyConnector(
+    userId: UserId,
+    keyConnectorUnlockData: KeyConnectorUnlockData,
+  ): Promise<void> {
     // The SDK is responsible for fetching the key-connector-key from the key-connector using the
     // key-connector-unlock-data. It will unwrap the provided key and set it to state, unlocking
     // the vault.
@@ -173,8 +176,9 @@ export class DefaultUnlockService implements UnlockService {
             method: {
               keyConnectorUrl: {
                 url: keyConnectorUnlockData.url,
-                key_connector_key_wrapped_user_key: keyConnectorUnlockData.keyConnectorKeyWrappedUserKey,
-              }
+                key_connector_key_wrapped_user_key:
+                  keyConnectorUnlockData.keyConnectorKeyWrappedUserKey,
+              },
             },
           });
         }),
