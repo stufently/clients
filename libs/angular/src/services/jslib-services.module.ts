@@ -555,7 +555,7 @@ const safeProviders: SafeProvider[] = [
     deps: [
       AccountServiceAbstraction,
       InternalMasterPasswordServiceAbstraction,
-      MasterPasswordUnlockService,
+      UnlockService,
       KeyService,
       ApiServiceAbstraction,
       TokenServiceAbstraction,
