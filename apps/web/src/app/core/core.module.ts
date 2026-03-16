@@ -43,6 +43,7 @@ import {
 import {
   InternalUserDecryptionOptionsServiceAbstraction,
   LoginEmailService,
+  LockService,
 } from "@bitwarden/auth/common";
 import { ApiService } from "@bitwarden/common/abstractions/api.service";
 import { OrganizationApiServiceAbstraction } from "@bitwarden/common/admin-console/abstractions/organization/organization-api.service.abstraction";
@@ -70,6 +71,8 @@ import { AccountCryptographicStateService } from "@bitwarden/common/key-manageme
 import { CryptoFunctionService } from "@bitwarden/common/key-management/crypto/abstractions/crypto-function.service";
 import { EncryptService } from "@bitwarden/common/key-management/crypto/abstractions/encrypt.service";
 import { InternalMasterPasswordServiceAbstraction } from "@bitwarden/common/key-management/master-password/abstractions/master-password.service.abstraction";
+import { SharedUnlockFollowerService } from "@bitwarden/common/key-management/shared-unlock";
+import { DefaultSharedUnlockFollowerService } from "@bitwarden/common/key-management/shared-unlock/default-shared-unlock-follower.service";
 import { SessionTimeoutTypeService } from "@bitwarden/common/key-management/session-timeout";
 import {
   VaultTimeout,
@@ -420,6 +423,11 @@ const safeProviders: SafeProvider[] = [
     provide: IpcService,
     useClass: WebIpcService,
     deps: [],
+  }),
+  safeProvider({
+    provide: SharedUnlockFollowerService,
+    useClass: DefaultSharedUnlockFollowerService,
+    deps: [IpcService, AccountService, LockService, KeyServiceAbstraction],
   }),
   safeProvider({
     provide: SshImportPromptService,

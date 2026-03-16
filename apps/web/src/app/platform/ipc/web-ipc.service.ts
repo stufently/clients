@@ -25,8 +25,10 @@ export class WebIpcService extends IpcService {
 
   override async init() {
     try {
+      console.log("Initializing WebIpcService...");
       // This function uses classes and functions defined in the SDK, so we need to wait for the SDK to load.
       await SdkLoadService.Ready;
+      console.log("SDK is ready, setting up communication backend...");
 
       this.communicationBackend = new IpcCommunicationBackend({
         async send(message: OutgoingMessage): Promise<void> {

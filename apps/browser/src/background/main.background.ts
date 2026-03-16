@@ -197,9 +197,8 @@ import {
   PasswordStrengthService,
   PasswordStrengthServiceAbstraction,
 } from "@bitwarden/common/tools/password-strength";
-import {
-  setup_shared_unlock_leader
-} from "@bitwarden/common/key-management/shared-unlock";
+import { SharedUnlockLeaderService } from "@bitwarden/common/key-management/shared-unlock";
+import { DefaultSharedUnlockLeaderService } from "@bitwarden/common/key-management/shared-unlock/default-shared-unlock-leader.service";
 import { createSystemServiceProvider } from "@bitwarden/common/tools/providers";
 import { SendApiService } from "@bitwarden/common/tools/send/services/send-api.service";
 import { SendApiService as SendApiServiceAbstraction } from "@bitwarden/common/tools/send/services/send-api.service.abstraction";
@@ -495,6 +494,7 @@ export default class MainBackground {
 
   ipcContentScriptManagerService: IpcContentScriptManagerService;
   ipcService: IpcService;
+  sharedUnlockLeaderService: SharedUnlockLeaderService;
 
   badgeService: BadgeService;
   authStatusBadgeUpdaterService: AuthStatusBadgeUpdaterService;
@@ -1559,6 +1559,12 @@ export default class MainBackground {
       this.logService,
       ipcSessionRepository,
     );
+    this.sharedUnlockLeaderService = new DefaultSharedUnlockLeaderService(
+      this.ipcService,
+      this.accountService,
+      this.lockService,
+      this.keyService,
+    );
 
     this.endUserNotificationService = new DefaultEndUserNotificationService(
       this.stateProvider,
@@ -1642,7 +1648,7 @@ export default class MainBackground {
 
     await this.initOverlayAndTabsBackground();
     await this.ipcService.init();
-    setup_shared_unlock_leader(this.ipcService, this.accountService, this.lockService, this.keyService);
+    await this.sharedUnlockLeaderService.start();
     this.badgeService.startListening();
 
     return new Promise<void>((resolve) => {
