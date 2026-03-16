@@ -41,6 +41,7 @@ import {
   DialogRef,
   DialogService,
   IconButtonModule,
+  IconModule,
   ItemModule,
   ToastService,
 } from "@bitwarden/components";
@@ -129,6 +130,7 @@ export type VaultItemDialogResult = UnionOfValues<typeof VaultItemDialogResult>;
   imports: [
     ButtonModule,
     IconButtonModule,
+    IconModule,
     CipherViewComponent,
     DialogModule,
     CommonModule,
@@ -345,7 +347,7 @@ export class VaultItemDialogComponent implements OnInit, OnDestroy {
   ) {
     this.updateTitle();
     this.premiumUpgradeService.upgradeConfirmed$
-      ?.pipe(
+      .pipe(
         map((c) => c && (this.confirmedPremiumUpgrade = true)),
         takeUntilDestroyed(),
       )
