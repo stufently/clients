@@ -1822,7 +1822,7 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
 
     const focusedFieldRectsTop = this.focusedFieldData?.focusedFieldRects?.top;
     const focusedFieldRectsHeight = this.focusedFieldData?.focusedFieldRects?.height;
-    if (!focusedFieldRectsTop || !focusedFieldRectsHeight) {
+    if (focusedFieldRectsTop == null || focusedFieldRectsHeight == null) {
       return false;
     }
     const focusedFieldRectsBottom = focusedFieldRectsTop + focusedFieldRectsHeight;
