@@ -23,7 +23,6 @@ import { AccountCryptographicStateService } from "@bitwarden/common/key-manageme
 import { EncryptService } from "@bitwarden/common/key-management/crypto/abstractions/encrypt.service";
 import { DeviceTrustServiceAbstraction } from "@bitwarden/common/key-management/device-trust/abstractions/device-trust.service.abstraction";
 import { KeyConnectorService } from "@bitwarden/common/key-management/key-connector/abstractions/key-connector.service";
-import { MasterPasswordUnlockService } from "@bitwarden/common/key-management/master-password/abstractions/master-password-unlock.service";
 import { InternalMasterPasswordServiceAbstraction } from "@bitwarden/common/key-management/master-password/abstractions/master-password.service.abstraction";
 import { VaultTimeoutSettingsService } from "@bitwarden/common/key-management/vault-timeout";
 import { PreloginRequest } from "@bitwarden/common/models/request/prelogin.request";
@@ -84,6 +83,7 @@ import {
   CACHE_EXPIRATION_KEY,
   CACHE_KEY,
 } from "./login-strategy.state";
+import { UnlockService } from "@bitwarden/unlock";
 
 const sessionTimeoutLength = 5 * 60 * 1000; // 5 minutes
 
@@ -138,7 +138,7 @@ export class LoginStrategyService implements LoginStrategyServiceAbstraction {
   constructor(
     protected accountService: AccountService,
     protected masterPasswordService: InternalMasterPasswordServiceAbstraction,
-    protected masterPasswordUnlockService: MasterPasswordUnlockService,
+    protected unlockService: UnlockService,
     protected keyService: KeyService,
     protected apiService: ApiService,
     protected tokenService: TokenService,
