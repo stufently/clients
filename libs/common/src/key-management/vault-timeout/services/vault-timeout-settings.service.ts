@@ -81,6 +81,8 @@ export class VaultTimeoutSettingsService implements VaultTimeoutSettingsServiceA
     await this.setVaultTimeoutAction(userId, action);
 
     await this.migrateTokenStorage(userId, action, timeout);
+
+    await this.keyService.refreshAdditionalKeys(userId);
   }
 
   availableVaultTimeoutActions$(userId?: UserId): Observable<VaultTimeoutAction[]> {
@@ -268,7 +270,6 @@ export class VaultTimeoutSettingsService implements VaultTimeoutSettingsServiceA
       clientId,
       clientSecret,
     ]);
-    await this.keyService.refreshAdditionalKeys(userId);
   }
 
   private async setVaultTimeoutAction(userId: UserId, action: VaultTimeoutAction): Promise<void> {
