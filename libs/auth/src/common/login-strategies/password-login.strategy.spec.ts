@@ -14,7 +14,6 @@ import { TwoFactorService } from "@bitwarden/common/auth/two-factor";
 import { BillingAccountProfileStateService } from "@bitwarden/common/billing/abstractions/account/billing-account-profile-state.service";
 import { AccountCryptographicStateService } from "@bitwarden/common/key-management/account-cryptography/account-cryptographic-state.service";
 import { EncryptService } from "@bitwarden/common/key-management/crypto/abstractions/encrypt.service";
-import { MasterPasswordUnlockService } from "@bitwarden/common/key-management/master-password/abstractions/master-password-unlock.service";
 import { FakeMasterPasswordService } from "@bitwarden/common/key-management/master-password/services/fake-master-password.service";
 import {
   VaultTimeoutAction,
@@ -39,6 +38,7 @@ import { CsprngArray } from "@bitwarden/common/types/csprng";
 import { UserId } from "@bitwarden/common/types/guid";
 import { MasterKey, UserKey } from "@bitwarden/common/types/key";
 import { KdfConfigService, KeyService } from "@bitwarden/key-management";
+import { UnlockService } from "@bitwarden/unlock";
 
 import { LoginStrategyServiceAbstraction } from "../abstractions";
 import { InternalUserDecryptionOptionsServiceAbstraction } from "../abstractions/user-decryption-options.service.abstraction";
@@ -67,7 +67,7 @@ describe("PasswordLoginStrategy", () => {
   let cache: PasswordLoginStrategyData;
   let accountService: FakeAccountService;
   let masterPasswordService: FakeMasterPasswordService;
-  let masterPasswordUnlockService: MockProxy<MasterPasswordUnlockService>;
+  let unlockService: MockProxy<UnlockService>;
 
   let loginStrategyService: MockProxy<LoginStrategyServiceAbstraction>;
   let keyService: MockProxy<KeyService>;
@@ -97,7 +97,7 @@ describe("PasswordLoginStrategy", () => {
   beforeEach(async () => {
     accountService = mockAccountServiceWith(userId);
     masterPasswordService = new FakeMasterPasswordService();
-    masterPasswordUnlockService = mock<MasterPasswordUnlockService>();
+    unlockService = mock<UnlockService>();
 
     loginStrategyService = mock<LoginStrategyServiceAbstraction>();
     keyService = mock<KeyService>();
@@ -142,7 +142,7 @@ describe("PasswordLoginStrategy", () => {
       passwordStrengthService,
       policyService,
       loginStrategyService,
-      masterPasswordUnlockService,
+      unlockService,
       accountService,
       masterPasswordService,
       keyService,
@@ -230,24 +230,49 @@ describe("PasswordLoginStrategy", () => {
   });
 
   it("uses master password unlock service when feature flag is enabled", async () => {
-    const userKey = new SymmetricCryptoKey(
-      new Uint8Array(64).buffer as unknown as CsprngArray,
-    ) as UserKey;
-
     configService.getFeatureFlag.mockResolvedValue(true);
-    masterPasswordUnlockService.unlockWithMasterPassword.mockResolvedValue(userKey);
+    // Re-create he strategy and wait a bit to settle the feature flag
+    passwordLoginStrategy = new PasswordLoginStrategy(
+      cache,
+      passwordStrengthService,
+      policyService,
+      loginStrategyService,
+      unlockService,
+      accountService,
+      masterPasswordService,
+      keyService,
+      encryptService,
+      apiService,
+      tokenService,
+      appIdService,
+      platformUtilsService,
+      messagingService,
+      logService,
+      stateService,
+      twoFactorService,
+      userDecryptionOptionsService,
+      billingAccountProfileStateService,
+      vaultTimeoutSettingsService,
+      kdfConfigService,
+      environmentService,
+      configService,
+      accountCryptographicStateService,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    unlockService.unlockWithMasterPassword.mockResolvedValue(undefined);
     tokenService.decodeAccessToken.mockResolvedValue({ sub: userId });
 
     await passwordLoginStrategy.logIn(credentials);
 
     expect(masterPasswordService.mock.setMasterKey).not.toHaveBeenCalled();
     expect(masterPasswordService.mock.setMasterKeyHash).not.toHaveBeenCalled();
-    expect(masterPasswordUnlockService.unlockWithMasterPassword).toHaveBeenCalledWith(
-      masterPassword,
+    expect(unlockService.unlockWithMasterPassword).toHaveBeenCalledWith(
       userId,
+      masterPassword,
     );
     expect(masterPasswordService.mock.decryptUserKeyWithMasterKey).not.toHaveBeenCalled();
-    expect(keyService.setUserKey).toHaveBeenCalledWith(userKey, userId);
+    expect(keyService.setUserKey).not.toHaveBeenCalled();
   });
 
   it("does not force the user to update their master password when there are no requirements", async () => {
