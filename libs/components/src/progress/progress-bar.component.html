@@ -9,10 +9,10 @@
       role="progressbar"
       aria-valuemin="0"
       aria-valuemax="100"
-      [attr.aria-valuenow]="value()"
+      [attr.aria-valuenow]="clampedValue()"
       [attr.aria-valuetext]="ariaValueText()"
       [attr.aria-labelledby]="labelId"
-      [style.width]="value() + '%'"
+      [style.width]="clampedValue() + '%'"
     ></div>
   </div>
   <div class="tw-flex tw-text-fg-body" bitTypography="body2">

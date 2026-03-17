@@ -39,7 +39,7 @@ export class ProgressBarComponent {
   readonly hideStartHint = input<boolean>(false);
   /** Determines the color of the progress bar */
   readonly variant = input<ProgressBarVariant>("primary");
-  /** The progress amount, represented as a percentage of the progress bar that is filled */
+  /** The progress amount, represented as a percentage of the progress bar that is filled. Clamped between 0 and 100. */
   readonly value = input<number>(0);
   /** The ARIA value text for the progress bar. Overrides default accessible text. */
   readonly ariaValueText = input<string>();
@@ -51,8 +51,10 @@ export class ProgressBarComponent {
   // Necessary for `aria-labelledby` to point to the label element
   protected readonly labelId = `bit-progress-bar-label-${this.id}`;
 
+  protected readonly clampedValue = computed(() => Math.max(0, Math.min(100, this.value())));
+
   protected readonly defaultStartText = computed(() => {
-    return this.i18nService.t("percentageCompleted", this.value().toString());
+    return this.i18nService.t("percentageCompleted", this.clampedValue().toString());
   });
 
   protected readonly outerBarStyles = [

@@ -54,7 +54,7 @@ export class StorageCardComponent {
     if (storage.available === 0) {
       return 0;
     }
-    return Math.min((storage.used / storage.available) * 100, 100);
+    return (storage.used / storage.available) * 100;
   });
 
   readonly title = computed<string>(() => {
