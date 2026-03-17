@@ -1,130 +1,374 @@
-// FIXME: Update this file to be type safe and remove this and next line
-// @ts-strict-ignore
-import { firstValueFrom, of, switchMap } from "rxjs";
+import { BehaviorSubject, firstValueFrom } from "rxjs";
 
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
-import { TokenService } from "@bitwarden/common/auth/abstractions/token.service";
+import { VendorId } from "@bitwarden/common/tools/extension";
 import {
-  DefaultPasswordGenerationOptions,
-  DefaultPassphraseGenerationOptions,
+  BuiltIn,
+  CredentialGeneratorService,
+  GeneratorMetadata,
+  providers,
 } from "@bitwarden/generator-core";
-import {
-  PasswordGeneratorOptions,
-  PasswordGenerationServiceAbstraction,
-} from "@bitwarden/generator-legacy";
 
 import { Response } from "../models/response";
 import { StringResponse } from "../models/response/string.response";
-import { CliUtils } from "../utils";
+
+interface GenerateCmdOptions {
+  passphrase?: boolean;
+  username?: boolean;
+  email?: string;
+  forwardedService?: string;
+  uppercase?: boolean;
+  lowercase?: boolean;
+  number?: boolean;
+  special?: boolean;
+  length?: string;
+  minNumber?: string;
+  minSpecial?: string;
+  ambiguous?: boolean;
+  words?: string;
+  separator?: string;
+  capitalize?: boolean;
+  includeNumber?: boolean;
+  apiKey?: string;
+  domain?: string;
+  emailAddress?: string;
+  catchallType?: string;
+  subaddressType?: string;
+  baseUrl?: string;
+  prefix?: string;
+  website?: string;
+  force?: boolean;
+}
 
 export class GenerateCommand {
   constructor(
-    private passwordGenerationService: PasswordGenerationServiceAbstraction,
-    private tokenService: TokenService,
+    private generatorService: CredentialGeneratorService,
+    private generatorProvider: providers.GeneratorDependencyProvider,
     private accountService: AccountService,
   ) {}
 
-  async run(cmdOptions: Record<string, any>): Promise<Response> {
-    const normalizedOptions = new Options(cmdOptions);
-    const options: PasswordGeneratorOptions = {
-      uppercase: normalizedOptions.uppercase,
-      lowercase: normalizedOptions.lowercase,
-      number: normalizedOptions.number,
-      special: normalizedOptions.special,
-      length: normalizedOptions.length,
-      type: normalizedOptions.type,
-      wordSeparator: normalizedOptions.separator,
-      numWords: normalizedOptions.words,
-      capitalize: normalizedOptions.capitalize,
-      includeNumber: normalizedOptions.includeNumber,
-      minNumber: normalizedOptions.minNumber,
-      minSpecial: normalizedOptions.minSpecial,
-      ambiguous: !normalizedOptions.ambiguous,
-    };
+  async run(cmdOptions: GenerateCmdOptions): Promise<Response> {
+    const options = cmdOptions ?? {};
+    const account = await firstValueFrom(this.accountService.activeAccount$);
 
-    const shouldEnforceOptions = await firstValueFrom(
-      this.accountService.activeAccount$.pipe(
-        switchMap((account) => {
-          if (account == null) {
-            return of(false);
-          }
+    // CredentialGeneratorService requires a valid account
+    if (account == null) {
+      return Response.error("You are not logged in.");
+    }
 
-          return this.tokenService.hasAccessToken$(account.id);
-        }),
-      ),
+    let metadata: GeneratorMetadata<any>;
+    let flagOverrides: Record<string, unknown>;
+    try {
+      ({ metadata, flagOverrides } = this.resolveAlgorithm(options));
+    } catch (e: unknown) {
+      return Response.badRequest(e instanceof Error ? e.message : String(e));
+    }
+
+    const account$ = new BehaviorSubject(account);
+
+    const policyConstraints = await firstValueFrom(
+      this.generatorService.policy$(metadata, { account$ }),
     );
-    const enforcedOptions = shouldEnforceOptions
-      ? (await this.passwordGenerationService.enforcePasswordGeneratorPoliciesOnOptions(options))[0]
-      : options;
 
-    const password = await this.passwordGenerationService.generatePassword(enforcedOptions);
-    const res = new StringResponse(password);
-    return Response.success(res);
+    const settingsSubject = this.generatorService.settings(metadata, { account$ });
+    const savedSettings = await firstValueFrom(settingsSubject);
+
+    const defaultConstraints = metadata.profiles?.account?.constraints?.default ?? {};
+    const { hardLimits, clampedOverrides } = this.applyHardLimits(
+      flagOverrides,
+      defaultConstraints,
+    );
+    const requestedSettings = { ...savedSettings, ...clampedOverrides };
+
+    let policyAdjustedSettings: typeof requestedSettings;
+    if ("calibrate" in policyConstraints) {
+      policyAdjustedSettings = policyConstraints
+        .calibrate(requestedSettings)
+        .adjust(requestedSettings);
+    } else {
+      policyAdjustedSettings = policyConstraints.adjust(requestedSettings);
+    }
+
+    // Hard engine limits cannot be overridden, even with --force
+    if (hardLimits.length > 0) {
+      return Response.badRequest(`${hardLimits.join("; ")}.`);
+    }
+
+    // Report policy conflicts
+    const policyConflicts = this.describePolicyConflicts(
+      clampedOverrides,
+      requestedSettings,
+      policyAdjustedSettings,
+    );
+    if (policyConflicts.length > 0) {
+      const detail = policyConflicts.join("; ");
+      const source = policyConstraints.constraints.policyInEffect
+        ? "Organization policy"
+        : "Default policy";
+      if (options.force) {
+        process.stderr.write(`Warning: Ignoring ${source.toLowerCase()} (${detail}).\n`);
+      } else {
+        return Response.badRequest(
+          `${source} adjusted your settings (${detail}). Use --force to override.`,
+        );
+      }
+    }
+
+    const finalSettings = options.force ? requestedSettings : policyAdjustedSettings;
+
+    const websiteNameCredential = this.tryWebsiteNameGeneration(finalSettings, options.website);
+    if (websiteNameCredential != null) {
+      account$.complete();
+      return Response.success(new StringResponse(websiteNameCredential));
+    }
+
+    const engine = metadata.engine.create(this.generatorProvider);
+    const generated = await engine.generate(
+      { algorithm: metadata.id, website: options.website },
+      finalSettings,
+    );
+
+    account$.complete();
+    return Response.success(new StringResponse(generated.credential));
   }
-}
 
-class Options {
-  uppercase: boolean;
-  lowercase: boolean;
-  number: boolean;
-  special: boolean;
-  length: number;
-  type: "passphrase" | "password";
-  separator: string;
-  words: number;
-  capitalize: boolean;
-  includeNumber: boolean;
-  minNumber: number;
-  minSpecial: number;
-  ambiguous: boolean;
+  private tryWebsiteNameGeneration(
+    settings: Record<string, unknown>,
+    website: string | undefined,
+  ): string | null {
+    if (!website) {
+      return null;
+    }
 
-  constructor(passedOptions: Record<string, any>) {
-    this.uppercase = CliUtils.convertBooleanOption(passedOptions?.uppercase);
-    this.lowercase = CliUtils.convertBooleanOption(passedOptions?.lowercase);
-    this.number = CliUtils.convertBooleanOption(passedOptions?.number);
-    this.special = CliUtils.convertBooleanOption(passedOptions?.special);
-    this.capitalize = CliUtils.convertBooleanOption(passedOptions?.capitalize);
-    this.includeNumber = CliUtils.convertBooleanOption(passedOptions?.includeNumber);
-    this.ambiguous = CliUtils.convertBooleanOption(passedOptions?.ambiguous);
-    this.length = CliUtils.convertNumberOption(
-      passedOptions?.length,
-      DefaultPasswordGenerationOptions.length,
-    );
-    this.type = passedOptions?.passphrase ? "passphrase" : "password";
-    this.separator = CliUtils.convertStringOption(
-      passedOptions?.separator,
-      DefaultPassphraseGenerationOptions.wordSeparator,
-    );
-    this.words = CliUtils.convertNumberOption(
-      passedOptions?.words,
-      DefaultPassphraseGenerationOptions.numWords,
-    );
-    this.minNumber = CliUtils.convertNumberOption(
-      passedOptions?.minNumber,
-      DefaultPasswordGenerationOptions.minNumber,
-    );
-    this.minSpecial = CliUtils.convertNumberOption(
-      passedOptions?.minSpecial,
-      DefaultPasswordGenerationOptions.minSpecial,
-    );
+    const siteName = this.extractSiteName(website);
+    if (!siteName) {
+      return null;
+    }
 
-    if (!this.uppercase && !this.lowercase && !this.special && !this.number) {
-      this.lowercase = true;
-      this.uppercase = true;
-      this.number = true;
+    if (settings.catchallType === "website-name" && settings.catchallDomain) {
+      return `${siteName}@${settings.catchallDomain}`;
     }
-    if (this.length < 5) {
-      this.length = 5;
+
+    if (settings.subaddressType === "website-name" && settings.subaddressEmail) {
+      const email = settings.subaddressEmail as string;
+      const atIndex = email.indexOf("@");
+      if (atIndex < 0) {
+        return null;
+      }
+      const username = email.substring(0, atIndex);
+      const domain = email.substring(atIndex);
+      return `${username}+${siteName}${domain}`;
     }
-    if (this.words < 3) {
-      this.words = 3;
+
+    return null;
+  }
+
+  private extractSiteName(website: string): string {
+    const dotIndex = website.lastIndexOf(".");
+    return dotIndex > 0 ? website.substring(0, dotIndex) : website;
+  }
+
+  private applyHardLimits(
+    flagOverrides: Record<string, unknown>,
+    defaultConstraints: Record<string, unknown>,
+  ): { hardLimits: string[]; clampedOverrides: Record<string, unknown> } {
+    const hardLimits: string[] = [];
+    const clampedOverrides = { ...flagOverrides };
+
+    for (const key of Object.keys(clampedOverrides)) {
+      const value = clampedOverrides[key];
+      const constraint = defaultConstraints[key] as { min?: number; max?: number } | undefined;
+      if (constraint == null || typeof value !== "number") {
+        continue;
+      }
+      if (constraint.max != null && value > constraint.max) {
+        hardLimits.push(`${key} has a maximum of ${constraint.max} (requested ${value})`);
+        clampedOverrides[key] = constraint.max;
+      } else if (constraint.min != null && value < constraint.min) {
+        hardLimits.push(`${key} has a minimum of ${constraint.min} (requested ${value})`);
+        clampedOverrides[key] = constraint.min;
+      }
     }
-    if (this.separator === "space") {
-      this.separator = " ";
-    } else if (this.separator === "empty") {
-      this.separator = "";
-    } else if (this.separator != null && this.separator.length > 1) {
-      this.separator = this.separator[0];
+
+    return { hardLimits, clampedOverrides };
+  }
+
+  private describePolicyConflicts(
+    flagOverrides: Record<string, unknown>,
+    requested: Record<string, unknown>,
+    adjusted: Record<string, unknown>,
+  ): string[] {
+    const conflicts: string[] = [];
+    for (const key of Object.keys(flagOverrides)) {
+      const req = requested[key];
+      const adj = adjusted[key];
+      if (JSON.stringify(req) !== JSON.stringify(adj)) {
+        conflicts.push(
+          `${key} requested ${JSON.stringify(req)}, policy requires ${JSON.stringify(adj)}`,
+        );
+      }
     }
+    return conflicts;
+  }
+
+  private resolveAlgorithm(options: GenerateCmdOptions): {
+    metadata: GeneratorMetadata<any>;
+    flagOverrides: Record<string, unknown>;
+  } {
+    if (options.username) {
+      return { metadata: BuiltIn.effWordList, flagOverrides: this.buildUsernameSettings(options) };
+    }
+
+    if (options.email === "catchall") {
+      return { metadata: BuiltIn.catchall, flagOverrides: this.buildCatchallSettings(options) };
+    }
+
+    if (options.email === "subaddress") {
+      return {
+        metadata: BuiltIn.plusAddress,
+        flagOverrides: this.buildSubaddressSettings(options),
+      };
+    }
+
+    if (options.email === "forwarded") {
+      return this.resolveForwarder(options);
+    }
+
+    if (options.passphrase) {
+      return { metadata: BuiltIn.passphrase, flagOverrides: this.buildPassphraseSettings(options) };
+    }
+
+    return { metadata: BuiltIn.password, flagOverrides: this.buildPasswordSettings(options) };
+  }
+
+  private buildPasswordSettings(options: GenerateCmdOptions): Record<string, unknown> {
+    const settings: Record<string, unknown> = {};
+
+    if (options.uppercase != null) {
+      settings.uppercase = options.uppercase;
+    }
+    if (options.lowercase != null) {
+      settings.lowercase = options.lowercase;
+    }
+    if (options.number != null) {
+      settings.number = options.number;
+    }
+    if (options.special != null) {
+      settings.special = options.special;
+    }
+    if (options.length != null) {
+      settings.length = parseInt(options.length, 10);
+    }
+    if (options.minNumber != null) {
+      settings.minNumber = parseInt(options.minNumber, 10);
+    }
+    if (options.minSpecial != null) {
+      settings.minSpecial = parseInt(options.minSpecial, 10);
+    }
+    if (options.ambiguous != null) {
+      settings.ambiguous = !options.ambiguous;
+    }
+
+    return settings;
+  }
+
+  private buildPassphraseSettings(options: GenerateCmdOptions): Record<string, unknown> {
+    const settings: Record<string, unknown> = {};
+
+    if (options.words != null) {
+      settings.numWords = parseInt(options.words, 10);
+    }
+    if (options.separator != null) {
+      let separator = options.separator;
+      if (separator === "space") {
+        separator = " ";
+      } else if (separator === "empty") {
+        separator = "";
+      } else if (separator.length > 1) {
+        separator = separator[0];
+      }
+      settings.wordSeparator = separator;
+    }
+    if (options.capitalize != null) {
+      settings.capitalize = options.capitalize;
+    }
+    if (options.includeNumber != null) {
+      settings.includeNumber = options.includeNumber;
+    }
+
+    return settings;
+  }
+
+  private buildUsernameSettings(options: GenerateCmdOptions): Record<string, unknown> {
+    const settings: Record<string, unknown> = {};
+
+    if (options.capitalize != null) {
+      settings.wordCapitalize = options.capitalize;
+    }
+    if (options.includeNumber != null) {
+      settings.wordIncludeNumber = options.includeNumber;
+    }
+
+    return settings;
+  }
+
+  private buildCatchallSettings(options: GenerateCmdOptions): Record<string, unknown> {
+    const settings: Record<string, unknown> = {};
+
+    if (options.domain != null) {
+      settings.catchallDomain = options.domain;
+    }
+    if (options.catchallType != null) {
+      settings.catchallType = options.catchallType;
+    }
+    if (options.website != null) {
+      settings.website = options.website;
+    }
+
+    return settings;
+  }
+
+  private buildSubaddressSettings(options: GenerateCmdOptions): Record<string, unknown> {
+    const settings: Record<string, unknown> = {};
+
+    if (options.emailAddress != null) {
+      settings.subaddressEmail = options.emailAddress;
+    }
+    if (options.subaddressType != null) {
+      settings.subaddressType = options.subaddressType;
+    }
+    if (options.website != null) {
+      settings.website = options.website;
+    }
+
+    return settings;
+  }
+
+  private resolveForwarder(options: GenerateCmdOptions): {
+    metadata: GeneratorMetadata<any>;
+    flagOverrides: Record<string, unknown>;
+  } {
+    const vendorId = options.forwardedService as VendorId;
+    if (!vendorId) {
+      throw new Error("--forwarded-service is required when using --email forwarded");
+    }
+
+    const metadata = this.generatorService.forwarder(vendorId);
+
+    const flagOverrides: Record<string, unknown> = {};
+    if (options.apiKey != null) {
+      flagOverrides.token = options.apiKey;
+    }
+    if (options.domain != null) {
+      flagOverrides.domain = options.domain;
+    }
+    if (options.baseUrl != null) {
+      flagOverrides.baseUrl = options.baseUrl;
+    }
+    if (options.prefix != null) {
+      flagOverrides.prefix = options.prefix;
+    }
+
+    return { metadata, flagOverrides };
   }
 }
