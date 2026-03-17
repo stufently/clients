@@ -275,12 +275,6 @@ jobs:
           echo "Submit binary for notarization"
           xcrun notarytool submit bw-notarization-temp.zip --keychain-profile "notarytool-profile" --wait
 
-          echo "Staple notarization ticket to binary"
-          xcrun stapler staple ./bw
-
-          echo "Verify stapling succeeded"
-          xcrun stapler validate ./bw
-
           echo "Cleanup temporary zip"
           rm bw-notarization-temp.zip
 
