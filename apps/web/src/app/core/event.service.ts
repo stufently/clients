@@ -14,7 +14,7 @@ import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.servic
 
 @Injectable()
 export class EventService {
-  private policies: Policy[];
+  private policies: Policy[] = [];
 
   constructor(
     private i18nService: I18nService,
@@ -669,6 +669,250 @@ export class EventService {
           this.formatServiceAccountId(ev, options),
         );
         break;
+      case EventType.ServiceAccount_UserPermissionUpdated:
+        msg = this.i18nService.t(
+          "updatedUserPermissionForServiceAccountWithId",
+          this.formatUserId(ev, options),
+          this.formatServiceAccountId(ev, options),
+        );
+        humanReadableMsg = this.i18nService.t(
+          "updatedUserPermissionForServiceAccountWithId",
+          this.formatUserId(ev, options),
+          this.formatServiceAccountId(ev, options),
+        );
+        break;
+      case EventType.ServiceAccount_GroupPermissionUpdated:
+        msg = this.i18nService.t(
+          "updatedGroupPermissionForServiceAccountWithId",
+          this.formatGroupId(ev),
+          this.formatServiceAccountId(ev, options),
+        );
+        humanReadableMsg = this.i18nService.t(
+          "updatedGroupPermissionForServiceAccountWithId",
+          this.formatGroupId(ev),
+          this.formatServiceAccountId(ev, options),
+        );
+        break;
+      case EventType.Secret_UserAccessGranted:
+        msg = this.i18nService.t(
+          "grantedUserAccessToSecretWithId",
+          this.formatOrgUserId(ev),
+          this.formatSecretId(ev, options),
+        );
+        humanReadableMsg = this.i18nService.t(
+          "grantedUserAccessToSecretWithId",
+          this.getShortId(ev.organizationUserId),
+          this.getShortId(ev.secretId),
+        );
+        break;
+      case EventType.Secret_UserAccessRevoked:
+        msg = this.i18nService.t(
+          "revokedUserAccessToSecretWithId",
+          this.formatOrgUserId(ev),
+          this.formatSecretId(ev, options),
+        );
+        humanReadableMsg = this.i18nService.t(
+          "revokedUserAccessToSecretWithId",
+          this.getShortId(ev.organizationUserId),
+          this.getShortId(ev.secretId),
+        );
+        break;
+      case EventType.Secret_UserAccessUpdated:
+        msg = this.i18nService.t(
+          "updatedUserAccessToSecretWithId",
+          this.formatOrgUserId(ev),
+          this.formatSecretId(ev, options),
+        );
+        humanReadableMsg = this.i18nService.t(
+          "updatedUserAccessToSecretWithId",
+          this.getShortId(ev.organizationUserId),
+          this.getShortId(ev.secretId),
+        );
+        break;
+      case EventType.Secret_GroupAccessGranted:
+        msg = this.i18nService.t(
+          "grantedGroupAccessToSecretWithId",
+          this.formatGroupId(ev),
+          this.formatSecretId(ev, options),
+        );
+        humanReadableMsg = this.i18nService.t(
+          "grantedGroupAccessToSecretWithId",
+          this.getShortId(ev.groupId),
+          this.getShortId(ev.secretId),
+        );
+        break;
+      case EventType.Secret_GroupAccessRevoked:
+        msg = this.i18nService.t(
+          "revokedGroupAccessToSecretWithId",
+          this.formatGroupId(ev),
+          this.formatSecretId(ev, options),
+        );
+        humanReadableMsg = this.i18nService.t(
+          "revokedGroupAccessToSecretWithId",
+          this.getShortId(ev.groupId),
+          this.getShortId(ev.secretId),
+        );
+        break;
+      case EventType.Secret_GroupAccessUpdated:
+        msg = this.i18nService.t(
+          "updatedGroupAccessToSecretWithId",
+          this.formatGroupId(ev),
+          this.formatSecretId(ev, options),
+        );
+        humanReadableMsg = this.i18nService.t(
+          "updatedGroupAccessToSecretWithId",
+          this.getShortId(ev.groupId),
+          this.getShortId(ev.secretId),
+        );
+        break;
+      case EventType.Secret_ServiceAccountAccessGranted:
+        msg = this.i18nService.t(
+          "grantedMachineAccountAccessToSecretWithId",
+          this.formatServiceAccountId(ev, options),
+          this.formatSecretId(ev, options),
+        );
+        humanReadableMsg = this.i18nService.t(
+          "grantedMachineAccountAccessToSecretWithId",
+          this.getShortId(ev.grantedServiceAccountId),
+          this.getShortId(ev.secretId),
+        );
+        break;
+      case EventType.Secret_ServiceAccountAccessRevoked:
+        msg = this.i18nService.t(
+          "revokedMachineAccountAccessToSecretWithId",
+          this.formatServiceAccountId(ev, options),
+          this.formatSecretId(ev, options),
+        );
+        humanReadableMsg = this.i18nService.t(
+          "revokedMachineAccountAccessToSecretWithId",
+          this.getShortId(ev.grantedServiceAccountId),
+          this.getShortId(ev.secretId),
+        );
+        break;
+      case EventType.Secret_ServiceAccountAccessUpdated:
+        msg = this.i18nService.t(
+          "updatedMachineAccountAccessToSecretWithId",
+          this.formatServiceAccountId(ev, options),
+          this.formatSecretId(ev, options),
+        );
+        humanReadableMsg = this.i18nService.t(
+          "updatedMachineAccountAccessToSecretWithId",
+          this.getShortId(ev.grantedServiceAccountId),
+          this.getShortId(ev.secretId),
+        );
+        break;
+      case EventType.Project_UserAccessGranted:
+        msg = this.i18nService.t(
+          "grantedUserAccessToProjectWithId",
+          this.formatOrgUserId(ev),
+          this.formatProjectId(ev, options),
+        );
+        humanReadableMsg = this.i18nService.t(
+          "grantedUserAccessToProjectWithId",
+          this.getShortId(ev.organizationUserId),
+          this.getShortId(ev.projectId),
+        );
+        break;
+      case EventType.Project_UserAccessRevoked:
+        msg = this.i18nService.t(
+          "revokedUserAccessToProjectWithId",
+          this.formatOrgUserId(ev),
+          this.formatProjectId(ev, options),
+        );
+        humanReadableMsg = this.i18nService.t(
+          "revokedUserAccessToProjectWithId",
+          this.getShortId(ev.organizationUserId),
+          this.getShortId(ev.projectId),
+        );
+        break;
+      case EventType.Project_UserAccessUpdated:
+        msg = this.i18nService.t(
+          "updatedUserAccessToProjectWithId",
+          this.formatOrgUserId(ev),
+          this.formatProjectId(ev, options),
+        );
+        humanReadableMsg = this.i18nService.t(
+          "updatedUserAccessToProjectWithId",
+          this.getShortId(ev.organizationUserId),
+          this.getShortId(ev.projectId),
+        );
+        break;
+      case EventType.Project_GroupAccessGranted:
+        msg = this.i18nService.t(
+          "grantedGroupAccessToProjectWithId",
+          this.formatGroupId(ev),
+          this.formatProjectId(ev, options),
+        );
+        humanReadableMsg = this.i18nService.t(
+          "grantedGroupAccessToProjectWithId",
+          this.getShortId(ev.groupId),
+          this.getShortId(ev.projectId),
+        );
+        break;
+      case EventType.Project_GroupAccessRevoked:
+        msg = this.i18nService.t(
+          "revokedGroupAccessToProjectWithId",
+          this.formatGroupId(ev),
+          this.formatProjectId(ev, options),
+        );
+        humanReadableMsg = this.i18nService.t(
+          "revokedGroupAccessToProjectWithId",
+          this.getShortId(ev.groupId),
+          this.getShortId(ev.projectId),
+        );
+        break;
+      case EventType.Project_GroupAccessUpdated:
+        msg = this.i18nService.t(
+          "updatedGroupAccessToProjectWithId",
+          this.formatGroupId(ev),
+          this.formatProjectId(ev, options),
+        );
+        humanReadableMsg = this.i18nService.t(
+          "updatedGroupAccessToProjectWithId",
+          this.getShortId(ev.groupId),
+          this.getShortId(ev.projectId),
+        );
+        break;
+      case EventType.Project_ServiceAccountAccessGranted:
+        msg = this.i18nService.t(
+          "grantedMachineAccountAccessToProjectWithId",
+          this.formatServiceAccountId(ev, options),
+          this.formatProjectId(ev, options),
+        );
+        humanReadableMsg = this.i18nService.t(
+          "grantedMachineAccountAccessToProjectWithId",
+          this.getShortId(ev.grantedServiceAccountId),
+          this.getShortId(ev.projectId),
+        );
+        break;
+      case EventType.Project_ServiceAccountAccessRevoked:
+        msg = this.i18nService.t(
+          "revokedMachineAccountAccessToProjectWithId",
+          this.formatServiceAccountId(ev, options),
+          this.formatProjectId(ev, options),
+        );
+        humanReadableMsg = this.i18nService.t(
+          "revokedMachineAccountAccessToProjectWithId",
+          this.getShortId(ev.grantedServiceAccountId),
+          this.getShortId(ev.projectId),
+        );
+        break;
+      case EventType.Cipher_ClientToggledTOTPSeedVisible:
+        msg = this.i18nService.t("viewedTOTPSeedItemId", this.formatCipherId(ev, options));
+        humanReadableMsg = this.i18nService.t("viewedTOTPSeedItemId", this.getShortId(ev.cipherId));
+        break;
+      case EventType.Project_ServiceAccountAccessUpdated:
+        msg = this.i18nService.t(
+          "updatedMachineAccountAccessToProjectWithId",
+          this.formatServiceAccountId(ev, options),
+          this.formatProjectId(ev, options),
+        );
+        humanReadableMsg = this.i18nService.t(
+          "updatedMachineAccountAccessToProjectWithId",
+          this.getShortId(ev.grantedServiceAccountId),
+          this.getShortId(ev.projectId),
+        );
+        break;
       default:
         break;
     }
@@ -846,7 +1090,8 @@ export class EventService {
   }
 
   formatServiceAccountId(ev: EventResponse, options: EventOptions): string {
-    const shortId = this.getShortId(ev.grantedServiceAccountId);
+    const id = ev.serviceAccountId ?? ev.grantedServiceAccountId;
+    const shortId = this.getShortId(id);
     if (options.disableLink) {
       return shortId;
     }
@@ -858,7 +1103,7 @@ export class EventService {
         "/machine-accounts?search=" +
         shortId +
         "&viewEvents=" +
-        ev.grantedServiceAccountId +
+        id +
         "&type=all",
     );
     return a.outerHTML;

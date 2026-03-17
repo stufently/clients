@@ -1,32 +1,36 @@
-// FIXME: update to use a const object instead of a typescript enum
-// eslint-disable-next-line @bitwarden/platform/no-enums
-export enum ApPermissionEnum {
-  CanRead = "canRead",
-  CanReadWrite = "canReadWrite",
-}
+export const ApPermissionEnum = {
+  CanRead: "canRead",
+  CanReadWrite: "canReadWrite",
+  CanManage: "canManage",
+} as const;
+export type ApPermissionEnum = (typeof ApPermissionEnum)[keyof typeof ApPermissionEnum];
 
 export class ApPermissionEnumUtil {
-  static toApPermissionEnum(read: boolean, write: boolean): ApPermissionEnum {
-    if (read && write) {
+  static toApPermissionEnum(read: boolean, write: boolean, manage: boolean): ApPermissionEnum {
+    if (manage) {
+      return ApPermissionEnum.CanManage;
+    } else if (read && write) {
       return ApPermissionEnum.CanReadWrite;
-    } else if (read) {
-      return ApPermissionEnum.CanRead;
     } else {
-      throw new Error("Unsupported Access Policy Permission option");
+      return ApPermissionEnum.CanRead;
     }
   }
 
   static toRead(permission: ApPermissionEnum): boolean {
-    if (permission == ApPermissionEnum.CanRead || permission == ApPermissionEnum.CanReadWrite) {
-      return true;
-    }
-    return false;
+    return (
+      permission === ApPermissionEnum.CanRead ||
+      permission === ApPermissionEnum.CanReadWrite ||
+      permission === ApPermissionEnum.CanManage
+    );
   }
 
   static toWrite(permission: ApPermissionEnum): boolean {
-    if (permission === ApPermissionEnum.CanReadWrite) {
-      return true;
-    }
-    return false;
+    return (
+      permission === ApPermissionEnum.CanReadWrite || permission === ApPermissionEnum.CanManage
+    );
+  }
+
+  static toManage(permission: ApPermissionEnum): boolean {
+    return permission === ApPermissionEnum.CanManage;
   }
 }

@@ -1,11 +1,10 @@
-// FIXME: update to use a const object instead of a typescript enum
-// eslint-disable-next-line @bitwarden/platform/no-enums
-export enum ApItemEnum {
-  User,
-  Group,
-  ServiceAccount,
-  Project,
-}
+export const ApItemEnum = Object.freeze({
+  User: 0,
+  Group: 1,
+  ServiceAccount: 2,
+  Project: 3,
+} as const);
+export type ApItemEnum = (typeof ApItemEnum)[keyof typeof ApItemEnum];
 
 export class ApItemEnumUtil {
   static itemIcon(type: ApItemEnum): string {

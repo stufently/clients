@@ -32,6 +32,7 @@ import { PeopleAccessPoliciesRequest } from "../../shared/access-policies/models
 import { ServiceAccountGrantedPoliciesRequest } from "../access-policies/models/requests/service-account-granted-policies.request";
 
 import { AccessPolicyRequest } from "./models/requests/access-policy.request";
+import { GrantedPolicyRequest } from "./models/requests/granted-policy.request";
 import { ProjectServiceAccountsAccessPoliciesRequest } from "./models/requests/project-service-accounts-access-policies.request";
 import { SecretAccessPoliciesRequest } from "./models/requests/secret-access-policies.request";
 import {
@@ -235,6 +236,23 @@ export class AccessPolicyService {
     return await this.createSecretAccessPoliciesView(result, organizationId);
   }
 
+  async putSecretAccessPolicies(
+    organizationId: string,
+    secretId: string,
+    policies: SecretAccessPoliciesView,
+  ): Promise<SecretAccessPoliciesView> {
+    const request = this.getSecretAccessPoliciesRequest(policies);
+    const r = await this.apiService.send(
+      "PUT",
+      "/secrets/" + secretId + "/access-policies",
+      request,
+      true,
+      true,
+    );
+    const result = new SecretAccessPoliciesResponse(r);
+    return await this.createSecretAccessPoliciesView(result, organizationId);
+  }
+
   async getPeoplePotentialGrantees(organizationId: string) {
     const r = await this.apiService.send(
       "GET",
@@ -293,6 +311,7 @@ export class AccessPolicyService {
     request.granteeId = granteeId;
     request.read = view.read;
     request.write = view.write;
+    request.manage = view.manage;
     return request;
   }
 
@@ -301,11 +320,14 @@ export class AccessPolicyService {
   ): ServiceAccountGrantedPoliciesRequest {
     const request = new ServiceAccountGrantedPoliciesRequest();
 
-    request.projectGrantedPolicyRequests = policies.grantedProjectPolicies.map((detailView) => ({
-      grantedId: detailView.accessPolicy.grantedProjectId,
-      read: detailView.accessPolicy.read,
-      write: detailView.accessPolicy.write,
-    }));
+    request.projectGrantedPolicyRequests = policies.grantedProjectPolicies.map((detailView) => {
+      const r = new GrantedPolicyRequest();
+      r.grantedId = detailView.accessPolicy.grantedProjectId;
+      r.read = detailView.accessPolicy.read;
+      r.write = detailView.accessPolicy.write;
+      r.manage = detailView.accessPolicy.manage;
+      return r;
+    });
 
     return request;
   }
@@ -352,6 +374,7 @@ export class AccessPolicyService {
     return {
       read: response.read,
       write: response.write,
+      manage: response.manage,
     };
   }
 

@@ -134,6 +134,7 @@ export class AccessPolicySelectorComponent implements ControlValueAccessor, OnIn
   @Input() permissionList = [
     { perm: ApPermissionEnum.CanRead, labelId: "canRead" },
     { perm: ApPermissionEnum.CanReadWrite, labelId: "canReadWrite" },
+    { perm: ApPermissionEnum.CanManage, labelId: "canManage" },
   ];
   // FIXME(https://bitwarden.atlassian.net/browse/CL-903): Migrate to Signals
   // eslint-disable-next-line @angular-eslint/prefer-signals

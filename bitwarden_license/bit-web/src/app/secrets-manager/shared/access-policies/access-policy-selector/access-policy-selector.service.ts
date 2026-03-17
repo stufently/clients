@@ -19,14 +19,14 @@ import { ApPermissionEnum } from "./models/enums/ap-permission.enum";
 export class AccessPolicySelectorService {
   constructor(
     private organizationService: OrganizationService,
-    private accountServcie: AccountService,
+    private accountService: AccountService,
   ) {}
 
   async showAccessRemovalWarning(
     organizationId: string,
     selectedPoliciesValues: ApItemValueType[],
   ): Promise<boolean> {
-    const userId = await firstValueFrom(getUserId(this.accountServcie.activeAccount$));
+    const userId = await firstValueFrom(getUserId(this.accountService.activeAccount$));
     const organization = await firstValueFrom(
       this.organizationService.organizations$(userId).pipe(getOrganizationById(organizationId)),
     );
@@ -37,7 +37,7 @@ export class AccessPolicySelectorService {
       return false;
     }
 
-    if (!this.userHasReadWriteAccess(selectedPoliciesValues)) {
+    if (!this.userHasWriteOrManageAccess(selectedPoliciesValues)) {
       return true;
     }
 
@@ -53,18 +53,18 @@ export class AccessPolicySelectorService {
       return false;
     }
 
-    const userId = await firstValueFrom(getUserId(this.accountServcie.activeAccount$));
+    const userId = await firstValueFrom(getUserId(this.accountService.activeAccount$));
     const organization = await firstValueFrom(
       this.organizationService.organizations$(userId).pipe(getOrganizationById(organizationId)),
     );
     if (!organization) {
       return false;
     }
-    if (organization.isOwner || organization.isAdmin || !this.userHasReadWriteAccess(current)) {
+    if (organization.isOwner || organization.isAdmin || !this.userHasWriteOrManageAccess(current)) {
       return false;
     }
 
-    if (!this.userHasReadWriteAccess(selectedPoliciesValues)) {
+    if (!this.userHasWriteOrManageAccess(selectedPoliciesValues)) {
       return true;
     }
 
@@ -92,18 +92,20 @@ export class AccessPolicySelectorService {
     return !currentIds.every((id) => selectedIds.includes(id));
   }
 
-  private userHasReadWriteAccess(policies: ApItemValueType[] | ApItemViewType[]): boolean {
+  private userHasWriteOrManageAccess(policies: ApItemValueType[] | ApItemViewType[]): boolean {
     const userReadWritePolicy = (policies as Array<ApItemValueType | ApItemViewType>).find(
       (s) =>
         s.type === ApItemEnum.User &&
         s.currentUser &&
-        s.permission === ApPermissionEnum.CanReadWrite,
+        (s.permission === ApPermissionEnum.CanReadWrite ||
+          s.permission === ApPermissionEnum.CanManage),
     );
 
     const groupReadWritePolicies = (policies as Array<ApItemValueType | ApItemViewType>).filter(
       (s) =>
         s.type === ApItemEnum.Group &&
-        s.permission === ApPermissionEnum.CanReadWrite &&
+        (s.permission === ApPermissionEnum.CanReadWrite ||
+          s.permission === ApPermissionEnum.CanManage) &&
         s.currentUserInGroup,
     );
 

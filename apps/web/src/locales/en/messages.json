@@ -8689,7 +8689,7 @@
   },
   "canRead": {
     "message": "Can read",
-    "description": "Label for the access level of an access token (Read only)."
+    "description": "Access policy selector permission option for read-only access."
   },
   "accessTokensNoItemsTitle": {
     "message": "No access tokens to show",
@@ -9127,7 +9127,12 @@
     "message": "Add projects to grant access"
   },
   "canReadWrite": {
-    "message": "Can read, write"
+    "message": "Can read, write",
+    "description": "Access policy selector permission option for read and write access."
+  },
+  "canManage": {
+    "message": "Can manage",
+    "description": "Access policy selector permission option for full manage access."
   },
   "groupSlashUser": {
     "message": "Group/User"
@@ -9346,6 +9351,266 @@
     "placeholders": {
       "service_account_id": {
         "content": "$1",
+        "example": "4d34e8a8"
+      }
+    }
+  },
+  "updatedUserPermissionForServiceAccountWithId": {
+    "message": "Updated user: $USER_ID$ permission for machine account with identifier: $SERVICE_ACCOUNT_ID$",
+    "placeholders": {
+      "user_id": {
+        "content": "$1",
+        "example": "4d34e8a8"
+      },
+      "service_account_id": {
+        "content": "$2",
+        "example": "4d34e8a8"
+      }
+    }
+  },
+  "updatedGroupPermissionForServiceAccountWithId": {
+    "message": "Updated group: $GROUP_ID$ permission for machine account with identifier: $SERVICE_ACCOUNT_ID$",
+    "placeholders": {
+      "group_id": {
+        "content": "$1",
+        "example": "4d34e8a8"
+      },
+      "service_account_id": {
+        "content": "$2",
+        "example": "4d34e8a8"
+      }
+    }
+  },
+  "grantedUserAccessToSecretWithId": {
+    "message": "Granted user: $USER_ID$ access to secret with identifier: $SECRET_ID$",
+    "placeholders": {
+      "user_id": {
+        "content": "$1",
+        "example": "4d34e8a8"
+      },
+      "secret_id": {
+        "content": "$2",
+        "example": "4d34e8a8"
+      }
+    }
+  },
+  "revokedUserAccessToSecretWithId": {
+    "message": "Revoked user: $USER_ID$ access to secret with identifier: $SECRET_ID$",
+    "placeholders": {
+      "user_id": {
+        "content": "$1",
+        "example": "4d34e8a8"
+      },
+      "secret_id": {
+        "content": "$2",
+        "example": "4d34e8a8"
+      }
+    }
+  },
+  "updatedUserAccessToSecretWithId": {
+    "message": "Updated user: $USER_ID$ access to secret with identifier: $SECRET_ID$",
+    "placeholders": {
+      "user_id": {
+        "content": "$1",
+        "example": "4d34e8a8"
+      },
+      "secret_id": {
+        "content": "$2",
+        "example": "4d34e8a8"
+      }
+    }
+  },
+  "grantedGroupAccessToSecretWithId": {
+    "message": "Granted group: $GROUP_ID$ access to secret with identifier: $SECRET_ID$",
+    "placeholders": {
+      "group_id": {
+        "content": "$1",
+        "example": "4d34e8a8"
+      },
+      "secret_id": {
+        "content": "$2",
+        "example": "4d34e8a8"
+      }
+    }
+  },
+  "revokedGroupAccessToSecretWithId": {
+    "message": "Revoked group: $GROUP_ID$ access to secret with identifier: $SECRET_ID$",
+    "placeholders": {
+      "group_id": {
+        "content": "$1",
+        "example": "4d34e8a8"
+      },
+      "secret_id": {
+        "content": "$2",
+        "example": "4d34e8a8"
+      }
+    }
+  },
+  "updatedGroupAccessToSecretWithId": {
+    "message": "Updated group: $GROUP_ID$ access to secret with identifier: $SECRET_ID$",
+    "placeholders": {
+      "group_id": {
+        "content": "$1",
+        "example": "4d34e8a8"
+      },
+      "secret_id": {
+        "content": "$2",
+        "example": "4d34e8a8"
+      }
+    }
+  },
+  "grantedMachineAccountAccessToSecretWithId": {
+    "message": "Granted machine account: $SERVICE_ACCOUNT_ID$ access to secret with identifier: $SECRET_ID$",
+    "placeholders": {
+      "service_account_id": {
+        "content": "$1",
+        "example": "4d34e8a8"
+      },
+      "secret_id": {
+        "content": "$2",
+        "example": "4d34e8a8"
+      }
+    }
+  },
+  "revokedMachineAccountAccessToSecretWithId": {
+    "message": "Revoked machine account: $SERVICE_ACCOUNT_ID$ access to secret with identifier: $SECRET_ID$",
+    "placeholders": {
+      "service_account_id": {
+        "content": "$1",
+        "example": "4d34e8a8"
+      },
+      "secret_id": {
+        "content": "$2",
+        "example": "4d34e8a8"
+      }
+    }
+  },
+  "updatedMachineAccountAccessToSecretWithId": {
+    "message": "Updated machine account: $SERVICE_ACCOUNT_ID$ access to secret with identifier: $SECRET_ID$",
+    "placeholders": {
+      "service_account_id": {
+        "content": "$1",
+        "example": "4d34e8a8"
+      },
+      "secret_id": {
+        "content": "$2",
+        "example": "4d34e8a8"
+      }
+    }
+  },
+  "grantedUserAccessToProjectWithId": {
+    "message": "Granted user: $USER_ID$ access to project with identifier: $PROJECT_ID$",
+    "placeholders": {
+      "user_id": {
+        "content": "$1",
+        "example": "4d34e8a8"
+      },
+      "project_id": {
+        "content": "$2",
+        "example": "4d34e8a8"
+      }
+    }
+  },
+  "revokedUserAccessToProjectWithId": {
+    "message": "Revoked user: $USER_ID$ access to project with identifier: $PROJECT_ID$",
+    "placeholders": {
+      "user_id": {
+        "content": "$1",
+        "example": "4d34e8a8"
+      },
+      "project_id": {
+        "content": "$2",
+        "example": "4d34e8a8"
+      }
+    }
+  },
+  "updatedUserAccessToProjectWithId": {
+    "message": "Updated user: $USER_ID$ access to project with identifier: $PROJECT_ID$",
+    "placeholders": {
+      "user_id": {
+        "content": "$1",
+        "example": "4d34e8a8"
+      },
+      "project_id": {
+        "content": "$2",
+        "example": "4d34e8a8"
+      }
+    }
+  },
+  "grantedGroupAccessToProjectWithId": {
+    "message": "Granted group: $GROUP_ID$ access to project with identifier: $PROJECT_ID$",
+    "placeholders": {
+      "group_id": {
+        "content": "$1",
+        "example": "4d34e8a8"
+      },
+      "project_id": {
+        "content": "$2",
+        "example": "4d34e8a8"
+      }
+    }
+  },
+  "revokedGroupAccessToProjectWithId": {
+    "message": "Revoked group: $GROUP_ID$ access to project with identifier: $PROJECT_ID$",
+    "placeholders": {
+      "group_id": {
+        "content": "$1",
+        "example": "4d34e8a8"
+      },
+      "project_id": {
+        "content": "$2",
+        "example": "4d34e8a8"
+      }
+    }
+  },
+  "updatedGroupAccessToProjectWithId": {
+    "message": "Updated group: $GROUP_ID$ access to project with identifier: $PROJECT_ID$",
+    "placeholders": {
+      "group_id": {
+        "content": "$1",
+        "example": "4d34e8a8"
+      },
+      "project_id": {
+        "content": "$2",
+        "example": "4d34e8a8"
+      }
+    }
+  },
+  "grantedMachineAccountAccessToProjectWithId": {
+    "message": "Granted machine account: $SERVICE_ACCOUNT_ID$ access to project with identifier: $PROJECT_ID$",
+    "placeholders": {
+      "service_account_id": {
+        "content": "$1",
+        "example": "4d34e8a8"
+      },
+      "project_id": {
+        "content": "$2",
+        "example": "4d34e8a8"
+      }
+    }
+  },
+  "revokedMachineAccountAccessToProjectWithId": {
+    "message": "Revoked machine account: $SERVICE_ACCOUNT_ID$ access to project with identifier: $PROJECT_ID$",
+    "placeholders": {
+      "service_account_id": {
+        "content": "$1",
+        "example": "4d34e8a8"
+      },
+      "project_id": {
+        "content": "$2",
+        "example": "4d34e8a8"
+      }
+    }
+  },
+  "updatedMachineAccountAccessToProjectWithId": {
+    "message": "Updated machine account: $SERVICE_ACCOUNT_ID$ access to project with identifier: $PROJECT_ID$",
+    "placeholders": {
+      "service_account_id": {
+        "content": "$1",
+        "example": "4d34e8a8"
+      },
+      "project_id": {
+        "content": "$2",
         "example": "4d34e8a8"
       }
     }
@@ -12967,6 +13232,16 @@
       "date": {
         "content": "$2",
         "example": "Jan 1, 1970"
+      }
+    }
+  },
+  "viewedTOTPSeedItemId": {
+    "message": "Viewed TOTP seed for item $ID$.",
+    "description": "Event log entry for when a user views the TOTP seed for a cipher.",
+    "placeholders": {
+      "id": {
+        "content": "$1",
+        "example": "xxxxxxxx"
       }
     }
   }

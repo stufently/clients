@@ -28,18 +28,18 @@ export type ApItemViewType = SelectItemView & {
   readOnly: boolean;
 } & (
     | {
-        type: ApItemEnum.User;
+        type: typeof ApItemEnum.User;
         currentUser?: boolean;
       }
     | {
-        type: ApItemEnum.Group;
+        type: typeof ApItemEnum.Group;
         currentUserInGroup?: boolean;
       }
     | {
-        type: ApItemEnum.ServiceAccount;
+        type: typeof ApItemEnum.ServiceAccount;
       }
     | {
-        type: ApItemEnum.Project;
+        type: typeof ApItemEnum.Project;
       }
   );
 
@@ -67,6 +67,7 @@ export function convertGrantedPoliciesToAccessPolicyItemViews(
       permission: ApPermissionEnumUtil.toApPermissionEnum(
         detailView.accessPolicy.read,
         detailView.accessPolicy.write,
+        detailView.accessPolicy.manage,
       ),
       readOnly: !detailView.hasPermission,
     });
@@ -145,7 +146,7 @@ function toUserApItemViews(policies: UserAccessPolicyView[]): ApItemViewType[] {
       id: policy.organizationUserId,
       labelName: policy.organizationUserName,
       listName: policy.organizationUserName,
-      permission: ApPermissionEnumUtil.toApPermissionEnum(policy.read, policy.write),
+      permission: ApPermissionEnumUtil.toApPermissionEnum(policy.read, policy.write, policy.manage),
       currentUser: policy.currentUser,
       readOnly: false,
     };
@@ -160,7 +161,7 @@ function toGroupApItemViews(policies: GroupAccessPolicyView[]): ApItemViewType[]
       id: policy.groupId,
       labelName: policy.groupName,
       listName: policy.groupName,
-      permission: ApPermissionEnumUtil.toApPermissionEnum(policy.read, policy.write),
+      permission: ApPermissionEnumUtil.toApPermissionEnum(policy.read, policy.write, policy.manage),
       currentUserInGroup: policy.currentUserInGroup,
       readOnly: false,
     };
@@ -177,7 +178,7 @@ function toServiceAccountsApItemViews(
       id: policy.serviceAccountId,
       labelName: policy.serviceAccountName,
       listName: policy.serviceAccountName,
-      permission: ApPermissionEnumUtil.toApPermissionEnum(policy.read, policy.write),
+      permission: ApPermissionEnumUtil.toApPermissionEnum(policy.read, policy.write, policy.manage),
       readOnly: false,
     };
   });

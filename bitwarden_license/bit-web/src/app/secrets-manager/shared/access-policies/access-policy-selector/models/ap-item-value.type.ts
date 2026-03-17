@@ -42,6 +42,7 @@ export function convertToServiceAccountGrantedPoliciesView(
       policyView.grantedProjectId = filtered.id;
       policyView.read = ApPermissionEnumUtil.toRead(filtered.permission);
       policyView.write = ApPermissionEnumUtil.toWrite(filtered.permission);
+      policyView.manage = ApPermissionEnumUtil.toManage(filtered.permission);
 
       detailView.accessPolicy = policyView;
       return detailView;
@@ -76,6 +77,7 @@ function convertToUserAccessPolicyViews(apItemValues: ApItemValueType[]): UserAc
       policyView.organizationUserId = filtered.id;
       policyView.read = ApPermissionEnumUtil.toRead(filtered.permission);
       policyView.write = ApPermissionEnumUtil.toWrite(filtered.permission);
+      policyView.manage = ApPermissionEnumUtil.toManage(filtered.permission);
       return policyView;
     });
 }
@@ -88,6 +90,7 @@ function convertToGroupAccessPolicyViews(apItemValues: ApItemValueType[]): Group
       policyView.groupId = filtered.id;
       policyView.read = ApPermissionEnumUtil.toRead(filtered.permission);
       policyView.write = ApPermissionEnumUtil.toWrite(filtered.permission);
+      policyView.manage = ApPermissionEnumUtil.toManage(filtered.permission);
       return policyView;
     });
 }
@@ -102,6 +105,7 @@ function convertToServiceAccountAccessPolicyViews(
       policyView.serviceAccountId = filtered.id;
       policyView.read = ApPermissionEnumUtil.toRead(filtered.permission);
       policyView.write = ApPermissionEnumUtil.toWrite(filtered.permission);
+      policyView.manage = ApPermissionEnumUtil.toManage(filtered.permission);
       return policyView;
     });
 }

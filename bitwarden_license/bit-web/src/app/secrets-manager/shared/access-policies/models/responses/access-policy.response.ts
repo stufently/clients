@@ -3,11 +3,13 @@ import { BaseResponse } from "@bitwarden/common/models/response/base.response";
 class BaseAccessPolicyResponse extends BaseResponse {
   read: boolean;
   write: boolean;
+  manage: boolean;
 
   constructor(response: any) {
     super(response);
-    this.read = this.getResponseProperty("Read");
-    this.write = this.getResponseProperty("Write");
+    this.read = this.getResponseProperty("Read") ?? false;
+    this.write = this.getResponseProperty("Write") ?? false;
+    this.manage = this.getResponseProperty("Manage") ?? false;
   }
 }
 

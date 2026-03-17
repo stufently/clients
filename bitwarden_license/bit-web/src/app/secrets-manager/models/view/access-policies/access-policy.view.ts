@@ -3,6 +3,7 @@
 class BaseAccessPolicyView {
   read: boolean;
   write: boolean;
+  manage: boolean;
 }
 
 export class UserAccessPolicyView extends BaseAccessPolicyView {
