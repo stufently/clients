@@ -200,6 +200,10 @@ export class EventService {
           this.getShortId(ev.cipherId),
         );
         break;
+      case EventType.Cipher_ClientToggledTOTPSeedVisible:
+        msg = this.i18nService.t("viewedTOTPSeedItemId", this.formatCipherId(ev, options));
+        humanReadableMsg = this.i18nService.t("viewedTOTPSeedItemId", this.getShortId(ev.cipherId));
+        break;
       // Collection
       case EventType.Collection_Created:
         msg = this.i18nService.t("createdCollectionId", this.formatCollectionId(ev));
@@ -677,8 +681,8 @@ export class EventService {
         );
         humanReadableMsg = this.i18nService.t(
           "updatedUserPermissionForServiceAccountWithId",
-          this.formatUserId(ev, options),
-          this.formatServiceAccountId(ev, options),
+          this.getShortId(ev.userId),
+          this.getShortId(ev.serviceAccountId ?? ev.grantedServiceAccountId),
         );
         break;
       case EventType.ServiceAccount_GroupPermissionUpdated:
@@ -689,8 +693,8 @@ export class EventService {
         );
         humanReadableMsg = this.i18nService.t(
           "updatedGroupPermissionForServiceAccountWithId",
-          this.formatGroupId(ev),
-          this.formatServiceAccountId(ev, options),
+          this.getShortId(ev.groupId),
+          this.getShortId(ev.serviceAccountId ?? ev.grantedServiceAccountId),
         );
         break;
       case EventType.Secret_UserAccessGranted:
@@ -896,10 +900,6 @@ export class EventService {
           this.getShortId(ev.grantedServiceAccountId),
           this.getShortId(ev.projectId),
         );
-        break;
-      case EventType.Cipher_ClientToggledTOTPSeedVisible:
-        msg = this.i18nService.t("viewedTOTPSeedItemId", this.formatCipherId(ev, options));
-        humanReadableMsg = this.i18nService.t("viewedTOTPSeedItemId", this.getShortId(ev.cipherId));
         break;
       case EventType.Project_ServiceAccountAccessUpdated:
         msg = this.i18nService.t(

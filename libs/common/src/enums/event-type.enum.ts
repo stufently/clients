@@ -105,6 +105,8 @@ export enum EventType {
   Secret_Deleted = 2103,
   Secret_Permanently_Deleted = 2104,
   Secret_Restored = 2105,
+  // FIXME(ADR-0025): EventType should be migrated to a const object.
+  // New entries added here are prototype values pending that migration.
   Secret_UserAccessGranted = 2106,
   Secret_UserAccessRevoked = 2107,
   Secret_UserAccessUpdated = 2108,

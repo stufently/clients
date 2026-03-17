@@ -1,8 +1,8 @@
-export const ApPermissionEnum = {
+export const ApPermissionEnum = Object.freeze({
   CanRead: "canRead",
   CanReadWrite: "canReadWrite",
   CanManage: "canManage",
-} as const;
+} as const);
 export type ApPermissionEnum = (typeof ApPermissionEnum)[keyof typeof ApPermissionEnum];
 
 export class ApPermissionEnumUtil {
@@ -11,7 +11,12 @@ export class ApPermissionEnumUtil {
       return ApPermissionEnum.CanManage;
     } else if (read && write) {
       return ApPermissionEnum.CanReadWrite;
+    } else if (read) {
+      return ApPermissionEnum.CanRead;
     } else {
+      // write=true/read=false or all-false is not a valid state
+      // eslint-disable-next-line no-console
+      console.warn("toApPermissionEnum: unexpected permission state", { read, write, manage });
       return ApPermissionEnum.CanRead;
     }
   }
