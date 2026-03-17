@@ -110,7 +110,6 @@ describe("InsertAutofillContentService", () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
-    jest.clearAllTimers();
     windowLocationSpy.mockRestore();
     confirmSpy.mockRestore();
     document.body.innerHTML = "";
@@ -482,7 +481,7 @@ describe("InsertAutofillContentService", () => {
 
       expect(
         insertAutofillContentService["collectAutofillContentService"].getAutofillFieldElementByOpid,
-      ).toBeCalledWith("__1");
+      ).toHaveBeenCalledWith("__1");
       expect((insertAutofillContentService as any)["triggerClickOnElement"]).toHaveBeenCalledWith(
         textInput,
       );
@@ -547,7 +546,7 @@ describe("InsertAutofillContentService", () => {
 
       expect(
         insertAutofillContentService["collectAutofillContentService"].getAutofillFieldElementByOpid,
-      ).toBeCalledWith("__0");
+      ).toHaveBeenCalledWith("__0");
       expect(targetInput.blur).not.toHaveBeenCalled();
       expect(
         insertAutofillContentService["simulateUserMouseClickAndFocusEventInteractions"],
@@ -771,7 +770,6 @@ describe("InsertAutofillContentService", () => {
   describe("triggerFillAnimationOnElement", () => {
     beforeEach(() => {
       jest.useFakeTimers();
-      jest.clearAllTimers();
     });
 
     describe("will not trigger the animation when...", () => {
