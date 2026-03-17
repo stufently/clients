@@ -46,6 +46,7 @@ import { PasswordLoginCredentials } from "../models/domain/login-credentials";
 
 import { identityTokenResponseFactory } from "./login.strategy.spec";
 import { PasswordLoginStrategy, PasswordLoginStrategyData } from "./password-login.strategy";
+import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
 
 const email = "hello@world.com";
 const masterPassword = "password";
@@ -230,7 +231,13 @@ describe("PasswordLoginStrategy", () => {
   });
 
   it("uses master password unlock service when feature flag is enabled", async () => {
-    configService.getFeatureFlag.mockResolvedValue(true);
+    configService.getFeatureFlag.mockImplementation(async (flag: FeatureFlag) => {
+      if (flag === FeatureFlag.UseUnlockServiceForPasswordLogin) {
+        return true;
+      }
+      return false;
+    });
+
     // Re-create he strategy and wait a bit to settle the feature flag
     passwordLoginStrategy = new PasswordLoginStrategy(
       cache,
@@ -258,13 +265,15 @@ describe("PasswordLoginStrategy", () => {
       configService,
       accountCryptographicStateService,
     );
-    await new Promise((resolve) => setTimeout(resolve, 100));
 
     unlockService.unlockWithMasterPassword.mockResolvedValue(undefined);
     tokenService.decodeAccessToken.mockResolvedValue({ sub: userId });
 
     await passwordLoginStrategy.logIn(credentials);
 
+    expect(configService.getFeatureFlag).toHaveBeenCalledWith(
+      FeatureFlag.UseUnlockServiceForPasswordLogin,
+    );
     expect(masterPasswordService.mock.setMasterKey).not.toHaveBeenCalled();
     expect(masterPasswordService.mock.setMasterKeyHash).not.toHaveBeenCalled();
     expect(unlockService.unlockWithMasterPassword).toHaveBeenCalledWith(userId, masterPassword);

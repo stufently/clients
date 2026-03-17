@@ -84,16 +84,13 @@ export class PasswordLoginStrategy extends LoginStrategy {
       map((state) => state.tokenRequest.masterPasswordHash),
     );
     this.localMasterKeyHash$ = this.cache.pipe(map((state) => state.localMasterKeyHash));
-
-    // Set the feature flag state; this will run in the background since the constructor itself cannot be async
-    void (async () => {
-      this.unlockServiceForPasswordLogin = await this.configService.getFeatureFlag(
-        FeatureFlag.UseUnlockServiceForPasswordLogin,
-      );
-    })();
   }
 
   override async logIn(credentials: PasswordLoginCredentials): Promise<AuthResult> {
+    this.unlockServiceForPasswordLogin = await this.configService.getFeatureFlag(
+      FeatureFlag.UseUnlockServiceForPasswordLogin,
+    );
+
     const { email, masterPassword, twoFactor } = credentials;
 
     const data = new PasswordLoginStrategyData();
