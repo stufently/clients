@@ -1077,8 +1077,7 @@ export default class AutofillService implements AutofillServiceInterface {
             field.autoCompleteType === "one-time-code");
 
         const maybeTotpField =
-          isTotpCandidate &&
-          fieldContainsKeyword(field, AutoFillConstants.AmbiguousTotpFieldNames);
+          isTotpCandidate && fieldContainsKeyword(field, AutoFillConstants.AmbiguousTotpFieldNames);
 
         const isUsernameField =
           !options.skipUsernameOnlyFill &&
