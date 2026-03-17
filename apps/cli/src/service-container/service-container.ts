@@ -726,8 +726,8 @@ export class ServiceContainer {
       this.stateProvider,
       this.configService,
       this.registerSdkService,
-      this.securityStateService,
       this.accountCryptographicStateService,
+      this.sdkService,
       this.userDecryptionOptionsService,
     );
 
