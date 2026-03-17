@@ -50,6 +50,7 @@ export enum FeatureFlag {
   EnableAccountEncryptionV2KeyConnectorRegistration = "enable-account-encryption-v2-key-connector-registration",
   EnableAccountEncryptionV2JitPasswordRegistration = "enable-account-encryption-v2-jit-password-registration",
   UnlockKeyConnectorWithSdk = "use-unlock-service-for-key-connector-login",
+  SdkKeyConnectorMigration = "use-sdk-for-key-connector-migration",
   UnlockViaSDK = "unlock-via-sdk",
 
   /* Tools */
@@ -171,6 +172,7 @@ export const DefaultFeatureFlagValue = {
   [FeatureFlag.EnableAccountEncryptionV2KeyConnectorRegistration]: FALSE,
   [FeatureFlag.EnableAccountEncryptionV2JitPasswordRegistration]: FALSE,
   [FeatureFlag.UnlockKeyConnectorWithSdk]: FALSE,
+  [FeatureFlag.SdkKeyConnectorMigration]: FALSE,
   [FeatureFlag.UnlockViaSDK]: FALSE,
 
   /* Platform */
