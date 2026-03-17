@@ -1,7 +1,11 @@
 import AutofillField from "../models/autofill-field";
 import AutofillPageDetails from "../models/autofill-page-details";
 import { sendExtensionMessage } from "../utils";
-import { fieldContainsKeyword, getSubmitButtonKeywordsSet } from "../utils/qualification";
+import {
+  fieldContainsKeyword,
+  getSubmitButtonKeywordsSet,
+  isNonLoginFormContext,
+} from "../utils/qualification";
 
 import {
   InlineMenuFieldQualificationService as InlineMenuFieldQualificationServiceInterface,
@@ -32,7 +36,6 @@ export class InlineMenuFieldQualificationService implements InlineMenuFieldQuali
   private newPasswordAutoCompleteValue = "new-password";
   private submitButtonKeywordsMap: SubmitButtonKeywordsMap = new WeakMap();
   private newEmailFieldKeywords = new Set(AutoFillConstants.NewEmailFieldKeywords);
-  private = new Set(AutoFillConstants.NonLoginFormKeywords);
   private creditCardFieldKeywords = [
     ...new Set([
       ...CreditCardAutoFillConstants.CardHolderFieldNames,
@@ -137,39 +140,6 @@ export class InlineMenuFieldQualificationService implements InlineMenuFieldQuali
 
       for (let keywordIndex = 0; keywordIndex < matchFieldAttributeValues.length; keywordIndex++) {
         if (this.newEmailFieldKeywords.has(attributeValueToMatch)) {
-          return true;
-        }
-      }
-    }
-
-    return false;
-  }
-
-  /**
-   * Validates the provided form to indicate if the form is related to newsletter registration.
-   *
-   * @param parentForm - The form to validate
-   */
-  private isNewsletterForm(parentForm: any): boolean {
-    if (!parentForm) {
-      return false;
-    }
-
-    const matchFieldAttributeValues = [
-      parentForm.type,
-      parentForm.htmlName,
-      parentForm.htmlID,
-      parentForm.placeholder,
-    ];
-
-    for (let attrIndex = 0; attrIndex < matchFieldAttributeValues.length; attrIndex++) {
-      const attrValue = matchFieldAttributeValues[attrIndex];
-      if (!attrValue || typeof attrValue !== "string") {
-        continue;
-      }
-      const attrValueLower = attrValue.toLowerCase();
-      for (const keyword of this.newsletterFormKeywords) {
-        if (attrValueLower.includes(keyword.toLowerCase())) {
           return true;
         }
       }
@@ -469,7 +439,11 @@ export class InlineMenuFieldQualificationService implements InlineMenuFieldQuali
     }
     const passwordFieldsInPageDetails = pageDetails.fields.filter(this.isCurrentPasswordField);
 
-    if (this.isNewsletterForm(parentForm)) {
+    /**
+     * If a field is part of a newsletter form, or other recognized non-login type forms, it isn't a username
+     * {@link AutoFillConstants.NonLoginFormKeywords}
+     */
+    if (isNonLoginFormContext(field, pageDetails)) {
       return false;
     }
 

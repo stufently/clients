@@ -111,10 +111,12 @@ export class AutoFillConstants {
    */
   static readonly NonLoginFormKeywords: string[] = [
     "newsletter",
-    "subscribe",
-    "subscription",
-    "unsubscribe",
-    "mailing",
+    // @TODO expand list thoughtfully
+    // consider possible collisions with login forms
+    // consider using a "maybe" check
+    // "subscribe",
+    // "subscription",
+    // "unsubscribe",
   ];
 
   static readonly FieldIgnoreList: string[] = ["captcha", "findanything", "forgot"];
