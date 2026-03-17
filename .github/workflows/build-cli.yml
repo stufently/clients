@@ -238,7 +238,8 @@ jobs:
           _LOWER_RUNNER_OS: ${{ env.LOWER_RUNNER_OS }}
         run: codesign --sign "$MACOS_CERTIFICATE_NAME" --verbose=3 --force --options=runtime --entitlements ./entitlements.plist --timestamp "./dist/${{ matrix.license_type.build_prefix }}/$_LOWER_RUNNER_OS${{ matrix.os.target_suffix }}/bw"
 
-      - name: Zip Unix
+      - name: Zip Unix (Linux only)
+        if: ${{ matrix.os.base == 'linux' }}
         env:
           _LOWER_RUNNER_OS: ${{ env.LOWER_RUNNER_OS }}
           _PACKAGE_VERSION: ${{ env._PACKAGE_VERSION }}
@@ -267,10 +268,30 @@ jobs:
           echo "Create keychain profile"
           xcrun notarytool store-credentials "notarytool-profile" --key-id "$APP_STORE_CONNECT_AUTH_KEY" --key "$APP_STORE_CONNECT_AUTH_KEY_PATH" --issuer "$APP_STORE_CONNECT_TEAM_ISSUER"
 
-          codesign --sign "Developer ID Application: Bitwarden Inc" --verbose=3 --force --options=runtime --timestamp "./dist/bw${{ matrix.license_type.artifact_prefix }}-$_LOWER_RUNNER_OS${{ matrix.os.target_suffix }}-$_PACKAGE_VERSION.zip"
+          echo "Create temporary zip for notarization submission"
+          cd "./dist/${{ matrix.license_type.build_prefix }}/$_LOWER_RUNNER_OS${{ matrix.os.target_suffix }}"
+          zip bw-notarization-temp.zip ./bw
 
-          echo "Notarize app"
-          xcrun notarytool submit "./dist/bw${{ matrix.license_type.artifact_prefix }}-$_LOWER_RUNNER_OS${{ matrix.os.target_suffix }}-$_PACKAGE_VERSION.zip" --keychain-profile "notarytool-profile" --wait
+          echo "Submit binary for notarization"
+          xcrun notarytool submit bw-notarization-temp.zip --keychain-profile "notarytool-profile" --wait
+
+          echo "Staple notarization ticket to binary"
+          xcrun stapler staple ./bw
+
+          echo "Verify stapling succeeded"
+          xcrun stapler validate ./bw
+
+          echo "Cleanup temporary zip"
+          rm bw-notarization-temp.zip
+
+      - name: Zip macOS binary
+        if: ${{ matrix.os.base == 'mac' }}
+        env:
+          _LOWER_RUNNER_OS: ${{ env.LOWER_RUNNER_OS }}
+          _PACKAGE_VERSION: ${{ env._PACKAGE_VERSION }}
+        run: |
+          cd "./dist/${{ matrix.license_type.build_prefix }}/$_LOWER_RUNNER_OS${{ matrix.os.target_suffix }}"
+          zip "../../bw${{ matrix.license_type.artifact_prefix }}-$_LOWER_RUNNER_OS${{ matrix.os.target_suffix }}-$_PACKAGE_VERSION.zip" ./bw
 
       - name: Version Test
         env:
