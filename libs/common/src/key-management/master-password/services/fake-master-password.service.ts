@@ -53,10 +53,6 @@ export class FakeMasterPasswordService implements InternalMasterPasswordServiceA
     return this.mock.setMasterKey(masterKey, userId);
   }
 
-  clearMasterKey(userId: UserId): Promise<void> {
-    return this.mock.clearMasterKey(userId);
-  }
-
   getMasterKeyEncryptedUserKey(userId: UserId): Promise<EncString> {
     return this.mock.getMasterKeyEncryptedUserKey(userId);
   }
