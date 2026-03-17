@@ -13,7 +13,7 @@ import {
 } from "@bitwarden/common/key-management/session-timeout";
 import { VaultTimeoutAction } from "@bitwarden/common/key-management/vault-timeout";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
-import { DialogRef, DialogService } from "@bitwarden/components";
+import { DialogCloseRef, DialogRef, DialogService } from "@bitwarden/components";
 
 import { SessionTimeoutConfirmationNeverComponent } from "./session-timeout-confirmation-never.component";
 import { SessionTimeoutPolicyComponent } from "./session-timeout.component";
@@ -23,8 +23,8 @@ class MockDialogRef extends DialogRef {
   async close(
     result: unknown | undefined,
     options: DialogCloseOptions | undefined,
-  ): Promise<boolean> {
-    return true;
+  ): Promise<DialogCloseRef> {
+    return { closed: true };
   }
 
   closed: Observable<unknown | undefined> = of();

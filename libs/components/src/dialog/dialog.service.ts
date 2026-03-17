@@ -60,7 +60,7 @@ export abstract class DialogRef<R = unknown, C = unknown> implements Pick<
   abstract readonly isDrawer?: boolean;
 
   // --- From CdkDialogRef ---
-  abstract close(result?: R, options?: DialogCloseOptions): Promise<boolean>;
+  abstract close(result?: R, options?: DialogCloseOptions): Promise<DialogCloseRef>;
   abstract readonly closed: Observable<R | undefined>;
   abstract disableClose: boolean | undefined;
   /**
@@ -82,6 +82,11 @@ export type DialogConfig<D = unknown, R = unknown> = Pick<
   | "closeOnNavigation"
 > & {
   closePredicate?: (result?: any) => Promise<boolean>;
+};
+
+export type DialogCloseRef = {
+  /** A boolean indicating whether the close succeeded */
+  closed: boolean;
 };
 
 /**
@@ -162,16 +167,15 @@ class DrawerDialogRef<R = unknown, C = unknown> implements DialogRef<R, C> {
     readonly config?: DialogConfig<any, DialogConfig<R, C>>,
   ) {}
 
-  /** Returns a boolean indicating whether the drawer was closed or not */
-  async close(result?: R, _options?: DialogCloseOptions): Promise<boolean> {
+  async close(result?: R, _options?: DialogCloseOptions): Promise<DialogCloseRef> {
     if (this.disableClose) {
-      return false;
+      return { closed: false };
     }
     if (this.config?.closePredicate) {
       try {
         const canClose = await this.config.closePredicate(result);
         if (!canClose) {
-          return false;
+          return { closed: false };
         }
       } catch (err) {
         this.logService?.error(err);
@@ -180,7 +184,7 @@ class DrawerDialogRef<R = unknown, C = unknown> implements DialogRef<R, C> {
     this.drawerService.close(this.portal!);
     this._closed.next(result);
     this._closed.complete();
-    return true;
+    return { closed: true };
   }
 
   componentInstance: C | null = null;
@@ -202,19 +206,19 @@ export class CdkDialogRef<R = unknown, C = unknown> implements DialogRef<R, C> {
 
   // --- Delegated to CdkDialogRefBase ---
 
-  async close(result?: R, options?: DialogCloseOptions): Promise<boolean> {
+  async close(result?: R, options?: DialogCloseOptions): Promise<DialogCloseRef> {
     if (this.closePredicate) {
       try {
         const canClose = await this.closePredicate(result);
         if (!canClose) {
-          return false;
+          return { closed: false };
         }
       } catch (err) {
         this.logService?.error(err);
       }
     }
     this.cdkDialogRefBase.close(result, options);
-    return true;
+    return { closed: true };
   }
 
   get closed(): Observable<R | undefined> {
@@ -329,8 +333,10 @@ export class DialogService {
     component: ComponentType<C>,
     config?: DialogConfig<D, DialogRef<R, C>>,
   ): Promise<DialogRef<R, C> | undefined> {
-    const closed = await this.activeDrawer?.close();
-    if (closed === false) {
+    const closeResult = await this.activeDrawer?.close();
+    // We only want to abort here if we have an active drawer that has failed to close. We
+    // specifically check for false instead of falsy values to avoid false (ha) positives.
+    if (closeResult?.closed === false) {
       return;
     }
     /**
@@ -387,9 +393,9 @@ export class DialogService {
     return this.dialog.closeAll();
   }
 
-  /** Close the open drawer. Returns a boolean indicating whether or not the close succeeded. */
-  async closeDrawer(): Promise<boolean> {
-    return this.activeDrawer?.close() ?? true;
+  /** Close the open drawer */
+  async closeDrawer(): Promise<DialogCloseRef> {
+    return this.activeDrawer?.close() ?? { closed: true };
   }
 
   /**

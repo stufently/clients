@@ -294,6 +294,10 @@ export class SendComponent extends BaseSendComponent implements OnInit, OnDestro
   }
 
   async saveUnsavedSendEdits() {
-    return this.sendItemDialogRef?.close() ?? true;
+    if (this.sendItemDialogRef) {
+      const closeResult = await this.sendItemDialogRef.close();
+      return closeResult.closed;
+    }
+    return true;
   }
 }
