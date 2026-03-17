@@ -164,6 +164,33 @@ describe("GenerateCommand", () => {
       );
     });
 
+    it("returns error for non-numeric --length", async () => {
+      const command = createCommand({});
+
+      const response = await command.run({ length: "abc" });
+
+      expect(response.success).toBe(false);
+      expect(response.message).toContain("--length must be a number");
+    });
+
+    it("returns error for non-numeric --minNumber", async () => {
+      const command = createCommand({});
+
+      const response = await command.run({ minNumber: "xyz" });
+
+      expect(response.success).toBe(false);
+      expect(response.message).toContain("--minNumber must be a number");
+    });
+
+    it("returns error for non-numeric --words", async () => {
+      const command = createCommand({});
+
+      const response = await command.run({ passphrase: true, words: "abc" });
+
+      expect(response.success).toBe(false);
+      expect(response.message).toContain("--words must be a number");
+    });
+
     it("inverts --ambiguous flag", async () => {
       const meta = mockMetadata("test123");
       const command = createCommand({ metadata: meta });

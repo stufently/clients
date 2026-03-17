@@ -65,71 +65,72 @@ export class GenerateCommand {
     }
 
     const account$ = new BehaviorSubject(account);
+    try {
+      const policyConstraints = await firstValueFrom(
+        this.generatorService.policy$(metadata, { account$ }),
+      );
 
-    const policyConstraints = await firstValueFrom(
-      this.generatorService.policy$(metadata, { account$ }),
-    );
+      const settingsSubject = this.generatorService.settings(metadata, { account$ });
+      const savedSettings = await firstValueFrom(settingsSubject);
 
-    const settingsSubject = this.generatorService.settings(metadata, { account$ });
-    const savedSettings = await firstValueFrom(settingsSubject);
+      const defaultConstraints = metadata.profiles?.account?.constraints?.default ?? {};
+      const { hardLimits, clampedOverrides } = this.applyHardLimits(
+        flagOverrides,
+        defaultConstraints,
+      );
+      const requestedSettings = { ...savedSettings, ...clampedOverrides };
 
-    const defaultConstraints = metadata.profiles?.account?.constraints?.default ?? {};
-    const { hardLimits, clampedOverrides } = this.applyHardLimits(
-      flagOverrides,
-      defaultConstraints,
-    );
-    const requestedSettings = { ...savedSettings, ...clampedOverrides };
-
-    let policyAdjustedSettings: typeof requestedSettings;
-    if ("calibrate" in policyConstraints) {
-      policyAdjustedSettings = policyConstraints
-        .calibrate(requestedSettings)
-        .adjust(requestedSettings);
-    } else {
-      policyAdjustedSettings = policyConstraints.adjust(requestedSettings);
-    }
-
-    // Hard engine limits cannot be overridden, even with --force
-    if (hardLimits.length > 0) {
-      return Response.badRequest(`${hardLimits.join("; ")}.`);
-    }
-
-    // Report policy conflicts
-    const policyConflicts = this.describePolicyConflicts(
-      clampedOverrides,
-      requestedSettings,
-      policyAdjustedSettings,
-    );
-    if (policyConflicts.length > 0) {
-      const detail = policyConflicts.join("; ");
-      const source = policyConstraints.constraints.policyInEffect
-        ? "Organization policy"
-        : "Default policy";
-      if (options.force) {
-        process.stderr.write(`Warning: Ignoring ${source.toLowerCase()} (${detail}).\n`);
+      let policyAdjustedSettings: typeof requestedSettings;
+      if ("calibrate" in policyConstraints) {
+        policyAdjustedSettings = policyConstraints
+          .calibrate(requestedSettings)
+          .adjust(requestedSettings);
       } else {
-        return Response.badRequest(
-          `${source} adjusted your settings (${detail}). Use --force to override.`,
-        );
+        policyAdjustedSettings = policyConstraints.adjust(requestedSettings);
       }
-    }
 
-    const finalSettings = options.force ? requestedSettings : policyAdjustedSettings;
+      // Hard engine limits cannot be overridden, even with --force
+      if (hardLimits.length > 0) {
+        return Response.badRequest(`${hardLimits.join("; ")}.`);
+      }
 
-    const websiteNameCredential = this.tryWebsiteNameGeneration(finalSettings, options.website);
-    if (websiteNameCredential != null) {
+      // Report policy conflicts
+      const policyConflicts = this.describePolicyConflicts(
+        clampedOverrides,
+        requestedSettings,
+        policyAdjustedSettings,
+      );
+      if (policyConflicts.length > 0) {
+        const detail = policyConflicts.join("; ");
+        const source = policyConstraints.constraints.policyInEffect
+          ? "Organization policy"
+          : "Default policy";
+        if (options.force) {
+          process.stderr.write(`Warning: Ignoring ${source.toLowerCase()} (${detail}).\n`);
+        } else {
+          return Response.badRequest(
+            `${source} adjusted your settings (${detail}). Use --force to override.`,
+          );
+        }
+      }
+
+      const finalSettings = options.force ? requestedSettings : policyAdjustedSettings;
+
+      const websiteNameCredential = this.tryWebsiteNameGeneration(finalSettings, options.website);
+      if (websiteNameCredential != null) {
+        return Response.success(new StringResponse(websiteNameCredential));
+      }
+
+      const engine = metadata.engine.create(this.generatorProvider);
+      const generated = await engine.generate(
+        { algorithm: metadata.id, website: options.website },
+        finalSettings,
+      );
+
+      return Response.success(new StringResponse(generated.credential));
+    } finally {
       account$.complete();
-      return Response.success(new StringResponse(websiteNameCredential));
     }
-
-    const engine = metadata.engine.create(this.generatorProvider);
-    const generated = await engine.generate(
-      { algorithm: metadata.id, website: options.website },
-      finalSettings,
-    );
-
-    account$.complete();
-    return Response.success(new StringResponse(generated.credential));
   }
 
   private tryWebsiteNameGeneration(
@@ -257,13 +258,13 @@ export class GenerateCommand {
       settings.special = options.special;
     }
     if (options.length != null) {
-      settings.length = parseInt(options.length, 10);
+      settings.length = this.parseIntOrThrow(options.length, "length");
     }
     if (options.minNumber != null) {
-      settings.minNumber = parseInt(options.minNumber, 10);
+      settings.minNumber = this.parseIntOrThrow(options.minNumber, "minNumber");
     }
     if (options.minSpecial != null) {
-      settings.minSpecial = parseInt(options.minSpecial, 10);
+      settings.minSpecial = this.parseIntOrThrow(options.minSpecial, "minSpecial");
     }
     if (options.ambiguous != null) {
       settings.ambiguous = !options.ambiguous;
@@ -276,7 +277,7 @@ export class GenerateCommand {
     const settings: Record<string, unknown> = {};
 
     if (options.words != null) {
-      settings.numWords = parseInt(options.words, 10);
+      settings.numWords = this.parseIntOrThrow(options.words, "words");
     }
     if (options.separator != null) {
       let separator = options.separator;
@@ -370,5 +371,13 @@ export class GenerateCommand {
     }
 
     return { metadata, flagOverrides };
+  }
+
+  private parseIntOrThrow(value: string, name: string): number {
+    const parsed = parseInt(value, 10);
+    if (isNaN(parsed)) {
+      throw new Error(`--${name} must be a number (received "${value}")`);
+    }
+    return parsed;
   }
 }
