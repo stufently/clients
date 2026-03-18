@@ -241,6 +241,8 @@ export class CipherAttachmentsComponent {
         { onProgress: (percent) => this.uploadProgress.set(percent) },
       );
 
+      this.uploadProgress.set(100); // Direct uploads will not trigger onProgress, set to 100% so the user receives feedback that the upload is complete.
+
       // re-decrypt the cipher to update the attachments
       this.cipher.set(await this.cipherService.decrypt(this.cipherDomain, this.activeUserId));
 
