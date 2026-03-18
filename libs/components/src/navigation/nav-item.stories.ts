@@ -76,7 +76,7 @@ export const WithoutIcon: Story = {
   ...Default,
   args: {
     text: "Hello World",
-    icon: "",
+    icon: undefined,
   },
 };
 
