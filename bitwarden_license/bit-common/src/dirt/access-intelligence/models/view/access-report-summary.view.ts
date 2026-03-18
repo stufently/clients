@@ -22,6 +22,7 @@ export class AccessReportSummaryView implements View {
   totalCriticalMemberCount: number = 0;
   totalCriticalAtRiskMemberCount: number = 0;
   totalCriticalAtRiskApplicationCount: number = 0;
+  date: string = "";
 
   constructor(obj?: AccessReportSummary) {
     if (obj == null) {
@@ -36,6 +37,7 @@ export class AccessReportSummaryView implements View {
     this.totalCriticalMemberCount = obj.totalCriticalMemberCount;
     this.totalCriticalAtRiskMemberCount = obj.totalCriticalAtRiskMemberCount;
     this.totalCriticalAtRiskApplicationCount = obj.totalCriticalAtRiskApplicationCount;
+    this.date = obj.date;
   }
 
   toJSON() {
@@ -52,6 +54,7 @@ export class AccessReportSummaryView implements View {
     view.totalCriticalMemberCount = data.totalCriticalMemberCount;
     view.totalCriticalAtRiskMemberCount = data.totalCriticalAtRiskMemberCount;
     view.totalCriticalAtRiskApplicationCount = data.totalCriticalAtRiskApplicationCount;
+    view.date = data.date;
     return view;
   }
 

@@ -20,6 +20,7 @@ describe("SummaryVersioningService", () => {
     totalCriticalAtRiskMemberCount: 1,
     totalCriticalApplicationCount: 1,
     totalCriticalAtRiskApplicationCount: 1,
+    date: "",
   };
 
   const validEnvelope = { version: 1, data: validSummaryData };

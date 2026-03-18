@@ -79,7 +79,7 @@ describe("DefaultAccessReportEncryptionService", () => {
 
   const mockV2Input: DecryptedAccessReportData = {
     reportData: mockV2ReportData,
-    summaryData: mockSummaryData,
+    summaryData: { ...mockSummaryData, date: "" },
     applicationData: mockV2ApplicationData,
   };
 
@@ -119,7 +119,7 @@ describe("DefaultAccessReportEncryptionService", () => {
       wasLegacy: false,
     });
     mockSummaryVersioningService.process.mockReturnValue({
-      data: mockSummaryData,
+      data: { ...mockSummaryData, date: "" },
       wasLegacy: false,
     });
     mockApplicationVersioningService.process.mockReturnValue({
@@ -217,7 +217,7 @@ describe("DefaultAccessReportEncryptionService", () => {
       expect(result.reportData.reports).toHaveLength(1);
       expect(result.reportData.reports[0].applicationName).toBe("app.com");
       expect(result.reportData.memberRegistry).toHaveProperty("user-1");
-      expect(result.summaryData).toEqual(mockSummaryData);
+      expect(result.summaryData).toEqual({ ...mockSummaryData, date: "" });
       expect(result.hadLegacyBlobs).toBeUndefined();
     });
 
@@ -373,7 +373,7 @@ describe("DefaultAccessReportEncryptionService", () => {
       expect(mockKeyService.orgKeys$).toHaveBeenCalledWith(userId);
       expect(mockEncryptService.unwrapSymmetricKey).toHaveBeenCalledWith(mockKey, orgKey);
       expect(mockSummaryVersioningService.process).toHaveBeenCalled();
-      expect(result).toEqual(mockSummaryData);
+      expect(result).toEqual({ ...mockSummaryData, date: "" });
     });
 
     it("should throw if org key is not found", async () => {

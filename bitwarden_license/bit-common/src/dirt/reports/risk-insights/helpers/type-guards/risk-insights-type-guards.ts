@@ -13,6 +13,7 @@ import {
   OrganizationReportApplication,
   OrganizationReportSummary,
 } from "../../models";
+import { RiskOverTimeDataView, RiskOverTimeTimeframe } from "../../models/risk-over-time.types";
 
 import {
   createBoundedArrayGuard,
@@ -202,6 +203,7 @@ export const isAccessReportSummaryData = createValidator<AccessReportSummaryData
   totalCriticalMemberCount: isBoundedPositiveNumber,
   totalCriticalAtRiskMemberCount: isBoundedPositiveNumber,
   totalCriticalAtRiskApplicationCount: isBoundedPositiveNumber,
+  date: (value: unknown): value is string => value === undefined || typeof value === "string",
 });
 
 /**
@@ -358,4 +360,22 @@ export function validateAccessReportPayload(data: unknown): AccessReportPayload 
   }
 
   return data as AccessReportPayload;
+}
+
+// === Type Guards for Risk Over Time ===
+
+/**
+ * Type guard: validates a raw value is a valid RiskOverTimeTimeframe.
+ * Use at system boundaries (user input, deserialization).
+ */
+export function isRiskOverTimeTimeframe(value: string): value is RiskOverTimeTimeframe {
+  return Object.values(RiskOverTimeTimeframe).includes(value as RiskOverTimeTimeframe);
+}
+
+/**
+ * Type guard: validates a raw value is a valid RiskOverTimeDataView.
+ * Use at system boundaries (user input, deserialization).
+ */
+export function isRiskOverTimeDataView(value: string): value is RiskOverTimeDataView {
+  return Object.values(RiskOverTimeDataView).includes(value as RiskOverTimeDataView);
 }

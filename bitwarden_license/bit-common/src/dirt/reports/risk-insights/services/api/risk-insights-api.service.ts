@@ -4,6 +4,7 @@ import { ApiService } from "@bitwarden/common/abstractions/api.service";
 import { ErrorResponse } from "@bitwarden/common/models/response/error.response";
 import { OrganizationId, OrganizationReportId } from "@bitwarden/common/types/guid";
 
+import { AccessReportSummaryApi } from "../../../../access-intelligence/models";
 import {
   UpdateRiskInsightsApplicationDataRequest,
   UpdateRiskInsightsApplicationDataResponse,
@@ -16,6 +17,7 @@ import {
   SaveRiskInsightsReportRequest,
   SaveRiskInsightsReportResponse,
 } from "../../models/api-models.types";
+import { RiskOverTimeTimeframe, timeframeToDateRange } from "../../models/risk-over-time.types";
 
 export class RiskInsightsApiService {
   constructor(private apiService: ApiService) {}
@@ -122,6 +124,48 @@ export class RiskInsightsApiService {
 
     return from(dbResponse).pipe(
       map((response) => new UpdateRiskInsightsApplicationDataResponse(response)),
+    );
+  }
+
+  /**
+   * Fetches risk-over-time summary data for the given organization and timeframe.
+   *
+   * Calls the PM-28531 summary-by-date-range endpoint which returns up to 6
+   * evenly-spaced encrypted summary entries. Each entry must be decrypted by
+   * the consuming code to extract metric counts based on the selected data view.
+   *
+   * @param orgId - Organization to fetch data for
+   * @param timeframe - UI timeframe selection, converted to startDate/endDate internally
+   * @returns Array of encrypted summary entries ordered by date, or empty array on 404
+   */
+  getRiskOverTime$(
+    orgId: OrganizationId,
+    timeframe: RiskOverTimeTimeframe,
+  ): Observable<AccessReportSummaryApi[]> {
+    const { startDate, endDate } = timeframeToDateRange(timeframe);
+    const startDateStr = startDate.toISOString().split("T")[0];
+    const endDateStr = endDate.toISOString().split("T")[0];
+
+    const dbResponse = this.apiService.send(
+      "GET",
+      `/reports/organizations/${orgId.toString()}/data/summary?startDate=${startDateStr}&endDate=${endDateStr}`,
+      null,
+      true,
+      true,
+    );
+    return from(dbResponse).pipe(
+      map((response: any) => {
+        if (!response || !Array.isArray(response)) {
+          return [];
+        }
+        return response.map((entry: any) => new AccessReportSummaryApi(entry));
+      }),
+      catchError((error: unknown) => {
+        if (error instanceof ErrorResponse && error.statusCode === 404) {
+          return of([]);
+        }
+        return throwError(() => error);
+      }),
     );
   }
 }

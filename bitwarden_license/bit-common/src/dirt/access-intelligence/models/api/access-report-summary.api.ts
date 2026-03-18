@@ -24,6 +24,14 @@ export class AccessReportSummaryApi extends BaseResponse {
   totalCriticalAtRiskMemberCount: number = 0;
   totalCriticalAtRiskApplicationCount: number = 0;
 
+  // Risk-over-time fields: populated when constructed from the summary-by-date-range
+  // endpoint (PM-28531). The endpoint returns encrypted summary entries with dates.
+  // Count fields above default to 0 until decryption populates them.
+  date: string = "";
+  organizationId: string = "";
+  encryptedData: string = "";
+  encryptionKey: string = "";
+
   constructor(data: any) {
     super(data);
 
@@ -38,5 +46,10 @@ export class AccessReportSummaryApi extends BaseResponse {
       this.getResponseProperty("totalCriticalAtRiskMemberCount") || 0;
     this.totalCriticalAtRiskApplicationCount =
       this.getResponseProperty("totalCriticalAtRiskApplicationCount") || 0;
+
+    this.date = this.getResponseProperty("date") ?? "";
+    this.organizationId = this.getResponseProperty("organizationId") ?? "";
+    this.encryptedData = this.getResponseProperty("encryptedData") ?? "";
+    this.encryptionKey = this.getResponseProperty("encryptionKey") ?? "";
   }
 }

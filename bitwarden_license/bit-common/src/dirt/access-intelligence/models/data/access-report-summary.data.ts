@@ -20,6 +20,7 @@ export class AccessReportSummaryData {
   totalCriticalMemberCount: number = 0;
   totalCriticalAtRiskMemberCount: number = 0;
   totalCriticalAtRiskApplicationCount: number = 0;
+  date: string = "";
 
   constructor(data?: AccessReportSummaryApi) {
     if (data == null) {
@@ -34,5 +35,6 @@ export class AccessReportSummaryData {
     this.totalCriticalMemberCount = data.totalCriticalMemberCount;
     this.totalCriticalAtRiskMemberCount = data.totalCriticalAtRiskMemberCount;
     this.totalCriticalAtRiskApplicationCount = data.totalCriticalAtRiskApplicationCount;
+    this.date = data.date;
   }
 }

@@ -322,6 +322,7 @@ describe("DefaultReportPersistenceService", () => {
           totalCriticalAtRiskMemberCount: 1,
           totalCriticalApplicationCount: 1,
           totalCriticalAtRiskApplicationCount: 1,
+          date: "",
         },
         applicationData: [
           {
@@ -444,6 +445,7 @@ describe("DefaultReportPersistenceService", () => {
           totalCriticalAtRiskMemberCount: 2,
           totalCriticalApplicationCount: 2,
           totalCriticalAtRiskApplicationCount: 1,
+          date: "",
         },
         applicationData: [
           {

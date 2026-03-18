@@ -705,6 +705,7 @@ describe("Risk Insights Type Guards", () => {
       totalCriticalMemberCount: 4,
       totalCriticalAtRiskMemberCount: 1,
       totalCriticalAtRiskApplicationCount: 1,
+      date: "",
     };
 
     it("should validate valid summary data", () => {

@@ -22,6 +22,7 @@ export class AccessReportSummary extends Domain {
   totalCriticalMemberCount: number = 0;
   totalCriticalAtRiskMemberCount: number = 0;
   totalCriticalAtRiskApplicationCount: number = 0;
+  date: string = "";
 
   constructor(obj?: AccessReportSummaryData) {
     super();
@@ -37,6 +38,7 @@ export class AccessReportSummary extends Domain {
     this.totalCriticalMemberCount = obj.totalCriticalMemberCount;
     this.totalCriticalAtRiskMemberCount = obj.totalCriticalAtRiskMemberCount;
     this.totalCriticalAtRiskApplicationCount = obj.totalCriticalAtRiskApplicationCount;
+    this.date = obj.date;
   }
 
   // [TODO] Domain level methods

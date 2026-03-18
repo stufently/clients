@@ -159,6 +159,7 @@ export class AccessReport extends Domain {
         totalCriticalAtRiskMemberCount: view.summary.totalCriticalAtRiskMemberCount,
         totalCriticalApplicationCount: view.summary.totalCriticalApplicationCount,
         totalCriticalAtRiskApplicationCount: view.summary.totalCriticalAtRiskApplicationCount,
+        date: view.summary.date,
       },
       applicationData: view.applications.map((app) => ({
         applicationName: app.applicationName,
