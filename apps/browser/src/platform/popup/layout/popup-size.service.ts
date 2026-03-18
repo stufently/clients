@@ -100,7 +100,7 @@ export class PopupSizeService {
       localStorage.setItem(PopupSizeService.LocalStorageKey, storedValue);
     }
 
-    void this.setStyle(storedValue as any);
+    void this.setStyle(PopupSizeService.toPopupWidthOption(migratedValue));
   }
 
   /**
@@ -112,5 +112,17 @@ export class PopupSizeService {
       return "wide";
     }
     return value;
+  }
+
+  private static isPopupWidthOption(value: string | null): value is PopupWidthOption {
+    return value != null && value in PopupWidthOptions;
+  }
+
+  private static toPopupWidthOption(value: string | null): PopupWidthOption {
+    const migrated = PopupSizeService.migrateOldWidthOption(value);
+    if (PopupSizeService.isPopupWidthOption(migrated)) {
+      return migrated;
+    }
+    return "default";
   }
 }
