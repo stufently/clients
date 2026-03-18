@@ -7,12 +7,12 @@ import { BitwardenIcon } from "@bitwarden/components";
 
 export type CipherStatus = "all" | "favorites" | "archive" | "trash" | CipherType;
 
-export type CipherTypeFilter = ITreeNodeObject & { type: CipherStatus; icon: BitwardenIcon };
+export type CipherTypeFilter = ITreeNodeObject & { type: CipherStatus; icon?: BitwardenIcon };
 export type CollectionFilter = CollectionAdminView & {
-  icon: BitwardenIcon;
+  icon?: BitwardenIcon;
 };
 export type FolderFilter = FolderView & {
-  icon: BitwardenIcon;
+  icon?: BitwardenIcon;
   /**
    * Full folder name.
    *
@@ -20,4 +20,4 @@ export type FolderFilter = FolderView & {
    */
   fullName?: string;
 };
-export type OrganizationFilter = Organization & { icon: BitwardenIcon; hideOptions?: boolean };
+export type OrganizationFilter = Organization & { icon?: BitwardenIcon; hideOptions?: boolean };
