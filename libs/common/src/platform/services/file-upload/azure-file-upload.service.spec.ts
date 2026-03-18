@@ -3,6 +3,7 @@ import { mock, MockProxy } from "jest-mock-extended";
 import { ApiService } from "../../../abstractions/api.service";
 import { AzureUploadOptions } from "../../abstractions/file-upload/file-upload.service";
 import { LogService } from "../../abstractions/log.service";
+import { AzureUploadBlockSize } from "../../enums/azure-block-size.enum";
 import { EncArrayBuffer } from "../../models/domain/enc-array-buffer";
 
 import { AzureFileUploadService } from "./azure-file-upload.service";
@@ -63,8 +64,7 @@ describe("AzureFileUploadService", () => {
   });
 
   it("calls onProgress incrementally as blocks complete", async () => {
-    const blockSize = 1 * 1024 * 1024; // 1 MiB
-    const data = makeEncArrayBuffer(3 * blockSize); // 3 blocks
+    const data = makeEncArrayBuffer(3 * AzureUploadBlockSize[32]);
     const url = makeUrl();
     const renewalCallback = jest.fn().mockResolvedValue(url);
     const progressValues: number[] = [];
@@ -72,7 +72,7 @@ describe("AzureFileUploadService", () => {
     apiService.nativeFetch.mockResolvedValue(makeOkResponse());
 
     await service.upload(url, data, renewalCallback, {
-      blockSize,
+      blockSize: AzureUploadBlockSize[32],
       onProgress: (p) => progressValues.push(p),
     } as AzureUploadOptions);
 
@@ -81,19 +81,19 @@ describe("AzureFileUploadService", () => {
   });
 
   it("throws when numBlocks exceeds MAX_BLOCKS_PER_BLOB", async () => {
-    const blockSize = 1 * 1024 * 1024;
+    const blockSize = AzureUploadBlockSize[32];
     const maxBlocks = 50000;
     const data = makeEncArrayBuffer((maxBlocks + 1) * blockSize); // 50001 blocks
     const url = makeUrl();
     const renewalCallback = jest.fn();
 
-    await expect(
-      service.upload(url, data, renewalCallback, { blockSize } as AzureUploadOptions),
-    ).rejects.toThrow("Cannot upload file, exceeds maximum size");
+    await expect(service.upload(url, data, renewalCallback, { blockSize })).rejects.toThrow(
+      "Cannot upload file, exceeds maximum size",
+    );
   });
 
   it("calls renewalCallback when URL is near expiry", async () => {
-    const blockSize = 1 * 1024 * 1024; // 1 MiB
+    const blockSize = AzureUploadBlockSize[32];
     const data = makeEncArrayBuffer(blockSize);
     const expiredUrl = makeUrl(-5000); // expired 5 seconds ago
     const freshUrl = makeUrl(3600000);
@@ -101,13 +101,13 @@ describe("AzureFileUploadService", () => {
 
     apiService.nativeFetch.mockResolvedValue(makeOkResponse());
 
-    await service.upload(expiredUrl, data, renewalCallback, { blockSize } as AzureUploadOptions);
+    await service.upload(expiredUrl, data, renewalCallback, { blockSize });
 
     expect(renewalCallback).toHaveBeenCalled();
   });
 
   it("throws on non-201 block PUT response", async () => {
-    const blockSize = 1 * 1024 * 1024; // 1 MiB
+    const blockSize = AzureUploadBlockSize[32];
     const data = makeEncArrayBuffer(blockSize);
     const url = makeUrl();
     const renewalCallback = jest.fn().mockResolvedValue(url);
@@ -117,14 +117,13 @@ describe("AzureFileUploadService", () => {
       json: () => Promise.resolve({ error: "Forbidden" }),
     } as Response);
 
-    await expect(
-      service.upload(url, data, renewalCallback, { blockSize } as AzureUploadOptions),
-    ).rejects.toThrow("Unsuccessful block PUT. Received status 403");
+    await expect(service.upload(url, data, renewalCallback, { blockSize })).rejects.toThrow(
+      "Unsuccessful block PUT. Received status 403",
+    );
   });
 
   it("throws on non-201 block list PUT response", async () => {
-    const blockSize = 1 * 1024 * 1024; // 1 MiB
-    const data = makeEncArrayBuffer(blockSize);
+    const data = makeEncArrayBuffer(AzureUploadBlockSize[32]);
     const url = makeUrl();
     const renewalCallback = jest.fn().mockResolvedValue(url);
 
@@ -136,7 +135,7 @@ describe("AzureFileUploadService", () => {
       } as Response); // block list PUT fails
 
     await expect(
-      service.upload(url, data, renewalCallback, { blockSize } as AzureUploadOptions),
+      service.upload(url, data, renewalCallback, { blockSize: AzureUploadBlockSize[32] }),
     ).rejects.toThrow("Unsuccessful block list PUT. Received status 500");
   });
 });
