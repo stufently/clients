@@ -17,6 +17,7 @@ import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.servic
 import { CipherId, CollectionId, OrganizationId } from "@bitwarden/common/types/guid";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
 import { SyncService } from "@bitwarden/common/vault/abstractions/sync/sync.service.abstraction";
+import { CipherType } from "@bitwarden/common/vault/enums";
 import { CipherRepromptType } from "@bitwarden/common/vault/enums/cipher-reprompt-type";
 import { CipherView } from "@bitwarden/common/vault/models/view/cipher.view";
 import { DialogRef, TableDataSource, DialogService } from "@bitwarden/components";
@@ -282,6 +283,20 @@ export abstract class CipherReportComponent implements OnDestroy {
       c.reprompt === CipherRepromptType.None ||
       (await this.passwordRepromptService.showPasswordPrompt())
     );
+  }
+
+  protected filterCiphersByPermissions(ciphers: CipherView[]): CipherView[] {
+    return ciphers.filter((ciph) => {
+      const { type, login, isDeleted, edit, viewPassword } = ciph;
+      return (
+        type === CipherType.Login &&
+        login.password != null &&
+        login.password !== "" &&
+        !isDeleted &&
+        (!!this.organization || edit) &&
+        viewPassword
+      );
+    });
   }
 
   protected async getAllCiphers(): Promise<CipherView[]> {

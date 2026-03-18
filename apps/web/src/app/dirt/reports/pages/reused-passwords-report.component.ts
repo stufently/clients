@@ -1,13 +1,16 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
 import { Component, OnInit } from "@angular/core";
+import { firstValueFrom } from "rxjs";
 
 import { OrganizationService } from "@bitwarden/common/admin-console/abstractions/organization/organization.service.abstraction";
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
+import { getUserId } from "@bitwarden/common/auth/services/account.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
+import { uuidAsString } from "@bitwarden/common/platform/abstractions/sdk/sdk.service";
+import { CipherRiskService } from "@bitwarden/common/vault/abstractions/cipher-risk.service";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
 import { SyncService } from "@bitwarden/common/vault/abstractions/sync/sync.service.abstraction";
-import { CipherType } from "@bitwarden/common/vault/enums";
 import { CipherView } from "@bitwarden/common/vault/models/view/cipher.view";
 import { DialogService } from "@bitwarden/components";
 import { CipherFormConfigService, PasswordRepromptService } from "@bitwarden/vault";
@@ -26,11 +29,12 @@ import { CipherReportComponent } from "./cipher-report.component";
 })
 export class ReusedPasswordsReportComponent extends CipherReportComponent implements OnInit {
   ciphersToCheckForReusedPasswords: CipherView[] = [];
-  passwordUseMap: Map<string, number>;
+  reuseCountMap: Map<string, number> = new Map();
   disabled = true;
 
   constructor(
     protected cipherService: CipherService,
+    protected cipherRiskService: CipherRiskService,
     protected organizationService: OrganizationService,
     dialogService: DialogService,
     accountService: AccountService,
@@ -58,44 +62,11 @@ export class ReusedPasswordsReportComponent extends CipherReportComponent implem
   }
 
   async setCiphers() {
-    this.ciphersToCheckForReusedPasswords = await this.getAllCiphers();
-    const reusedPasswordCiphers = await this.checkCiphersForReusedPasswords(
-      this.ciphersToCheckForReusedPasswords,
-    );
-    this.filterCiphersByOrg(reusedPasswordCiphers);
-  }
-
-  protected async checkCiphersForReusedPasswords(ciphers: CipherView[]): Promise<CipherView[]> {
-    const ciphersWithPasswords: CipherView[] = [];
-    this.passwordUseMap = new Map<string, number>();
+    const allCiphers = await this.getAllCiphers();
+    this.ciphersToCheckForReusedPasswords = this.filterCiphersByPermissions(allCiphers);
     this.filterStatus = [0];
 
-    ciphers.forEach((ciph) => {
-      const { type, login, isDeleted, edit, viewPassword } = ciph;
-      if (
-        type !== CipherType.Login ||
-        login.password == null ||
-        login.password === "" ||
-        isDeleted ||
-        (!this.organization && !edit) ||
-        !viewPassword
-      ) {
-        return;
-      }
-
-      ciphersWithPasswords.push(ciph);
-      if (this.passwordUseMap.has(login.password)) {
-        this.passwordUseMap.set(login.password, this.passwordUseMap.get(login.password) + 1);
-      } else {
-        this.passwordUseMap.set(login.password, 1);
-      }
-    });
-    const reusedPasswordCiphers = ciphersWithPasswords.filter(
-      (c) =>
-        this.passwordUseMap.has(c.login.password) && this.passwordUseMap.get(c.login.password) > 1,
-    );
-
-    return reusedPasswordCiphers;
+    await this.computeReusedPasswords();
   }
 
   protected canManageCipher(c: CipherView): boolean {
@@ -127,14 +98,32 @@ export class ReusedPasswordsReportComponent extends CipherReportComponent implem
     }
 
     // Re-check the passwords for reused passwords for all ciphers
-    const reusedPasswordCiphers = await this.checkCiphersForReusedPasswords(
-      this.ciphersToCheckForReusedPasswords,
-    );
-
-    // set the updated ciphers list to the filtered reused passwords
-    this.filterCiphersByOrg(reusedPasswordCiphers);
+    await this.computeReusedPasswords();
 
     // return the updated cipher view
     return updatedCipherView;
+  }
+
+  private async computeReusedPasswords(): Promise<void> {
+    const ciphers = this.ciphersToCheckForReusedPasswords;
+    const userId = await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
+
+    const passwordMap = await this.cipherRiskService.buildPasswordReuseMap(ciphers, userId);
+    const results = await this.cipherRiskService.computeRiskForCiphers(ciphers, userId, {
+      passwordMap,
+    });
+
+    this.reuseCountMap = new Map<string, number>();
+    const reusedCipherIds = new Set<string>();
+
+    for (const result of results) {
+      if ((result.reuse_count ?? 1) > 1) {
+        this.reuseCountMap.set(uuidAsString(result.id), result.reuse_count);
+        reusedCipherIds.add(uuidAsString(result.id));
+      }
+    }
+
+    const reusedPasswordCiphers = ciphers.filter((c) => reusedCipherIds.has(c.id));
+    this.filterCiphersByOrg(reusedPasswordCiphers);
   }
 }

@@ -7,6 +7,7 @@ import { AccountService } from "@bitwarden/common/auth/abstractions/account.serv
 import { getUserId } from "@bitwarden/common/auth/services/account.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { getById } from "@bitwarden/common/platform/misc";
+import { CipherRiskService } from "@bitwarden/common/vault/abstractions/cipher-risk.service";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
 import { SyncService } from "@bitwarden/common/vault/abstractions/sync/sync.service.abstraction";
 import { Cipher } from "@bitwarden/common/vault/models/domain/cipher";
@@ -50,6 +51,7 @@ export class ReusedPasswordsReportComponent
 
   constructor(
     cipherService: CipherService,
+    cipherRiskService: CipherRiskService,
     dialogService: DialogService,
     private route: ActivatedRoute,
     organizationService: OrganizationService,
@@ -62,6 +64,7 @@ export class ReusedPasswordsReportComponent
   ) {
     super(
       cipherService,
+      cipherRiskService,
       organizationService,
       dialogService,
       accountService,
