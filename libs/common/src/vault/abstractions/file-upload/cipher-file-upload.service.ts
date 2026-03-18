@@ -1,3 +1,5 @@
+import { AzureUploadOptions } from "@bitwarden/common/platform/abstractions/file-upload/file-upload.service";
+
 import { EncString } from "../../../key-management/crypto/models/enc-string";
 import { EncArrayBuffer } from "../../../platform/models/domain/enc-array-buffer";
 import { SymmetricCryptoKey } from "../../../platform/models/domain/symmetric-crypto-key";
@@ -11,6 +13,6 @@ export abstract class CipherFileUploadService {
     encData: EncArrayBuffer,
     admin: boolean,
     dataEncKey: [SymmetricCryptoKey, EncString],
-    azureOptions?: { blockSize?: number; onProgress?: (percent: number) => void },
+    azureOptions?: AzureUploadOptions,
   ): Promise<CipherResponse>;
 }

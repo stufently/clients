@@ -3,6 +3,7 @@
 import { ApiService } from "../../../abstractions/api.service";
 import { EncString } from "../../../key-management/crypto/models/enc-string";
 import {
+  AzureUploadOptions,
   FileUploadApiMethods,
   FileUploadService as FileUploadServiceAbstraction,
 } from "../../abstractions/file-upload/file-upload.service";
@@ -30,7 +31,7 @@ export class FileUploadService implements FileUploadServiceAbstraction {
     fileName: EncString,
     encryptedFileData: EncArrayBuffer,
     fileUploadMethods: FileUploadApiMethods,
-    azureOptions?: { blockSize?: number; onProgress?: (percent: number) => void },
+    azureOptions?: AzureUploadOptions,
   ) {
     try {
       switch (uploadData.fileUploadType) {

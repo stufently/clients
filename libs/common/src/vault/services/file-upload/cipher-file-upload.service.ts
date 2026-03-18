@@ -1,9 +1,11 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
+
 import { ApiService } from "../../../abstractions/api.service";
 import { EncString } from "../../../key-management/crypto/models/enc-string";
 import { ErrorResponse } from "../../../models/response/error.response";
 import {
+  AzureUploadOptions,
   FileUploadApiMethods,
   FileUploadService,
 } from "../../../platform/abstractions/file-upload/file-upload.service";
@@ -27,7 +29,7 @@ export class CipherFileUploadService implements CipherFileUploadServiceAbstracti
     encData: EncArrayBuffer,
     admin: boolean,
     dataEncKey: [SymmetricCryptoKey, EncString],
-    azureOptions?: { blockSize?: number; onProgress?: (percent: number) => void },
+    azureOptions?: AzureUploadOptions,
   ): Promise<CipherResponse> {
     const request: AttachmentRequest = {
       key: dataEncKey[1].encryptedString,

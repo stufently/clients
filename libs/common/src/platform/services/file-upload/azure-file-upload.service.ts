@@ -1,13 +1,13 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
 import { ApiService } from "../../../abstractions/api.service";
+import { AzureUploadOptions } from "../../abstractions/file-upload/file-upload.service";
 import { LogService } from "../../abstractions/log.service";
+import { AzureUploadBlockSize } from "../../enums/azure-block-size.enum";
 import { Utils } from "../../misc/utils";
 import { EncArrayBuffer } from "../../models/domain/enc-array-buffer";
 
-const DEFAULT_BLOCK_SIZE = 32 * 1024 * 1024; // 32 MiB
-const MIN_BLOCK_SIZE = 1 * 1024 * 1024; // 1 MiB
-const MAX_BLOCK_SIZE = 4000 * 1024 * 1024; // 4000 MiB
+const DEFAULT_BLOCK_SIZE = AzureUploadBlockSize[4000];
 const MAX_BLOCKS_PER_BLOB = 50000;
 
 export class AzureFileUploadService {
@@ -20,7 +20,7 @@ export class AzureFileUploadService {
     url: string,
     data: EncArrayBuffer,
     renewalCallback: () => Promise<string>,
-    azureOptions?: { blockSize?: number; onProgress?: (percent: number) => void },
+    azureOptions?: AzureUploadOptions,
   ) {
     return await this.azureUploadBlocks(url, data, renewalCallback, azureOptions);
   }
@@ -29,12 +29,9 @@ export class AzureFileUploadService {
     url: string,
     data: EncArrayBuffer,
     renewalCallback: () => Promise<string>,
-    azureOptions?: { blockSize?: number; onProgress?: (percent: number) => void },
+    azureOptions?: AzureUploadOptions,
   ) {
-    const blockSize = Math.min(
-      Math.max(azureOptions?.blockSize ?? DEFAULT_BLOCK_SIZE, MIN_BLOCK_SIZE),
-      MAX_BLOCK_SIZE,
-    );
+    const blockSize = azureOptions?.blockSize ?? DEFAULT_BLOCK_SIZE;
     let blockIndex = 0;
     const numBlocks = Math.ceil(data.buffer.byteLength / blockSize);
     const blocksStaged: string[] = [];
