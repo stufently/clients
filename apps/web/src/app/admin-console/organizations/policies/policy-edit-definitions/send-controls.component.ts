@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component } from "@angular/core";
+import { ChangeDetectionStrategy, Component, OnInit } from "@angular/core";
 import { UntypedFormBuilder } from "@angular/forms";
 import { Observable } from "rxjs";
 
@@ -27,7 +27,7 @@ export class SendControlsPolicy extends BasePolicyEditDefinition {
   imports: [SharedModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SendControlsPolicyComponent extends BasePolicyEditComponent {
+export class SendControlsPolicyComponent extends BasePolicyEditComponent implements OnInit {
   readonly data = this.formBuilder.group({
     disableSend: false,
     disableHideEmail: false,
@@ -35,5 +35,9 @@ export class SendControlsPolicyComponent extends BasePolicyEditComponent {
 
   constructor(private readonly formBuilder: UntypedFormBuilder) {
     super();
+  }
+
+  async ngOnInit() {
+    super.ngOnInit();
   }
 }

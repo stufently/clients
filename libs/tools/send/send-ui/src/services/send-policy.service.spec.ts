@@ -47,24 +47,44 @@ describe("SendPolicyService", () => {
         policyServiceMock.policiesByType$
           .calledWith(PolicyType.SendControls, userId)
           .mockReturnValue(of([makePolicy({ disableSend: true })]));
+        policyServiceMock.policyAppliesToUser$
+          .calledWith(PolicyType.DisableSend, userId)
+          .mockReturnValue(of(false));
 
         expect(await firstValueFrom(setup(true).disableSend$)).toBe(true);
       });
 
-      it("emits false when SendControls policy has disableSend: false", async () => {
+      it("emits false when SendControls policy has disableSend: false and no legacy policy", async () => {
         policyServiceMock.policiesByType$
           .calledWith(PolicyType.SendControls, userId)
           .mockReturnValue(of([makePolicy({ disableSend: false })]));
+        policyServiceMock.policyAppliesToUser$
+          .calledWith(PolicyType.DisableSend, userId)
+          .mockReturnValue(of(false));
 
         expect(await firstValueFrom(setup(true).disableSend$)).toBe(false);
       });
 
-      it("emits false when policy data is null", async () => {
+      it("emits false when policy data is null and no legacy policy", async () => {
         policyServiceMock.policiesByType$
           .calledWith(PolicyType.SendControls, userId)
           .mockReturnValue(of([makePolicy(null)]));
+        policyServiceMock.policyAppliesToUser$
+          .calledWith(PolicyType.DisableSend, userId)
+          .mockReturnValue(of(false));
 
         expect(await firstValueFrom(setup(true).disableSend$)).toBe(false);
+      });
+
+      it("emits true when legacy DisableSend applies even if SendControls does not", async () => {
+        policyServiceMock.policiesByType$
+          .calledWith(PolicyType.SendControls, userId)
+          .mockReturnValue(of([]));
+        policyServiceMock.policyAppliesToUser$
+          .calledWith(PolicyType.DisableSend, userId)
+          .mockReturnValue(of(true));
+
+        expect(await firstValueFrom(setup(true).disableSend$)).toBe(true);
       });
     });
 
@@ -88,24 +108,44 @@ describe("SendPolicyService", () => {
         policyServiceMock.policiesByType$
           .calledWith(PolicyType.SendControls, userId)
           .mockReturnValue(of([makePolicy({ disableHideEmail: true })]));
+        policyServiceMock.policiesByType$
+          .calledWith(PolicyType.SendOptions, userId)
+          .mockReturnValue(of([]));
 
         expect(await firstValueFrom(setup(true).disableHideEmail$)).toBe(true);
       });
 
-      it("emits false when SendControls policy has disableHideEmail: false", async () => {
+      it("emits false when SendControls policy has disableHideEmail: false and no legacy policy", async () => {
         policyServiceMock.policiesByType$
           .calledWith(PolicyType.SendControls, userId)
           .mockReturnValue(of([makePolicy({ disableHideEmail: false })]));
+        policyServiceMock.policiesByType$
+          .calledWith(PolicyType.SendOptions, userId)
+          .mockReturnValue(of([]));
 
         expect(await firstValueFrom(setup(true).disableHideEmail$)).toBe(false);
       });
 
-      it("emits false when policy data is null", async () => {
+      it("emits false when policy data is null and no legacy policy", async () => {
         policyServiceMock.policiesByType$
           .calledWith(PolicyType.SendControls, userId)
           .mockReturnValue(of([makePolicy(null)]));
+        policyServiceMock.policiesByType$
+          .calledWith(PolicyType.SendOptions, userId)
+          .mockReturnValue(of([]));
 
         expect(await firstValueFrom(setup(true).disableHideEmail$)).toBe(false);
+      });
+
+      it("emits true when legacy SendOptions applies even if SendControls does not", async () => {
+        policyServiceMock.policiesByType$
+          .calledWith(PolicyType.SendControls, userId)
+          .mockReturnValue(of([]));
+        policyServiceMock.policiesByType$
+          .calledWith(PolicyType.SendOptions, userId)
+          .mockReturnValue(of([makePolicy({ disableHideEmail: true })]));
+
+        expect(await firstValueFrom(setup(true).disableHideEmail$)).toBe(true);
       });
     });
 
