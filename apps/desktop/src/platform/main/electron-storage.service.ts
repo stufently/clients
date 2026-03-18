@@ -46,7 +46,7 @@ export class ElectronStorageService implements AbstractStorageService {
     return true;
   }
 
-  flush(): void {
+  dispose(): void {
     this.backend.flush();
   }
 

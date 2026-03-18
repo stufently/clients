@@ -79,6 +79,7 @@ export enum FeatureFlag {
   /* Platform */
   ContentScriptIpcChannelFramework = "content-script-ipc-channel-framework",
   WebAuthnRelatedOrigins = "pm-30529-webauthn-related-origins",
+  ElectronStorageCache = "pm-32783-electron-storage-cache",
 
   /* Innovation */
   PM19148_InnovationArchive = "pm-19148-innovation-archive",
@@ -174,6 +175,7 @@ export const DefaultFeatureFlagValue = {
   /* Platform */
   [FeatureFlag.ContentScriptIpcChannelFramework]: FALSE,
   [FeatureFlag.WebAuthnRelatedOrigins]: FALSE,
+  [FeatureFlag.ElectronStorageCache]: FALSE,
 
   /* Innovation */
   [FeatureFlag.PM19148_InnovationArchive]: FALSE,

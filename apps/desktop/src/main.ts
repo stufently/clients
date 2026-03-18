@@ -11,6 +11,7 @@ import { SsoUrlService } from "@bitwarden/auth/common";
 import { AccountServiceImplementation } from "@bitwarden/common/auth/services/account.service";
 import { DefaultActiveUserAccessor } from "@bitwarden/common/auth/services/default-active-user.accessor";
 import { ClientType } from "@bitwarden/common/enums";
+import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
 import { EncryptServiceImplementation } from "@bitwarden/common/key-management/crypto/services/encrypt.service.implementation";
 import { RegionConfig } from "@bitwarden/common/platform/abstractions/environment.service";
 import { SdkLoadService } from "@bitwarden/common/platform/abstractions/sdk/sdk-load.service";
@@ -130,7 +131,22 @@ export class Main {
 
     const electronStoreBackend = new ElectronStoreBackend(app.getPath("userData"));
     const cachedBackend = new CachedBackend(electronStoreBackend);
-    this.storageService = new ElectronStorageService(cachedBackend);
+
+    // Main doesn't have access to ConfigService or the feature flags easily at this
+    // early stage, so instead we try to read the raw feature flag value directly
+    // from the storage to determine whether to use the cached backend or not.
+    let isCacheEnabled = false;
+    try {
+      isCacheEnabled = Object.values(
+        (electronStoreBackend.read() as any)?.global_config_byServer ?? {},
+      ).some((s: any) => s?.featureStates?.[FeatureFlag.ElectronStorageCache] === true);
+    } catch {
+      // Ignore errors
+    }
+    this.logService.info(`Electron storage cache enabled: ${isCacheEnabled}`);
+    this.storageService = new ElectronStorageService(
+      isCacheEnabled ? cachedBackend : electronStoreBackend,
+    );
     this.memoryStorageService = new MemoryStorageService();
     this.memoryStorageForStateProviders = new SerializedMemoryStorageService();
     const storageServiceProvider = new StorageServiceProvider(
@@ -311,7 +327,7 @@ export class Main {
 
     app.on("will-quit", () => {
       this.mainDesktopAutotypeService.dispose();
-      this.storageService.flush();
+      this.storageService.dispose();
     });
   }
 
