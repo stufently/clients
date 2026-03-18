@@ -49,14 +49,14 @@ export class PhishingDetectionService {
         const url = new URL(message.url);
         this._ignoredHostnames.add(url.hostname);
         await BrowserApi.navigateTabToUrl(message.tabId, url);
+        // One-time pass consumed — distinctUntilChanged would suppress the pipeline event
+        this._ignoredHostnames.delete(url.hostname);
       }),
     );
 
-    // Intercept at the earliest navigation event, before DNS resolution begins
-    const onTabUpdated$ = fromChromeEvent(chrome.webNavigation.onBeforeNavigate).pipe(
-      // Only check top-level frame navigations (frameId 0), not iframes
-      filter(([details]) => details.frameId === 0),
-      // Filter out extension pages
+    // onCommitted fires after navigation commits — tabs.update won't race with in-progress loads
+    const onTabUpdated$ = fromChromeEvent(chrome.webNavigation.onCommitted).pipe(
+      filter(([details]) => details.frameId === 0), // main frame only
       filter(([details]) => !!details.url && !this._isExtensionPage(details.url)),
       map(([details]) => {
         const url = new URL(details.url);
@@ -65,13 +65,9 @@ export class PhishingDetectionService {
       distinctUntilChanged(
         (prev, curr) => prev.url.toString() === curr.url.toString() && prev.tabId === curr.tabId,
       ),
-      tap((event) => logService.debug(`[PhishingDetectionService] processing event:`, event)),
-      // Use switchMap to cancel any in-progress check when navigating to a new URL
-      // This prevents race conditions where a stale check redirects the user incorrectly
+      // switchMap cancels in-progress checks when a new navigation arrives
       switchMap(async ({ tabId, url, ignored }) => {
         if (ignored) {
-          // The next time this host is visited, block again
-          this._ignoredHostnames.delete(url.hostname);
           return;
         }
         const isPhishing = await phishingDataService.isPhishingWebAddress(url);

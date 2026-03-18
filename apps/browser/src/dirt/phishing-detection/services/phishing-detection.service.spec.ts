@@ -86,9 +86,9 @@ describe("PhishingDetectionService", () => {
     expect(() => initService()).not.toThrow();
   });
 
-  it("should use fromChromeEvent with webNavigation.onBeforeNavigate", () => {
+  it("should use fromChromeEvent with webNavigation.onCommitted", () => {
     initService();
-    expect(fromChromeEvent).toHaveBeenCalledWith(chrome.webNavigation.onBeforeNavigate);
+    expect(fromChromeEvent).toHaveBeenCalledWith(chrome.webNavigation.onCommitted);
   });
 
   it("should filter out iframe navigations (frameId !== 0)", () => {
