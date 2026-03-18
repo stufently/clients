@@ -83,7 +83,10 @@ describe("AzureFileUploadService", () => {
   it("throws when numBlocks exceeds MAX_BLOCKS_PER_BLOB", async () => {
     const blockSize = AzureUploadBlockSize[32];
     const maxBlocks = 50000;
-    const data = makeEncArrayBuffer((maxBlocks + 1) * blockSize); // 50001 blocks
+    // Use a fake buffer with only byteLength set to avoid allocating real memory.
+    const data = {
+      buffer: { byteLength: (maxBlocks + 1) * blockSize },
+    } as unknown as EncArrayBuffer;
     const url = makeUrl();
     const renewalCallback = jest.fn();
 
