@@ -114,7 +114,7 @@ export class ConnectDatadogDialogComponent implements OnInit {
 
 export function openDatadogConnectDialog(
   dialogService: DialogService,
-  config: DialogConfig<DatadogConnectDialogParams, DialogRef<DatadogConnectDialogResult>>,
+  config: DialogConfig<DatadogConnectDialogParams, DatadogConnectDialogResult>,
 ) {
   return dialogService.open<DatadogConnectDialogResult>(ConnectDatadogDialogComponent, config);
 }

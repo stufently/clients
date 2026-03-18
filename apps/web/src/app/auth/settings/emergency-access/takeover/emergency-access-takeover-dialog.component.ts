@@ -156,7 +156,7 @@ export class EmergencyAccessTakeoverDialogComponent implements OnInit {
     dialogService: DialogService,
     dialogConfig: DialogConfig<
       EmergencyAccessTakeoverDialogData,
-      DialogRef<EmergencyAccessTakeoverDialogResultType, unknown>
+      EmergencyAccessTakeoverDialogResultType
     >,
   ) => {
     return dialogService.open<

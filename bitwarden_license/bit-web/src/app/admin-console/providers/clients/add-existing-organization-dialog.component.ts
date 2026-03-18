@@ -88,7 +88,7 @@ export class AddExistingOrganizationDialogComponent implements OnInit {
     dialogService: DialogService,
     dialogConfig: DialogConfig<
       AddExistingOrganizationDialogParams,
-      DialogRef<AddExistingOrganizationDialogResultType>
+      AddExistingOrganizationDialogResultType
     >,
   ) =>
     dialogService.open<

@@ -192,10 +192,7 @@ describe("ConnectHuntressDialogComponent", () => {
 describe("openHuntressConnectDialog", () => {
   it("should call dialogService.open with correct params", () => {
     const dialogServiceMock = mock<DialogService>();
-    const config: DialogConfig<
-      HuntressConnectDialogParams,
-      DialogRef<HuntressConnectDialogResult>
-    > = {
+    const config: DialogConfig<HuntressConnectDialogParams, HuntressConnectDialogResult> = {
       data: { settings: { name: "Huntress" } as Integration },
     } as any;
 

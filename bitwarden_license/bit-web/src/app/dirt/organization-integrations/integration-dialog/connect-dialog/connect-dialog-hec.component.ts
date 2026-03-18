@@ -118,7 +118,7 @@ export class ConnectHecDialogComponent implements OnInit {
 
 export function openHecConnectDialog(
   dialogService: DialogService,
-  config: DialogConfig<HecConnectDialogParams, DialogRef<HecConnectDialogResult>>,
+  config: DialogConfig<HecConnectDialogParams, HecConnectDialogResult>,
 ) {
   return dialogService.open<HecConnectDialogResult>(ConnectHecDialogComponent, config);
 }

@@ -33,10 +33,7 @@ export enum CreateClientDialogResultType {
 
 export const openCreateClientDialog = (
   dialogService: DialogService,
-  dialogConfig: DialogConfig<
-    CreateClientDialogParams,
-    DialogRef<CreateClientDialogResultType, unknown>
-  >,
+  dialogConfig: DialogConfig<CreateClientDialogParams, CreateClientDialogResultType>,
 ) =>
   dialogService.open<CreateClientDialogResultType, CreateClientDialogParams>(
     CreateClientDialogComponent,

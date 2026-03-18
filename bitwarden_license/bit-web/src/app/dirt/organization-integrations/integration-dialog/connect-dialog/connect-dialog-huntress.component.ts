@@ -110,7 +110,7 @@ export class ConnectHuntressDialogComponent implements OnInit {
 
 export function openHuntressConnectDialog(
   dialogService: DialogService,
-  config: DialogConfig<HuntressConnectDialogParams, DialogRef<HuntressConnectDialogResult>>,
+  config: DialogConfig<HuntressConnectDialogParams, HuntressConnectDialogResult>,
 ) {
   return dialogService.open<HuntressConnectDialogResult>(ConnectHuntressDialogComponent, config);
 }

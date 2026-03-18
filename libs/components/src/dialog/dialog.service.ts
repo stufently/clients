@@ -81,7 +81,7 @@ export type DialogConfig<D = unknown, R = unknown> = Pick<
   | "restoreFocus"
   | "closeOnNavigation"
 > & {
-  closePredicate?: (result?: any) => Promise<boolean>;
+  closePredicate?: (result?: R) => Promise<boolean>;
 };
 
 export type DialogCloseRef = {
@@ -164,7 +164,7 @@ class DrawerDialogRef<R = unknown, C = unknown> implements DialogRef<R, C> {
   constructor(
     private drawerService: DrawerService,
     private logService: LogService | null,
-    readonly config?: DialogConfig<any, DialogConfig<R, C>>,
+    readonly config?: DialogConfig<unknown, R>,
   ) {}
 
   async close(result?: R, _options?: DialogCloseOptions): Promise<DialogCloseRef> {
@@ -289,7 +289,7 @@ export class DialogService {
 
   open<R = unknown, D = unknown, C = unknown>(
     componentOrTemplateRef: ComponentType<C> | TemplateRef<C>,
-    config?: DialogConfig<D, DialogRef<R, C>>,
+    config?: DialogConfig<D, R>,
   ): DialogRef<R, C> {
     // We need to split out our async closePredicate here because the CDK's closePredicate is sync
     const { closePredicate, ...otherConfig } = config ?? {};
@@ -331,7 +331,7 @@ export class DialogService {
    * closePredicate that prevented it from closing, otherwise a DialogRef for the newly opened drawer. */
   async openDrawer<R = unknown, D = unknown, C = unknown>(
     component: ComponentType<C>,
-    config?: DialogConfig<D, DialogRef<R, C>>,
+    config?: DialogConfig<D, R>,
   ): Promise<DialogRef<R, C> | undefined> {
     const closeResult = await this.activeDrawer?.close();
     // We only want to abort here if we have an active drawer that has failed to close. We

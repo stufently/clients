@@ -175,7 +175,7 @@ export class TwoFactorSetupEmailComponent
   ) {
     return dialogService.open<boolean, AuthResponse<TwoFactorEmailResponse>>(
       TwoFactorSetupEmailComponent,
-      config as DialogConfig<AuthResponse<TwoFactorEmailResponse>, DialogRef<boolean>>,
+      config as DialogConfig<AuthResponse<TwoFactorEmailResponse>, boolean>,
     );
   }
 }

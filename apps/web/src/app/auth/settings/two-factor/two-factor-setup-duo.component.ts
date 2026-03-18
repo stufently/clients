@@ -177,7 +177,7 @@ export class TwoFactorSetupDuoComponent
   ) => {
     return dialogService.open<boolean, TwoFactorDuoComponentConfig>(
       TwoFactorSetupDuoComponent,
-      config as DialogConfig<TwoFactorDuoComponentConfig, DialogRef<boolean>>,
+      config as DialogConfig<TwoFactorDuoComponentConfig, boolean>,
     );
   };
 }
