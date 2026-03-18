@@ -567,7 +567,6 @@ describe("BrowserApi", () => {
 
       BrowserApi.reloadOpenWindows();
 
-      // With no views returned, nothing gets reloaded
       expect(chrome.extension.getViews).toHaveBeenCalledTimes(1);
     });
 
