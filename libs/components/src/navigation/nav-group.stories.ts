@@ -132,13 +132,26 @@ export const HideEmptyGroups: StoryObj<NavGroupComponent & { renderChildren: boo
 
 export const Secondary: StoryObj<NavGroupComponent> = {
   render: (args) => ({
-    props: args,
+    props: {
+      ...args,
+      handleEditClick: () => alert("Edit button clicked!"),
+    },
     template: /*html*/ `
       <bit-side-nav variant="secondary">
         <bit-nav-group text="Hello World (Anchor)" [route]="['a']" icon="bwi-grid">
           <bit-nav-item text="Child A" route="a" icon="bwi-grid"></bit-nav-item>
           <bit-nav-item text="Child B" route="b"></bit-nav-item>
           <bit-nav-item text="Child C" route="c" icon="bwi-grid"></bit-nav-item>
+          <button
+            type="button"
+            slot="end"
+            class="tw-ms-auto"
+            bitIconButton="bwi-pencil-square"
+            buttonType="side-nav"
+            size="xsmall"
+            label="Edit"
+            (click)="handleEditClick()"
+          ></button>
         </bit-nav-group>
         <bit-nav-group text="Lorem Ipsum (Button)" icon="bwi-grid">
           <bit-nav-item text="Child A" icon="bwi-grid"></bit-nav-item>
@@ -234,4 +247,98 @@ export const WithTrailingElements: StoryObj<NavGroupComponent> = {
       </bit-side-nav>
     `,
   }),
+};
+
+export const InteractionStates: StoryObj<NavGroupComponent> = {
+  render: (args) => ({
+    props: {
+      ...args,
+      handleEditClick: () => alert("Edit button clicked!"),
+    },
+    template: /*html*/ `
+      <bit-side-nav>
+         <bit-nav-group text="Nav Group" [route]="['a']" icon="bwi-filter">
+          <button
+            type="button"
+            slot="end"
+            class="tw-ms-auto"
+            bitIconButton="bwi-pencil-square"
+            buttonType="side-nav"
+            size="xsmall"
+            label="Edit"
+            (click)="handleEditClick()"
+          ></button>
+        </bit-nav-group>
+        <bit-nav-group text="Nav Group Hover" [route]="['a']" icon="bwi-filter" class="tw-test-hover">
+          <button
+            type="button"
+            slot="end"
+            class="tw-ms-auto tw-test-hover"
+            bitIconButton="bwi-pencil-square"
+            buttonType="side-nav"
+            size="xsmall"
+            label="Edit"
+            (click)="handleEditClick()"
+          ></button>
+        </bit-nav-group>
+        <bit-nav-group text="Nav Group Focus" [route]="['a']" icon="bwi-filter" class="tw-test-focus-visible">
+          <button
+            type="button"
+            slot="end"
+            class="tw-ms-auto tw-test-focus-visible"
+            bitIconButton="bwi-pencil-square"
+            buttonType="side-nav"
+            size="xsmall"
+            label="Edit"
+            (click)="handleEditClick()"
+          ></button>
+        </bit-nav-group>
+
+        <bit-nav-group text="Nav Group Active" [route]="['a']" icon="bwi-filter" [forceActiveStyles]="true">
+          <button
+            type="button"
+            slot="end"
+            class="tw-ms-auto"
+            bitIconButton="bwi-pencil-square"
+            buttonType="side-nav"
+            size="xsmall"
+            label="Edit"
+            (click)="handleEditClick()"
+          ></button>
+        </bit-nav-group>
+        <bit-nav-group text="Nav Group Hover" [route]="['a']" icon="bwi-filter" [forceActiveStyles]="true" class="tw-test-hover">
+          <button
+            type="button"
+            slot="end"
+            class="tw-ms-auto tw-test-hover"
+            bitIconButton="bwi-pencil-square"
+            buttonType="side-nav"
+            size="xsmall"
+            label="Edit"
+            (click)="handleEditClick()"
+          ></button>
+        </bit-nav-group>
+        <bit-nav-group text="Nav Group Focus" [route]="['a']" icon="bwi-filter" [forceActiveStyles]="true" class="tw-test-focus-visible">
+          <button
+            type="button"
+            slot="end"
+            class="tw-ms-auto tw-test-focus-visible"
+            bitIconButton="bwi-pencil-square"
+            buttonType="side-nav"
+            size="xsmall"
+            label="Edit"
+            (click)="handleEditClick()"
+          ></button>
+        </bit-nav-group>
+      </bit-side-nav>
+      `,
+  }),
+  parameters: {
+    chromatic: {
+      modes: {
+        light: { theme: "light" },
+        dark: { theme: "dark" },
+      },
+    },
+  },
 };

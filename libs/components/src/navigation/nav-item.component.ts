@@ -10,6 +10,7 @@ import {
 } from "@angular/core";
 import { RouterModule, RouterLinkActive } from "@angular/router";
 
+import { IconComponent } from "../icon";
 import { IconButtonModule } from "../icon-button";
 
 import { NavBaseComponent } from "./nav-base.component";
@@ -25,7 +26,7 @@ export abstract class NavGroupAbstraction {
   selector: "bit-nav-item",
   templateUrl: "./nav-item.component.html",
   providers: [{ provide: NavBaseComponent, useExisting: NavItemComponent }],
-  imports: [NgTemplateOutlet, IconButtonModule, RouterModule],
+  imports: [NgTemplateOutlet, IconButtonModule, RouterModule, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     "(focusin)": "onFocusIn($event.target)",
@@ -116,7 +117,15 @@ export class NavItemComponent extends NavBaseComponent {
   protected readonly fvwStyles = computed(() =>
     this.focusVisibleWithin()
       ? "tw-z-10 tw-rounded tw-outline-none tw-ring tw-ring-inset tw-ring-border-nav-focus"
-      : "",
+      : // storybook helpers -- must match above
+        [
+          "[&:is(.tw-test-focus-visible_*)]:tw-z-10",
+          "[&:is(.tw-test-focus-visible_*)]:tw-rounded",
+          "[&:is(.tw-test-focus-visible_*)]:tw-outline-none",
+          "[&:is(.tw-test-focus-visible_*)]:tw-ring",
+          "[&:is(.tw-test-focus-visible_*)]:tw-ring-inset",
+          "[&:is(.tw-test-focus-visible_*)]:tw-ring-border-sidenav-focus",
+        ],
   );
 
   protected onFocusIn(target: HTMLElement) {

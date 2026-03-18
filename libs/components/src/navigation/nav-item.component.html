@@ -1,6 +1,6 @@
 @let open = sideNavService.open();
-@let containerClasses =
-  "tw-size-full tw-px-0 tw-block tw-truncate tw-border-none tw-text-start hover:tw-no-underline focus:tw-outline-none [&_i]:tw-leading-[1.5rem]";
+@let interactiveElClass =
+  "tw-size-full tw-px-0 tw-block tw-truncate tw-border-none tw-text-start hover:tw-no-underline [&:is(.tw-test-hover_*)]:tw-no-underline focus:tw-outline-none [&:is(.tw-test-focus-visible_*)]:tw-no-underline [&_i]:tw-leading-[1.5rem]";
 
 <div class="tw-cursor-pointer tw-ps-3 tw-pe-3">
   @if (open || icon()) {
@@ -16,17 +16,14 @@
     >
       <div class="tw-relative tw-flex tw-items-center tw-h-full">
         @if (open) {
-          <div
-            class="tw-absolute tw-left-[0px] tw-transform tw--translate-x-[calc(100%_+_4px)] [&>*:focus-visible::before]:!tw-ring-border-focus"
-          >
+          <div class="tw-absolute tw-left-[0px] tw-transform tw--translate-x-[calc(100%_+_4px)]">
             <ng-content select="[slot=start]"></ng-content>
           </div>
         }
         @if (route()) {
           <!-- The `data-fvw` attribute passes focus to `this.focusVisibleWithin` -->
-          <!-- The following `class` field should match the button class field below -->
           <a
-            [class]="containerClasses"
+            [class]="interactiveElClass"
             data-fvw
             [routerLink]="route()"
             [relativeTo]="relativeTo()"
@@ -43,10 +40,9 @@
             <ng-container *ngTemplateOutlet="anchorAndButtonContent"></ng-container>
           </a>
         } @else {
-          <!-- Class field should match anchor class field above -->
           <button
             type="button"
-            [class]="containerClasses"
+            [class]="interactiveElClass"
             data-fvw
             (click)="mainContentClicked.emit()"
           >
@@ -58,6 +54,11 @@
           <div
             class="tw-flex tw-items-center tw-gap-1 tw-pe-3 [&:has(button)]:tw-pe-2 empty:tw-hidden"
             (click)="$event.stopPropagation()"
+            [class]="
+              showActiveStyles()
+                ? '[&>button[biticonbutton]]:hover:!tw-bg-bg-sidenav-active-arrow-hover [&>button[biticonbutton].tw-test-hover]:!tw-bg-bg-sidenav-active-arrow-hover'
+                : ''
+            "
           >
             <ng-content select="[slot=end]"></ng-content>
           </div>
@@ -76,12 +77,13 @@
     [class.tw-justify-center]="!open"
   >
     @if (icon()) {
-      <i
-        class="!tw-m-0 tw-w-4 tw-shrink-0 bwi bwi-fw"
-        [class]="icon()"
+      <bit-icon
+        class="!tw-m-0 tw-w-4 tw-shrink-0"
+        [name]="icon()"
+        fixedWidth="true"
         [attr.aria-hidden]="open"
         [attr.aria-label]="text()"
-      ></i>
+      ></bit-icon>
     }
     @if (open) {
       <span class="tw-truncate">{{ text() }}</span>

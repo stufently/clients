@@ -7,6 +7,7 @@ import {
   contentChildren,
   ChangeDetectionStrategy,
   computed,
+  ElementRef,
 } from "@angular/core";
 import { RouterLinkActive } from "@angular/router";
 
@@ -31,6 +32,7 @@ import { SideNavService } from "./side-nav.service";
 export class NavGroupComponent extends NavBaseComponent {
   protected readonly sideNavService = inject(SideNavService);
   private readonly parentNavGroup = inject(NavGroupComponent, { optional: true, skipSelf: true });
+  private readonly el = inject(ElementRef);
 
   // Query direct children for hideIfEmpty functionality
   readonly nestedNavComponents = contentChildren(NavBaseComponent, { descendants: false });
@@ -116,5 +118,17 @@ export class NavGroupComponent extends NavBaseComponent {
       this.toggle();
     }
     this.mainContentClicked.emit();
+  }
+
+  /**
+   * Storybook helper function to test focus states
+   *
+   * This is an anti-pattern. Ideally we'd be able to apply
+   * `[&:is(.tw-test-focus-visible_*)]:tw-test-focus-visible` directly in the html to use css to
+   * check for the parent focus selector. Unfortunately, the custom variants for the test selectors
+   * don't work with arbitrary selectors.
+   */
+  protected hasTestFocusSelector() {
+    return this.el.nativeElement.classList.contains("tw-test-focus-visible");
   }
 }

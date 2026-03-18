@@ -18,6 +18,7 @@
       type="button"
       class="tw-ms-auto"
       [class]="!open() ? 'tw-transform tw-rotate-[-90deg]' : ''"
+      [class.tw-test-focus-visible]="hasTestFocusSelector()"
       bitIconButton="bwi-down-solid"
       buttonType="side-nav"
       (click)="toggle($event)"

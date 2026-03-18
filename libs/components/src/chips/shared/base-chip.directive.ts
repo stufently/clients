@@ -40,6 +40,7 @@ const inactiveStyles = [
   "aria-disabled:tw-border-border-base",
   "aria-disabled:tw-text-fg-disabled",
   "aria-disabled:hover:tw-bg-bg-disabled",
+  "aria-disabled:focus-visible:tw-bg-bg-disabled",
   "aria-disabled:tw-pointer-events-none",
 ];
 
@@ -50,28 +51,42 @@ const variantStyles: Record<ChipVariant, string[]> = {
     "tw-border-border-brand-soft",
     "tw-text-fg-brand-strong",
     "[&:is(button,a)]:hover:tw-bg-bg-brand-soft",
+    "[&:is(button,a)]:focus-visible:tw-bg-bg-brand-soft",
     "[&:has(button:hover:not([bit-chip-dismiss-button]),a:hover)]:tw-bg-bg-brand-soft",
+    "[&:has(button:focus-visible:not([bit-chip-dismiss-button]),a:focus-visible)]:tw-bg-bg-brand-soft",
+    // test helpers for Storybook (must match styles applied above)
+    "[&.tw-test-hover:has(button:not([bit-chip-dismiss-button]),a)]:tw-bg-bg-brand-soft",
+    "[&.tw-test-focus-visible:has(button:not([bit-chip-dismiss-button]),a)]:tw-bg-bg-brand-soft",
   ],
   subtle: [
     "tw-bg-bg-primary",
     "tw-border-border-base",
     "tw-text-fg-body",
     "[&:is(button,a)]:hover:tw-bg-bg-quaternary",
+    "[&:is(button,a)]:focus-visible:tw-bg-bg-quaternary",
     "[&:has(button:hover:not([bit-chip-dismiss-button]),a:hover)]:tw-bg-bg-quaternary",
+    "[&:has(button:focus-visible:not([bit-chip-dismiss-button]),a:focus-visible)]:tw-bg-bg-quaternary",
+    // test helpers for Storybook (must match styles applied above)
+    "[&.tw-test-hover:has(button:not([bit-chip-dismiss-button]),a)]:tw-bg-bg-quaternary",
+    "[&.tw-test-focus-visible:has(button:not([bit-chip-dismiss-button]),a)]:tw-bg-bg-quaternary",
   ],
   "accent-primary": [
     "tw-bg-bg-accent-primary-soft",
     "tw-border-border-accent-primary-soft",
     "tw-text-fg-accent-primary-strong",
     "[&:is(button,a)]:hover:tw-bg-bg-accent-primary-medium",
+    "[&:is(button,a)]:focus-visible:tw-bg-bg-accent-primary-medium",
     "[&:has(button:hover:not([bit-chip-dismiss-button]),a:hover)]:tw-bg-bg-accent-primary-medium",
+    "[&:has(button:focus-visible:not([bit-chip-dismiss-button]),a:focus-visible)]:tw-bg-bg-accent-primary-medium",
   ],
   "accent-secondary": [
     "tw-bg-bg-accent-secondary-soft",
     "tw-border-border-accent-secondary-soft",
     "tw-text-fg-accent-secondary-strong",
     "[&:is(button,a)]:hover:tw-bg-bg-accent-secondary-medium",
+    "[&:is(button,a)]:focus-visible:tw-bg-bg-accent-secondary-medium",
     "[&:has(button:hover:not([bit-chip-dismiss-button]),a:hover)]:tw-bg-bg-accent-secondary-medium",
+    "[&:has(button:focus-visible:not([bit-chip-dismiss-button]),a:focus-visible)]:tw-bg-bg-accent-secondary-medium",
   ],
 };
 
