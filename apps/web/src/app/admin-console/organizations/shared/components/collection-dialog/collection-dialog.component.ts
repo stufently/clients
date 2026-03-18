@@ -626,7 +626,7 @@ function mapUserToAccessItemView(
  */
 export function openCollectionDialog(
   dialogService: DialogService,
-  config: DialogConfig<CollectionDialogParams, DialogRef<CollectionDialogResult>>,
+  config: DialogConfig<CollectionDialogParams, CollectionDialogResult>,
 ) {
   return dialogService.open<CollectionDialogResult>(CollectionDialogComponent, config);
 }
