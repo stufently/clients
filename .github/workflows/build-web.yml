@@ -435,7 +435,7 @@ jobs:
 
   trigger-web-vault-deploy:
     name: Trigger web vault deploy
-    # if: github.event_name != 'pull_request_target' && github.ref == 'refs/heads/main'
+    if: github.event_name != 'pull_request_target' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     needs: build-containers
     permissions:
@@ -448,12 +448,6 @@ jobs:
           tenant_id: ${{ secrets.AZURE_TENANT_ID }}
           client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
-      # - name: Retrieve github PAT secrets
-      #   id: retrieve-secret-pat
-      #   uses: bitwarden/gh-actions/get-keyvault-secrets@main
-      #   with:
-      #     keyvault: "bitwarden-ci"
-      #     secrets: "github-pat-bitwarden-devops-bot-repo-scope"
       - name: Get Azure Key Vault secrets
         id: get-kv-secrets
         uses: bitwarden/gh-actions/get-keyvault-secrets@main
