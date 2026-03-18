@@ -245,6 +245,7 @@ jobs:
           app-id: ${{ steps.retrieve-secret.outputs.BW-GHAPP-ID }}
           private-key: ${{ steps.retrieve-secret.outputs.BW-GHAPP-KEY }}
           owner: ${{ github.repository_owner }}
+          repositories: clients
 
       - name: 'Trigger build web for missing branch/tag ${{ inputs.branch-or-tag }}'
         if: ${{ steps.download-latest-artifacts.outcome == 'failure' }}
@@ -261,7 +262,7 @@ jobs:
       - name: Set artifact build commit
         id: set-artifact-commit
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           _BUILD_WEB_RUN_ID: ${{ inputs.build-web-run-id }}
           _ARTIFACT_BUILD_COMMIT: ${{ steps.download-latest-artifacts-run-id.outputs.artifact-build-commit }}
           _DOWNLOAD_LATEST_ARTIFACTS_OUTCOME: ${{ steps.download-latest-artifacts.outcome }}
