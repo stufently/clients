@@ -48,7 +48,10 @@ function mockMetadata(
         storage: {} as any,
         constraints: {
           default: defaultConstraints,
-          create: () => ({ adjust: (s: any) => s, constraints: {} }),
+          create: () => ({
+            adjust: (s: any) => ({ state: s, constraints: {} }),
+            constraints: {},
+          }),
         },
       },
     },
@@ -58,7 +61,7 @@ function mockMetadata(
 // Passthrough policy: no adjustments, no policy in effect
 function passthroughPolicy() {
   return {
-    adjust: (settings: any) => settings,
+    adjust: (settings: any) => ({ state: settings, constraints: { policyInEffect: false } }),
     constraints: { policyInEffect: false },
   };
 }
@@ -66,7 +69,21 @@ function passthroughPolicy() {
 // Policy that overrides specific fields
 function overridingPolicy(overrides: Record<string, unknown>, policyInEffect = false) {
   return {
-    adjust: (settings: any) => ({ ...settings, ...overrides }),
+    adjust: (settings: any) => {
+      const adjusted = { ...settings, ...overrides };
+      // Compute applied: only keys where the value changed
+      const applied: Record<string, unknown> = {};
+      for (const key of Object.keys(overrides)) {
+        if (JSON.stringify(settings[key]) !== JSON.stringify(overrides[key])) {
+          applied[key] = {};
+        }
+      }
+      return {
+        state: adjusted,
+        constraints: { policyInEffect },
+        applied: Object.keys(applied).length > 0 ? applied : undefined,
+      };
+    },
     constraints: { policyInEffect },
   };
 }
@@ -421,7 +438,7 @@ describe("GenerateCommand", () => {
   });
 
   describe("policy enforcement", () => {
-    it("fails when policy adjusts user-specified flags", async () => {
+    it("rejects when org policy requires different settings", async () => {
       const meta = mockMetadata("unused");
       const policy = overridingPolicy({ length: 20 }, true);
       const command = createCommand({ metadata: meta, policy });
@@ -429,11 +446,23 @@ describe("GenerateCommand", () => {
       const response = await command.run({ length: "25" });
 
       expect(response.success).toBe(false);
-      expect(response.message).toContain("Organization policy");
-      expect(response.message).toContain("Use --force to override");
+      expect(response.message).toContain("Organization policy requires different settings");
+      expect(response.message).toContain("length: 25 → 20");
+      expect(response.message).not.toContain("--force");
     });
 
-    it("labels non-org policy adjustments as default policy", async () => {
+    it("rejects org policy even with --force", async () => {
+      const meta = mockMetadata("unused");
+      const policy = overridingPolicy({ length: 20 }, true);
+      const command = createCommand({ metadata: meta, policy });
+
+      const response = await command.run({ length: "25", force: true });
+
+      expect(response.success).toBe(false);
+      expect(response.message).toContain("Organization policy requires different settings");
+    });
+
+    it("rejects default policy without --force", async () => {
       const meta = mockMetadata("unused");
       const policy = overridingPolicy({ length: 20 }, false);
       const command = createCommand({ metadata: meta, policy });
@@ -441,32 +470,46 @@ describe("GenerateCommand", () => {
       const response = await command.run({ length: "25" });
 
       expect(response.success).toBe(false);
-      expect(response.message).toContain("Default policy");
+      expect(response.message).toContain("Default policy requires different settings");
+      expect(response.message).toContain("Use --force to override");
     });
 
-    it("allows --force to bypass policy", async () => {
+    it("allows --force to bypass default policy only", async () => {
       const meta = mockMetadata("generatedPassword123");
-      const policy = overridingPolicy({ length: 20 }, true);
+      const policy = overridingPolicy({ length: 20 }, false);
       const command = createCommand({ metadata: meta, policy });
 
       const response = await command.run({ length: "25", force: true });
 
       expect(response.success).toBe(true);
       const engine = meta.engine.create({} as any);
-      // Should use the user's requested value, not the policy-adjusted one
       expect(engine.generate).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({ length: 25 }),
       );
     });
 
-    it("does not report conflicts for flags the user did not specify", async () => {
-      const meta = mockMetadata("generatedPassword123");
-      // Policy adjusts minSpecial, but user only passed --length
+    it("reports all applied constraints, not just user-specified flags", async () => {
+      const meta = mockMetadata("unused");
       const policy = overridingPolicy({ minSpecial: 5 }, true);
       const command = createCommand({
         metadata: meta,
         savedSettings: { minSpecial: 0 },
+        policy,
+      });
+
+      const response = await command.run({ length: "18" });
+
+      expect(response.success).toBe(false);
+      expect(response.message).toContain("minSpecial: 0 → 5");
+    });
+
+    it("succeeds when policy applies no changes", async () => {
+      const meta = mockMetadata("generatedPassword123");
+      const policy = overridingPolicy({ minSpecial: 5 }, true);
+      const command = createCommand({
+        metadata: meta,
+        savedSettings: { minSpecial: 5 },
         policy,
       });
 

@@ -119,10 +119,10 @@ const SomeProfile: CoreProfileMetadata<SomeSettings> = {
             return {
               constraints: {},
               adjust(state: SomeSettings) {
-                return { foo: `adjusted(${state.foo})` };
+                return { state: { foo: `adjusted(${state.foo})` }, constraints: {} };
               },
               fix(state: SomeSettings) {
-                return { foo: `fixed(${state.foo})` };
+                return { state: { foo: `fixed(${state.foo})` }, constraints: {} };
               },
             } satisfies StateConstraints<SomeSettings>;
           },
@@ -133,10 +133,10 @@ const SomeProfile: CoreProfileMetadata<SomeSettings> = {
             policyInEffect: false,
           },
           adjust(state: SomeSettings) {
-            return state;
+            return { state, constraints: {} };
           },
           fix(state: SomeSettings) {
-            return state;
+            return { state, constraints: {} };
           },
         } satisfies GeneratorConstraints<SomeSettings>;
       }

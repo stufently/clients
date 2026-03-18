@@ -35,7 +35,7 @@ import { SingleUserState, UserKeyDefinition } from "../../platform/state";
 import { UserEncryptor } from "../cryptography/user-encryptor.abstraction";
 import { SemanticLogger } from "../log";
 import { anyComplete, pin, ready, withLatestReady } from "../rx";
-import { Constraints, SubjectConstraints, WithConstraints } from "../types";
+import { SubjectConstraints, WithConstraints } from "../types";
 
 import { ClassifiedFormat, isClassifiedFormat } from "./classified-format";
 import { unconstrained$ } from "./identity-state-constraint";
@@ -44,7 +44,7 @@ import { isDynamic } from "./state-constraints-dependency";
 import { UserStateSubjectDependencies } from "./user-state-subject-dependencies";
 import { UserStateSubjectDependencyProvider } from "./user-state-subject-dependency-provider";
 
-type Constrained<State> = { constraints: Readonly<Constraints<State>>; state: State };
+type Constrained<State> = WithConstraints<State>;
 
 // FIXME: The subject should always repeat the value when it's own `next` method is called.
 //
@@ -292,9 +292,9 @@ export class UserStateSubject<
         if (!loadedState && !this.objectKey?.initial) {
           this.log.debug("no value; bypassing adjustment");
           return {
-            constraints: {} as Constraints<State>,
+            constraints: {},
             state: null,
-          } satisfies Constrained<State>;
+          } as Constrained<State>;
         }
 
         this.log.debug("adjusting");
@@ -302,13 +302,10 @@ export class UserStateSubject<
         const calibration = isDynamic(constraints)
           ? constraints.calibrate(unconstrained)
           : constraints;
-        const adjusted = calibration.adjust(unconstrained);
+        const result = calibration.adjust(unconstrained);
 
         this.log.debug("adjusted");
-        return {
-          constraints: calibration.constraints,
-          state: adjusted,
-        };
+        return result;
       }),
     );
   }
@@ -324,13 +321,10 @@ export class UserStateSubject<
         const calibration = isDynamic(constraints)
           ? constraints.calibrate(loadedState)
           : constraints;
-        const fixed = calibration.fix(loadedState);
+        const result = calibration.fix(loadedState);
 
         this.log.debug("fixed");
-        return {
-          constraints: calibration.constraints,
-          state: fixed,
-        };
+        return result;
       }),
     );
   }

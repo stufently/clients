@@ -99,15 +99,17 @@ const SomeProvider = {
 function fooMaxLength(maxLength: number): StateConstraints<TestType> {
   return Object.freeze({
     constraints: { foo: { maxLength } },
-    adjust: function (state: TestType): TestType {
-      return {
+    adjust: function (state: TestType) {
+      const adjusted = {
         foo: state.foo.slice(0, this.constraints.foo.maxLength),
       };
+      return { state: adjusted, constraints: this.constraints };
     },
-    fix: function (state: TestType): TestType {
-      return {
+    fix: function (state: TestType) {
+      const fixed = {
         foo: `finalized|${state.foo.slice(0, this.constraints.foo.maxLength)}`,
       };
+      return { state: fixed, constraints: this.constraints };
     },
   });
 }

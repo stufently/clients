@@ -80,38 +80,42 @@ export class GenerateCommand {
       );
       const requestedSettings = { ...savedSettings, ...clampedOverrides };
 
-      let policyAdjustedSettings: typeof requestedSettings;
+      let adjustResult;
       if ("calibrate" in policyConstraints) {
-        policyAdjustedSettings = policyConstraints
-          .calibrate(requestedSettings)
-          .adjust(requestedSettings);
+        adjustResult = policyConstraints.calibrate(requestedSettings).adjust(requestedSettings);
       } else {
-        policyAdjustedSettings = policyConstraints.adjust(requestedSettings);
+        adjustResult = policyConstraints.adjust(requestedSettings);
       }
+      const policyAdjustedSettings = adjustResult.state;
+      const applied = adjustResult.applied;
 
       // Hard engine limits cannot be overridden, even with --force
       if (hardLimits.length > 0) {
         return Response.badRequest(`${hardLimits.join("; ")}.`);
       }
 
-      // Report policy conflicts
-      const policyConflicts = this.describePolicyConflicts(
-        clampedOverrides,
+      // Report policy adjustments using the framework's `applied` field
+      const adjustments = this.describeAppliedConstraints(
         requestedSettings,
         policyAdjustedSettings,
+        applied,
       );
-      if (policyConflicts.length > 0) {
-        const detail = policyConflicts.join("; ");
-        const source = policyConstraints.constraints.policyInEffect
-          ? "Organization policy"
-          : "Default policy";
-        if (options.force) {
-          process.stderr.write(`Warning: Ignoring ${source.toLowerCase()} (${detail}).\n`);
-        } else {
+      if (adjustments.length > 0) {
+        const isOrgPolicy = policyConstraints.constraints.policyInEffect;
+        const lines = adjustments.map((a) => `  - ${a}`).join("\n");
+
+        if (isOrgPolicy) {
+          // Org policies cannot be overridden
+          return Response.badRequest(`Organization policy requires different settings:\n${lines}`);
+        }
+
+        // Default constraints can be overridden with --force
+        if (!options.force) {
           return Response.badRequest(
-            `${source} adjusted your settings (${detail}). Use --force to override.`,
+            `Default policy requires different settings:\n${lines}\nUse --force to override.`,
           );
         }
+        process.stderr.write(`Warning: Overriding default policy:\n${lines}\n`);
       }
 
       const finalSettings = options.force ? requestedSettings : policyAdjustedSettings;
@@ -194,22 +198,62 @@ export class GenerateCommand {
     return { hardLimits, clampedOverrides };
   }
 
-  private describePolicyConflicts(
-    flagOverrides: Record<string, unknown>,
+  private describeAppliedConstraints(
     requested: Record<string, unknown>,
     adjusted: Record<string, unknown>,
+    applied?: Record<string, unknown>,
   ): string[] {
-    const conflicts: string[] = [];
-    for (const key of Object.keys(flagOverrides)) {
-      const req = requested[key];
-      const adj = adjusted[key];
-      if (JSON.stringify(req) !== JSON.stringify(adj)) {
-        conflicts.push(
-          `${key} requested ${JSON.stringify(req)}, policy requires ${JSON.stringify(adj)}`,
-        );
-      }
+    if (!applied) {
+      return [];
     }
-    return conflicts;
+
+    const descriptions: string[] = [];
+    for (const key of Object.keys(applied)) {
+      const before = requested[key];
+      const after = adjusted[key];
+      if (JSON.stringify(before) === JSON.stringify(after)) {
+        continue;
+      }
+      const constraint = applied[key] as Record<string, unknown> | undefined;
+      const beforeStr = this.formatValue(before);
+      const afterStr = this.formatValue(after);
+      const reason = this.formatConstraintReason(key, constraint);
+      descriptions.push(
+        reason
+          ? `${key}: ${beforeStr} → ${afterStr} (${reason})`
+          : `${key}: ${beforeStr} → ${afterStr}`,
+      );
+    }
+    return descriptions;
+  }
+
+  private formatValue(value: unknown): string {
+    if (typeof value === "boolean") {
+      return value ? "on" : "off";
+    }
+    return String(value ?? "unset");
+  }
+
+  private formatConstraintReason(
+    key: string,
+    constraint: Record<string, unknown> | undefined,
+  ): string {
+    if (!constraint) {
+      return "";
+    }
+    if (constraint.requiredValue === true) {
+      return "required by policy";
+    }
+    if (constraint.min != null && constraint.max != null) {
+      return `policy requires ${constraint.min}–${constraint.max}`;
+    }
+    if (constraint.min != null) {
+      return `policy minimum is ${constraint.min}`;
+    }
+    if (constraint.max != null) {
+      return `policy maximum is ${constraint.max}`;
+    }
+    return "";
   }
 
   private resolveAlgorithm(options: GenerateCmdOptions): {
