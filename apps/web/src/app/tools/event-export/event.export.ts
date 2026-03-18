@@ -1,4 +1,4 @@
-import { EventType } from "@bitwarden/common/enums";
+import { eventTypeNames } from "@bitwarden/common/enums";
 import { EventView } from "@bitwarden/common/models/view/event.view";
 
 export class EventExport {
@@ -22,7 +22,7 @@ export class EventExport {
     this.userEmail = event.userEmail;
     this.date = event.date;
     this.ip = event.ip;
-    this.type = EventType[event.type];
+    this.type = eventTypeNames[event.type];
     this.installationId = event.installationId;
   }
 }
