@@ -72,13 +72,7 @@ import {
   CipherViewLikeUtils,
 } from "@bitwarden/common/vault/utils/cipher-view-like-utils";
 import { filterOutNullish } from "@bitwarden/common/vault/utils/observable-utilities";
-import {
-  DialogRef,
-  DialogService,
-  ToastService,
-  CopyClickListener,
-  SearchModule,
-} from "@bitwarden/components";
+import { DialogRef, DialogService, ToastService, SearchModule } from "@bitwarden/components";
 import {
   AttachmentsV2Component,
   AttachmentDialogResult,
@@ -94,7 +88,6 @@ import {
   VaultFilterServiceAbstraction as VaultFilterService,
   RoutedVaultFilterBridgeService,
   RoutedVaultFilterService,
-  RoutedVaultFilterModel,
   VaultItemDialogComponent,
   VaultItemDialogMode,
   VaultItemDialogResult,
@@ -141,9 +134,7 @@ type EmptyStateMap = Record<EmptyStateType, EmptyStateItem>;
     { provide: CipherFormConfigService, useClass: DefaultCipherFormConfigService },
   ],
 })
-export class VaultComponent<C extends CipherViewLike>
-  implements OnInit, OnDestroy, CopyClickListener
-{
+export class VaultComponent<C extends CipherViewLike> implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private i18nService = inject(I18nService);
@@ -556,13 +547,6 @@ export class VaultComponent<C extends CipherViewLike>
     }
   }
 
-  /**
-   * Handler for Vault level CopyClickDirectives to send the minimizeOnCopy message
-   */
-  onCopy() {
-    this.messagingService.send("minimizeOnCopy");
-  }
-
   async viewCipher(c: CipherViewLike) {
     if (CipherViewLikeUtils.decryptionFailure(c)) {
       DecryptionFailureDialogComponent.open(this.dialogService, {
@@ -867,13 +851,9 @@ export class VaultComponent<C extends CipherViewLike>
       }
       this.activeDrawerRef.close();
     }
-    const filter: RoutedVaultFilterModel = await firstValueFrom(
-      this.routedVaultFilterService.filter$,
-    );
     this.activeDrawerRef = VaultItemDialogComponent.openDrawer(this.dialogService, {
       mode,
       formConfig,
-      filter,
     });
     this.activeDrawerRef.closed.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((result) => {
       this.activeDrawerRef = undefined;

@@ -118,7 +118,12 @@ import { GlobalStateProvider, StateProvider } from "@bitwarden/common/platform/s
 import { SyncService } from "@bitwarden/common/platform/sync";
 import { CipherService as CipherServiceAbstraction } from "@bitwarden/common/vault/abstractions/cipher.service";
 import { FolderService } from "@bitwarden/common/vault/abstractions/folder/folder.service.abstraction";
-import { DialogService, ToastService } from "@bitwarden/components";
+import {
+  COPY_CLICK_LISTENER,
+  CopyClickListener,
+  DialogService,
+  ToastService,
+} from "@bitwarden/components";
 import { GeneratorServicesModule } from "@bitwarden/generator-components";
 import { PasswordGenerationServiceAbstraction } from "@bitwarden/generator-legacy";
 import {
@@ -174,6 +179,7 @@ import { fromIpcMessaging } from "../../platform/utils/from-ipc-messaging";
 import { fromIpcSystemTheme } from "../../platform/utils/from-ipc-system-theme";
 import { BiometricMessageHandlerService } from "../../services/biometric-message-handler.service";
 import { DesktopCredentialGenerationService } from "../../services/desktop-cipher-form-generator.service";
+import { DesktopCopyListenerService } from "../../services/desktop-copy-listener.service";
 import { DuckDuckGoMessageHandlerService } from "../../services/duckduckgo-message-handler.service";
 import { EncryptedMessageHandlerService } from "../../services/encrypted-message-handler.service";
 import { NativeMessagingService } from "../../services/native-messaging.service";
@@ -580,6 +586,12 @@ const safeProviders: SafeProvider[] = [
     provide: RoutedVaultFilterBridgeService,
     useClass: RoutedVaultFilterBridgeService,
     deps: [Router, RoutedVaultFilterService, VaultFilterServiceAbstraction],
+  }),
+  safeProvider({
+    provide: COPY_CLICK_LISTENER as SafeInjectionToken<CopyClickListener>,
+    useFactory: (messagingService: MessagingServiceAbstraction) =>
+      new DesktopCopyListenerService(messagingService),
+    deps: [MessagingServiceAbstraction],
   }),
   safeProvider({
     provide: AuthRequestAnsweringService,

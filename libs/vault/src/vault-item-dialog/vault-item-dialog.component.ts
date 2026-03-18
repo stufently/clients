@@ -1,7 +1,7 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
 import { CommonModule } from "@angular/common";
-import { Component, ElementRef, Inject, inject, OnDestroy, OnInit, viewChild } from "@angular/core";
+import { Component, ElementRef, Inject, OnDestroy, OnInit, viewChild } from "@angular/core";
 import { takeUntilDestroyed, toSignal } from "@angular/core/rxjs-interop";
 import { Router } from "@angular/router";
 import { firstValueFrom, Observable, Subject, switchMap } from "rxjs";
@@ -56,9 +56,7 @@ import {
 } from "../cipher-view/attachments/attachments-v2.component";
 import { CipherViewComponent } from "../cipher-view/cipher-view.component";
 import { DecryptionFailureDialogComponent } from "../components/decryption-failure-dialog/decryption-failure-dialog.component";
-import { RoutedVaultFilterModel } from "../models/routed-vault-filter.model";
 import { DefaultChangeLoginPasswordService } from "../services/default-change-login-password.service";
-import { RoutedVaultFilterService } from "../services/routed-vault-filter.service";
 
 export type VaultItemDialogMode = "view" | "form";
 
@@ -84,13 +82,6 @@ export interface VaultItemDialogParams {
    * If true, the dialog is being opened from the admin console.
    */
   isAdminConsoleAction?: boolean;
-
-  /**
-   * The active vault filter. Used to determine context-specific UI (e.g. trash filter shows
-   * Restore instead of Edit/Delete). Pass this when the dialog is opened outside a routed
-   * context (e.g. desktop drawer) where RoutedVaultFilterService is not in the injection tree.
-   */
-  filter?: RoutedVaultFilterModel;
 
   /**
    * Function to restore a cipher from the trash.
@@ -155,8 +146,6 @@ export class VaultItemDialogComponent implements OnInit, OnDestroy {
   private readonly cipherFormComponent = viewChild.required(CipherFormComponent);
 
   private readonly dialogComponent = viewChild(DialogComponent);
-
-  private readonly routedVaultFilterService = inject(RoutedVaultFilterService, { optional: true });
 
   /**
    * Tracks if the cipher was ever modified while the dialog was open. Used to ensure the dialog emits the correct result
@@ -236,7 +225,7 @@ export class VaultItemDialogComponent implements OnInit, OnDestroy {
   private readonly userCanArchive = toSignal(this.userCanArchive$, { initialValue: false });
 
   protected get isTrashFilter() {
-    return this.filter?.type === "trash";
+    return !!this.cipher?.isDeleted;
   }
 
   protected get showCancel() {
@@ -256,7 +245,7 @@ export class VaultItemDialogComponent implements OnInit, OnDestroy {
    * A user may restore items if they have delete permissions and the item is in the trash.
    */
   protected async canUserRestore() {
-    return this.isTrashFilter && this.cipher?.isDeleted && this.cipher?.permissions.restore;
+    return this.isTrashFilter && this.cipher?.permissions.restore;
   }
 
   protected showRestore: boolean;
@@ -316,8 +305,6 @@ export class VaultItemDialogComponent implements OnInit, OnDestroy {
   protected formReady = false;
 
   protected formConfig: CipherFormConfig = this.params.formConfig;
-
-  protected filter: RoutedVaultFilterModel;
 
   protected canDelete = false;
 
@@ -400,12 +387,6 @@ export class VaultItemDialogComponent implements OnInit, OnDestroy {
         false,
         this.cipher.organizationId,
       );
-    }
-
-    if (this.params.filter) {
-      this.filter = this.params.filter;
-    } else if (this.routedVaultFilterService) {
-      this.filter = await firstValueFrom(this.routedVaultFilterService.filter$);
     }
 
     this.showRestore = await this.canUserRestore();
