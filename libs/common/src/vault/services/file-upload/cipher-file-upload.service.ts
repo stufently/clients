@@ -27,6 +27,7 @@ export class CipherFileUploadService implements CipherFileUploadServiceAbstracti
     encData: EncArrayBuffer,
     admin: boolean,
     dataEncKey: [SymmetricCryptoKey, EncString],
+    azureOptions?: { blockSize?: number; onProgress?: (percent: number) => void },
   ): Promise<CipherResponse> {
     const request: AttachmentRequest = {
       key: dataEncKey[1].encryptedString,
@@ -45,6 +46,7 @@ export class CipherFileUploadService implements CipherFileUploadServiceAbstracti
         encFileName,
         encData,
         this.generateMethods(uploadDataResponse, response, request.adminRequest),
+        azureOptions,
       );
     } catch (e) {
       if (e instanceof ErrorResponse) {

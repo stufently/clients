@@ -30,6 +30,7 @@ export class FileUploadService implements FileUploadServiceAbstraction {
     fileName: EncString,
     encryptedFileData: EncArrayBuffer,
     fileUploadMethods: FileUploadApiMethods,
+    azureOptions?: { blockSize?: number; onProgress?: (percent: number) => void },
   ) {
     try {
       switch (uploadData.fileUploadType) {
@@ -45,6 +46,7 @@ export class FileUploadService implements FileUploadServiceAbstraction {
             uploadData.url,
             encryptedFileData,
             fileUploadMethods.renewFileUploadUrl,
+            azureOptions,
           );
           break;
         }

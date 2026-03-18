@@ -165,6 +165,7 @@ export abstract class CipherService implements UserKeyRotationDataProvider<Ciphe
     unencryptedFile: any,
     userId: UserId,
     admin?: boolean,
+    options?: { onProgress?: (percent: number) => void },
   ): Promise<Cipher>;
   abstract saveAttachmentRawWithServer(
     cipher: Cipher,
@@ -172,6 +173,7 @@ export abstract class CipherService implements UserKeyRotationDataProvider<Ciphe
     data: Uint8Array,
     userId: UserId,
     admin?: boolean,
+    options?: { onProgress?: (percent: number) => void },
   ): Promise<Cipher>;
   /**
    * Upgrade all old attachments for a cipher by downloading, decrypting, re-uploading with new key, and deleting old.

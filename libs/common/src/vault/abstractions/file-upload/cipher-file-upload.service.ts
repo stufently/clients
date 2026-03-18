@@ -11,5 +11,6 @@ export abstract class CipherFileUploadService {
     encData: EncArrayBuffer,
     admin: boolean,
     dataEncKey: [SymmetricCryptoKey, EncString],
+    azureOptions?: { blockSize?: number; onProgress?: (percent: number) => void },
   ): Promise<CipherResponse>;
 }

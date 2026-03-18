@@ -1219,6 +1219,7 @@ export class CipherService implements CipherServiceAbstraction {
     unencryptedFile: any,
     userId: UserId,
     admin = false,
+    azureOptions?: { onProgress?: (percent: number) => void },
   ): Promise<Cipher> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -1231,6 +1232,7 @@ export class CipherService implements CipherServiceAbstraction {
             evt.target.result,
             userId,
             admin,
+            azureOptions,
           );
           resolve(cData);
         } catch (e) {
@@ -1249,6 +1251,7 @@ export class CipherService implements CipherServiceAbstraction {
     data: Uint8Array,
     userId: UserId,
     admin = false,
+    azureOptions?: { onProgress?: (percent: number) => void },
   ): Promise<Cipher> {
     // The organization's symmetric key or the user's user key
     const vaultKey = await this.getKeyForCipherKeyDecryption(cipher, userId);
@@ -1272,6 +1275,7 @@ export class CipherService implements CipherServiceAbstraction {
       encData,
       admin,
       attachmentKey,
+      azureOptions,
     );
 
     const cData = new CipherData(response, cipher.collectionIds);

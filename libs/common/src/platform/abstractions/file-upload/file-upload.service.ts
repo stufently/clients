@@ -8,6 +8,16 @@ export abstract class FileUploadService {
     fileName: EncString,
     encryptedFileData: EncArrayBuffer,
     fileUploadMethods: FileUploadApiMethods,
+    /** Options specific to Azure file uploads */
+    azureOptions?: {
+      /**
+       * Block size in bytes for Azure uploads.
+       * @default 33554432 (32 MiB)
+       */
+      blockSize?: number;
+      /** Callback function to receive upload progress updates as a percentage (0-100) for Azure uploads. */
+      onProgress?: (percent: number) => void;
+    },
   ): Promise<void>;
 }
 
