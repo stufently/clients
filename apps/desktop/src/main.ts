@@ -52,6 +52,7 @@ import { NativeAutofillMain } from "./platform/main/autofill/native-autofill.mai
 import { ClipboardMain } from "./platform/main/clipboard.main";
 import { DesktopCredentialStorageListener } from "./platform/main/desktop-credential-storage-listener";
 import { ElectronStorageService } from "./platform/main/electron-storage.service";
+import { SafeShell } from "./platform/main/safe-shell.main";
 import { CachedBackend } from "./platform/main/storage/cached-backend";
 import { ElectronStoreBackend } from "./platform/main/storage/electron-store-backend";
 import { VersionMain } from "./platform/main/version.main";
@@ -91,6 +92,7 @@ export class Main {
   nativeAutofillMain: NativeAutofillMain;
   desktopAutofillSettingsService: DesktopAutofillSettingsService;
   versionMain: VersionMain;
+  shell: SafeShell;
   sshAgentService: MainSshAgentService;
   sdkLoadService: SdkLoadService;
   mainDesktopAutotypeService: MainDesktopAutotypeService;
@@ -215,11 +217,14 @@ export class Main {
       true,
     );
 
+    this.shell = new SafeShell(this.logService);
+
     this.windowMain = new WindowMain(
       biometricStateService,
       this.logService,
       this.storageService,
       this.desktopSettingsService,
+      this.shell,
       (arg) => this.processDeepLink(arg),
       (win) => this.trayMain.setupWindowListeners(win),
     );
@@ -235,12 +240,17 @@ export class Main {
     );
 
     this.messagingMain = new MessagingMain(this, this.desktopSettingsService);
-    this.updaterMain = new UpdaterMain(this.i18nService, this.logService, this.windowMain);
+    this.updaterMain = new UpdaterMain(
+      this.i18nService,
+      this.logService,
+      this.windowMain,
+      this.shell,
+    );
 
     const messageSubject = new Subject<Message<Record<string, unknown>>>();
     this.messagingService = MessageSender.combine(
       new SubjectMessageSender(messageSubject), // For local messages
-      new ElectronMainMessagingService(this.windowMain),
+      new ElectronMainMessagingService(this.windowMain, this.shell),
     );
 
     this.trayMain = new TrayMain(
@@ -272,6 +282,7 @@ export class Main {
       this.updaterMain,
       this.desktopSettingsService,
       this.versionMain,
+      this.shell,
     );
 
     this.trayMain = new TrayMain(
