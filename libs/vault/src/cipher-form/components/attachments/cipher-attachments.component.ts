@@ -44,6 +44,7 @@ import {
   ButtonModule,
   CardComponent,
   ItemModule,
+  ProgressModule,
   ToastService,
   TypographyModule,
 } from "@bitwarden/components";
@@ -66,6 +67,7 @@ type CipherAttachmentForm = FormGroup<{
     CommonModule,
     ItemModule,
     JslibModule,
+    ProgressModule,
     ReactiveFormsModule,
     TypographyModule,
     CardComponent,
@@ -111,6 +113,7 @@ export class CipherAttachmentsComponent {
 
   protected readonly organization = signal<Organization | null>(null);
   protected readonly cipher = signal<CipherView | null>(null);
+  protected readonly uploadProgress = signal<number | null>(null);
 
   attachmentForm: CipherAttachmentForm = this.formBuilder.group({
     file: new FormControl<File | null>(null, [Validators.required]),
@@ -229,11 +232,13 @@ export class CipherAttachmentsComponent {
     }
 
     try {
+      this.uploadProgress.set(0);
       this.cipherDomain = await this.cipherService.saveAttachmentWithServer(
         this.cipherDomain,
         file,
         this.activeUserId,
         this.organization()?.canEditAllCiphers,
+        { onProgress: (percent) => this.uploadProgress.set(percent) },
       );
 
       // re-decrypt the cipher to update the attachments
@@ -268,6 +273,8 @@ export class CipherAttachmentsComponent {
         message: errorMessage,
       });
       this.onUploadFailed.emit();
+    } finally {
+      this.uploadProgress.set(null);
     }
   };
 
