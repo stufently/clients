@@ -91,28 +91,28 @@ describe("MigrationBuilder", () => {
         const helper = new MigrationHelper(0, mock(), mock(), "general", clientType);
         const spy = jest.spyOn(migrator, "migrate");
         await sut.migrate(helper);
-        expect(spy).toBeCalledWith(helper);
+        expect(spy).toHaveBeenCalledWith(helper);
       });
 
       it("should rollback", async () => {
         const helper = new MigrationHelper(1, mock(), mock(), "general", clientType);
         const spy = jest.spyOn(rollback_migrator, "rollback");
         await sut.migrate(helper);
-        expect(spy).toBeCalledWith(helper);
+        expect(spy).toHaveBeenCalledWith(helper);
       });
 
       it("should update version on migrate", async () => {
         const helper = new MigrationHelper(0, mock(), mock(), "general", clientType);
         const spy = jest.spyOn(migrator, "updateVersion");
         await sut.migrate(helper);
-        expect(spy).toBeCalledWith(helper, "up");
+        expect(spy).toHaveBeenCalledWith(helper, "up");
       });
 
       it("should update version on rollback", async () => {
         const helper = new MigrationHelper(1, mock(), mock(), "general", clientType);
         const spy = jest.spyOn(rollback_migrator, "updateVersion");
         await sut.migrate(helper);
-        expect(spy).toBeCalledWith(helper, "down");
+        expect(spy).toHaveBeenCalledWith(helper, "down");
       });
 
       it("should not run the migrator if the current version does not match the from version", async () => {

@@ -2225,11 +2225,11 @@ describe("CollectAutofillContentService", () => {
 
       expect(collectAutofillContentService["domRecentlyMutated"]).toEqual(true);
       expect(collectAutofillContentService["noFieldsFound"]).toEqual(false);
-      expect(collectAutofillContentService["isAutofillElementNodeMutated"]).toBeCalledWith(
+      expect(collectAutofillContentService["isAutofillElementNodeMutated"]).toHaveBeenCalledWith(
         removedNodes,
         true,
       );
-      expect(collectAutofillContentService["isAutofillElementNodeMutated"]).toBeCalledWith(
+      expect(collectAutofillContentService["isAutofillElementNodeMutated"]).toHaveBeenCalledWith(
         addedNodes,
       );
     });
@@ -2692,7 +2692,7 @@ describe("CollectAutofillContentService", () => {
 
       collectAutofillContentService["handleAutofillElementAttributeMutation"](mutationRecord);
 
-      expect(collectAutofillContentService["updateAutofillFormElementData"]).toBeCalledWith(
+      expect(collectAutofillContentService["updateAutofillFormElementData"]).toHaveBeenCalledWith(
         mutationRecord.attributeName,
         mutationRecord.target,
         autofillForm,
@@ -2739,7 +2739,7 @@ describe("CollectAutofillContentService", () => {
 
       collectAutofillContentService["handleAutofillElementAttributeMutation"](mutationRecord);
 
-      expect(collectAutofillContentService["updateAutofillFieldElementData"]).toBeCalledWith(
+      expect(collectAutofillContentService["updateAutofillFieldElementData"]).toHaveBeenCalledWith(
         mutationRecord.attributeName,
         mutationRecord.target,
         autofillField,
@@ -2774,7 +2774,7 @@ describe("CollectAutofillContentService", () => {
           autofillForm,
         );
 
-        expect(collectAutofillContentService["_autofillFormElements"].set).toBeCalledWith(
+        expect(collectAutofillContentService["_autofillFormElements"].set).toHaveBeenCalledWith(
           formElement,
           autofillForm,
         );
@@ -2843,7 +2843,7 @@ describe("CollectAutofillContentService", () => {
           autofillField,
         );
 
-        expect(collectAutofillContentService["autofillFieldElements"].set).toBeCalledWith(
+        expect(collectAutofillContentService["autofillFieldElements"].set).toHaveBeenCalledWith(
           fieldElement,
           autofillField,
         );
