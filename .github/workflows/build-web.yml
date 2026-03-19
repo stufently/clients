@@ -107,43 +107,43 @@ jobs:
             license_type: "oss"
             image_name: web-oss
             npm_command: dist:oss:selfhost
-          # - artifact_name: cloud-COMMERCIAL
-          #   license_type: "commercial"
-          #   image_name: web-cloud
-          #   npm_command: dist:bit:cloud
-          # - artifact_name: selfhosted-COMMERCIAL
-          #   license_type: "commercial"
-          #   image_name: web
-          #   npm_command: dist:bit:selfhost
-          # - artifact_name: selfhosted-DEV
-          #   license_type: "commercial"
-          #   image_name: web-dev
-          #   npm_command: build:bit:selfhost:dev
-          #   git_metadata: true
-          # - artifact_name: cloud-QA
-          #   license_type: "commercial"
-          #   image_name: web-qa-cloud
-          #   npm_command: build:bit:qa
-          #   git_metadata: true
-          # - artifact_name: ee
-          #   license_type: "commercial"
-          #   image_name: web-ee
-          #   npm_command: build:bit:ee
-          #   git_metadata: true
-          # - artifact_name: cloud-euprd
-          #   license_type: "commercial"
-          #   image_name: web-euprd
-          #   npm_command: build:bit:euprd
-          # - artifact_name: cloud-euqa
-          #   license_type: "commercial"
-          #   image_name: web-euqa
-          #   npm_command: build:bit:euqa
-          #   git_metadata: true
-          # - artifact_name: cloud-usdev
-          #   license_type: "commercial"
-          #   image_name: web-usdev
-          #   npm_command: build:bit:usdev
-          #   git_metadata: true
+          - artifact_name: cloud-COMMERCIAL
+            license_type: "commercial"
+            image_name: web-cloud
+            npm_command: dist:bit:cloud
+          - artifact_name: selfhosted-COMMERCIAL
+            license_type: "commercial"
+            image_name: web
+            npm_command: dist:bit:selfhost
+          - artifact_name: selfhosted-DEV
+            license_type: "commercial"
+            image_name: web-dev
+            npm_command: build:bit:selfhost:dev
+            git_metadata: true
+          - artifact_name: cloud-QA
+            license_type: "commercial"
+            image_name: web-qa-cloud
+            npm_command: build:bit:qa
+            git_metadata: true
+          - artifact_name: ee
+            license_type: "commercial"
+            image_name: web-ee
+            npm_command: build:bit:ee
+            git_metadata: true
+          - artifact_name: cloud-euprd
+            license_type: "commercial"
+            image_name: web-euprd
+            npm_command: build:bit:euprd
+          - artifact_name: cloud-euqa
+            license_type: "commercial"
+            image_name: web-euqa
+            npm_command: build:bit:euqa
+            git_metadata: true
+          - artifact_name: cloud-usdev
+            license_type: "commercial"
+            image_name: web-usdev
+            npm_command: build:bit:usdev
+            git_metadata: true
     env:
       _NODE_VERSION: ${{ needs.setup.outputs.node_version }}
       _VERSION: ${{ needs.setup.outputs.version }}
@@ -435,7 +435,7 @@ jobs:
 
   trigger-web-vault-deploy:
     name: Trigger web vault deploy
-    # if: github.event_name != 'pull_request_target' && github.ref == 'refs/heads/main'
+    if: github.event_name != 'pull_request_target' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     needs: build-containers
     permissions:
@@ -448,30 +448,29 @@ jobs:
           tenant_id: ${{ secrets.AZURE_TENANT_ID }}
           client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
-      # - name: Get Azure Key Vault secrets
-      #   id: get-kv-secrets
-      #   uses: bitwarden/gh-actions/get-keyvault-secrets@main
-      #   with:
-      #     keyvault: gh-org-bitwarden
-      #     secrets: "BW-GHAPP-ID,BW-GHAPP-KEY"
+      - name: Get Azure Key Vault secrets
+        id: get-kv-secrets
+        uses: bitwarden/gh-actions/get-keyvault-secrets@main
+        with:
+          keyvault: gh-org-bitwarden
+          secrets: "BW-GHAPP-ID,BW-GHAPP-KEY"
 
-      # - name: Log out from Azure
-      #   uses: bitwarden/gh-actions/azure-logout@main
+      - name: Log out from Azure
+        uses: bitwarden/gh-actions/azure-logout@main
 
-      # - name: Generate GH App token
-      #   uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
-      #   id: app-token
-      #   with:
-      #     app-id: ${{ steps.get-kv-secrets.outputs.BW-GHAPP-ID }}
-      #     private-key: ${{ steps.get-kv-secrets.outputs.BW-GHAPP-KEY }}
-      #     owner: ${{ github.repository_owner }}
-      #     repositories: clients
+      - name: Generate GH App token
+        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+        id: app-token
+        with:
+          app-id: ${{ steps.get-kv-secrets.outputs.BW-GHAPP-ID }}
+          private-key: ${{ steps.get-kv-secrets.outputs.BW-GHAPP-KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: clients
 
       - name: Trigger web vault deploy using GitHub Run ID
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
-          # github-token: ${{ steps.app-token.outputs.token }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ steps.app-token.outputs.token }}
           script: |
             await github.rest.actions.createWorkflowDispatch({
               owner: 'bitwarden',
@@ -512,21 +511,21 @@ jobs:
           tenant_id: ${{ secrets.AZURE_TENANT_ID }}
           client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
-      # - name: Retrieve secrets
-      #   id: retrieve-secrets
-      #   if: failure()
-      #   uses: bitwarden/gh-actions/get-keyvault-secrets@main
-      #   with:
-      #     keyvault: "bitwarden-ci"
-      #     secrets: "devops-alerts-slack-webhook-url"
+      - name: Retrieve secrets
+        id: retrieve-secrets
+        if: failure()
+        uses: bitwarden/gh-actions/get-keyvault-secrets@main
+        with:
+          keyvault: "bitwarden-ci"
+          secrets: "devops-alerts-slack-webhook-url"
 
-      # - name: Log out from Azure
-      #   uses: bitwarden/gh-actions/azure-logout@main
+      - name: Log out from Azure
+        uses: bitwarden/gh-actions/azure-logout@main
 
-      # - name: Notify Slack on failure
-      #   uses: act10ns/slack@44541246747a30eb3102d87f7a4cc5471b0ffb7d # v2.1.0
-      #   if: failure()
-      #   env:
-      #     SLACK_WEBHOOK_URL: ${{ steps.retrieve-secrets.outputs.devops-alerts-slack-webhook-url }}
-      #   with:
-      #     status: ${{ job.status }}
+      - name: Notify Slack on failure
+        uses: act10ns/slack@44541246747a30eb3102d87f7a4cc5471b0ffb7d # v2.1.0
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ steps.retrieve-secrets.outputs.devops-alerts-slack-webhook-url }}
+        with:
+          status: ${{ job.status }}
