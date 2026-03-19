@@ -42,8 +42,16 @@ describe("AutoConfirmPolicyDialogComponent", () => {
   const mockUserId = newGuid() as UserId;
   const mockOrgId = newGuid() as OrganizationId;
 
+  const mockOrg = {
+    id: mockOrgId,
+    name: "Test Organization",
+    enabled: true,
+    isAdmin: true,
+    canManagePolicies: true,
+  } as Organization;
+
   const mockDialogData: AutoConfirmPolicyDialogData = {
-    organizationId: mockOrgId,
+    organization: mockOrg,
     policy: {
       name: "automaticUserConfirmation",
       description: "Auto Confirm Policy",
@@ -54,14 +62,6 @@ describe("AutoConfirmPolicyDialogComponent", () => {
     },
     firstTimeDialog: false,
   };
-
-  const mockOrg = {
-    id: mockOrgId,
-    name: "Test Organization",
-    enabled: true,
-    isAdmin: true,
-    canManagePolicies: true,
-  } as Organization;
 
   beforeEach(async () => {
     mockPolicyApiService = mock<PolicyApiServiceAbstraction>();

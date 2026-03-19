@@ -101,7 +101,8 @@ export class AutoConfirmPolicyDialogComponent
   protected saveDisabled$: Observable<boolean> | undefined;
 
   private get typedPolicyComponent(): AutoConfirmPolicyEditComponent | undefined {
-    return this.policyComponent() as AutoConfirmPolicyEditComponent | undefined;
+    const component = this.policyComponent();
+    return component instanceof AutoConfirmPolicyEditComponent ? component : undefined;
   }
 
   constructor(

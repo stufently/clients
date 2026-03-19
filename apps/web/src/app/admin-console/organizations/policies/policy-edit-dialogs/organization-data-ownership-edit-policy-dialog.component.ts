@@ -85,7 +85,10 @@ export class OrganizationDataOwnershipPolicyDialogComponent
   protected saveDisabled$: Observable<boolean> | undefined;
 
   private get typedPolicyComponent(): vNextOrganizationDataOwnershipPolicyComponent | undefined {
-    return this.policyComponent() as vNextOrganizationDataOwnershipPolicyComponent | undefined;
+    const component = this.policyComponent();
+    return component instanceof vNextOrganizationDataOwnershipPolicyComponent
+      ? component
+      : undefined;
   }
 
   constructor(
