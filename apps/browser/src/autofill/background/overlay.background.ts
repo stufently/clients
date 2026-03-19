@@ -278,7 +278,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
         on$: this.requestGeneratedPassword$,
         account$: this.accountService.activeAccount$,
       }),
-      this.clearGeneratedPassword$.pipe(map(() => null)),
+      this.clearGeneratedPassword$.pipe(map((): null => null)),
     );
 
     // init() is called exactly once; this guard is a defensive safeguard against

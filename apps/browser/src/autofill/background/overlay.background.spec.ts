@@ -208,10 +208,7 @@ describe("OverlayBackground", () => {
     );
     generatorService.generate$.mockImplementation(({ on$ }) =>
       on$.pipe(
-        map(
-          (request) =>
-            new GeneratedCredential(generatedPassword, "password", new Date(), request.source),
-        ),
+        map((request) => new GeneratedCredential(generatedPassword, "password", new Date())),
       ),
     );
     generatorHistoryService = mock<GeneratorHistoryService>();
