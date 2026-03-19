@@ -19,6 +19,8 @@ import { DIALOG_DATA, DialogRef, ToastService } from "@bitwarden/components";
 import { newGuid } from "@bitwarden/guid";
 import { KeyService } from "@bitwarden/key-management";
 
+import { AutoConfirmPolicyEditComponent } from "../policy-edit-definitions/auto-confirm-policy.component";
+
 import {
   AutoConfirmPolicyDialogComponent,
   AutoConfirmPolicyDialogData,
@@ -115,12 +117,16 @@ describe("AutoConfirmPolicyDialogComponent", () => {
 
   describe("handleSubmit", () => {
     beforeEach(() => {
-      // Mock the policyComponent
-      component["policyComponent"].set({
-        buildRequest: jest.fn().mockResolvedValue({ enabled: true, data: null }),
-        enabled: { value: true },
-        setSingleOrgEnabled: jest.fn(),
-      } as any);
+      // Mock the policyComponent as an AutoConfirmPolicyEditComponent instance so instanceof check passes
+      const mockPolicyEditComponent = Object.assign(
+        Object.create(AutoConfirmPolicyEditComponent.prototype),
+        {
+          buildRequest: jest.fn().mockResolvedValue({ enabled: true, data: null }),
+          enabled: { value: true },
+          setSingleOrgEnabled: jest.fn(),
+        },
+      ) as AutoConfirmPolicyEditComponent;
+      component["policyComponent"].set(mockPolicyEditComponent);
 
       mockAutoConfirmService.configuration$.mockReturnValue(
         of({ enabled: false, showSetupDialog: true, showBrowserNotification: undefined }),
