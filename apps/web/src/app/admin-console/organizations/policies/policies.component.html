@@ -20,7 +20,7 @@
             <tr bitRow>
               <td bitCell>
                 <div class="tw-flex tw-items-center tw-gap-2">
-                  <button type="button" bitLink (click)="edit(p, organizationId, organization)">
+                  <button type="button" bitLink (click)="edit(p, organization)">
                     {{ p.name | i18n }}
                   </button>
                   @if (policiesEnabledMap.get(p.type)) {

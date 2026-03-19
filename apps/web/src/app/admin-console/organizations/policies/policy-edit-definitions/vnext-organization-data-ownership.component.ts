@@ -54,7 +54,7 @@ export class vNextOrganizationDataOwnershipPolicyComponent
   extends BasePolicyEditComponent
   implements OnInit
 {
-  private readonly useMyItems = signal(false);
+  protected readonly useMyItems = signal(false);
 
   constructor(
     private readonly i18nService: I18nService,

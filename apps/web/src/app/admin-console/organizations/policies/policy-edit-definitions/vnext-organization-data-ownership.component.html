@@ -30,7 +30,7 @@
   <bit-label>{{ "turnOn" | i18n }}</bit-label>
 </bit-form-control>
 
-@if (organization?.useMyItems) {
+@if (useMyItems()) {
   <bit-form-control>
     <input
       type="checkbox"
