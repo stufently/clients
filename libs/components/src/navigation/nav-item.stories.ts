@@ -63,7 +63,7 @@ export const Default: Story = {
   render: (args) => ({
     props: args,
     template: /*html*/ `
-        <bit-nav-item text="${args.text}"  [route]="['']" icon="${args.icon}"></bit-nav-item>
+        <bit-nav-item [text]="text"  [route]="['']" [icon]="icon"></bit-nav-item>
       `,
   }),
   args: {

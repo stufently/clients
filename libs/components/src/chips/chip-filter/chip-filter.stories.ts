@@ -342,4 +342,12 @@ export const InteractionStates: Story = {
     ],
     value: "foo",
   },
+  parameters: {
+    chromatic: {
+      modes: {
+        light: { theme: "light" },
+        dark: { theme: "dark" },
+      },
+    },
+  },
 };

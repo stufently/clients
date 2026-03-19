@@ -306,7 +306,7 @@ export const InteractionStates: StoryObj<NavGroupComponent> = {
             (click)="handleEditClick()"
           ></button>
         </bit-nav-group>
-        <bit-nav-group text="Nav Group Hover" [route]="['a']" icon="bwi-filter" [forceActiveStyles]="true" class="tw-test-hover">
+        <bit-nav-group text="Nav Group Active Hover" [route]="['a']" icon="bwi-filter" [forceActiveStyles]="true" class="tw-test-hover">
           <button
             type="button"
             slot="end"
@@ -318,7 +318,7 @@ export const InteractionStates: StoryObj<NavGroupComponent> = {
             (click)="handleEditClick()"
           ></button>
         </bit-nav-group>
-        <bit-nav-group text="Nav Group Focus" [route]="['a']" icon="bwi-filter" [forceActiveStyles]="true" class="tw-test-focus-visible">
+        <bit-nav-group text="Nav Group Active Focus" [route]="['a']" icon="bwi-filter" [forceActiveStyles]="true" class="tw-test-focus-visible">
           <button
             type="button"
             slot="end"
