@@ -1,7 +1,6 @@
 import { EventUploadService } from "@bitwarden/common/abstractions/event/event-upload.service";
 import { UserId } from "@bitwarden/common/types/guid";
 
-
 /**
  * No-op implementation of EventUploadService for the browser foreground (popup) context.
  * Event uploads are handled exclusively by the background service worker to prevent
