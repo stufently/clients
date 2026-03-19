@@ -35,7 +35,6 @@ export class SecretVersionDialogComponent implements OnInit {
   protected readonly visibleVersionIds = signal(new Set<string>());
   protected readonly expandedVersionIds = signal(new Set<string>());
   protected readonly currentEditorName = signal<string | null>(null);
-  protected readonly hoveredVersionId = signal<string | null>(null);
   protected readonly currentValueVisible = signal(false);
   protected readonly currentValue = signal<string | null>(null);
   protected readonly revisionDate = signal<string | null>(null);
