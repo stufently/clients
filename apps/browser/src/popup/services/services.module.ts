@@ -50,6 +50,7 @@ import { ExtensionNewDeviceVerificationComponentService } from "@bitwarden/brows
 import { BrowserRouterService } from "@bitwarden/browser/platform/popup/services/browser-router.service";
 import { ApiService } from "@bitwarden/common/abstractions/api.service";
 import { EventCollectionService as EventCollectionServiceAbstraction } from "@bitwarden/common/abstractions/event/event-collection.service";
+import { EventUploadService as EventUploadServiceAbstraction } from "@bitwarden/common/abstractions/event/event-upload.service";
 import { OrganizationService } from "@bitwarden/common/admin-console/abstractions/organization/organization.service.abstraction";
 import { PolicyService } from "@bitwarden/common/admin-console/abstractions/policy/policy.service.abstraction";
 import {
@@ -186,6 +187,7 @@ import { ExtensionTwoFactorAuthWebAuthnComponentService } from "../../auth/servi
 import { AutofillService as AutofillServiceAbstraction } from "../../autofill/services/abstractions/autofill.service";
 import AutofillService from "../../autofill/services/autofill.service";
 import { InlineMenuFieldQualificationService } from "../../autofill/services/inline-menu-field-qualification.service";
+import { ForegroundEventUploadService } from "../../dirt/event-logs/foreground-event-upload.service";
 import { ForegroundBrowserBiometricsService } from "../../key-management/biometrics/foreground-browser-biometrics";
 import { ExtensionLockComponentService } from "../../key-management/lock/services/extension-lock-component.service";
 import { BrowserSessionTimeoutSettingsComponentService } from "../../key-management/session-timeout/services/browser-session-timeout-settings-component.service";
@@ -671,6 +673,11 @@ const safeProviders: SafeProvider[] = [
     provide: ForegroundTaskSchedulerService,
     useClass: ForegroundTaskSchedulerService,
     deps: [LogService, StateProvider],
+  }),
+  safeProvider({
+    provide: EventUploadServiceAbstraction,
+    useClass: ForegroundEventUploadService,
+    deps: [],
   }),
   safeProvider({
     provide: AnonLayoutWrapperDataService,
