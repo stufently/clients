@@ -153,7 +153,7 @@ describe("OverlayBackground", () => {
 
   beforeEach(() => {
     configService = mock<ConfigService>();
-    configService.getFeatureFlag$.mockImplementation(() => of(true));
+    (configService.getFeatureFlag$ as jest.Mock).mockReturnValue(of(false));
     accountService = mockAccountServiceWith(mockUserId);
     fakeStateProvider = new FakeStateProvider(accountService);
     showFaviconsMock$ = new BehaviorSubject(true);
