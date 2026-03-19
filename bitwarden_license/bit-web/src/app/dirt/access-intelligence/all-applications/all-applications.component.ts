@@ -118,16 +118,27 @@ export class AllApplicationsComponent implements OnInit {
       .saveCriticalApplications(Array.from(this.selectedUrls()))
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: () => {
+        next: (response) => {
+          this.markingAsCritical.set(false);
+
+          if (response.error) {
+            this.toastService.showToast({
+              variant: "error",
+              title: "",
+              message: this.i18nService.t("applicationsMarkedAsCriticalFail"),
+            });
+            return;
+          }
+
           this.toastService.showToast({
             variant: "success",
             title: "",
             message: this.i18nService.t("criticalApplicationsMarkedSuccess", count.toString()),
           });
           this.selectedUrls.set(new Set<string>());
-          this.markingAsCritical.set(false);
         },
         error: () => {
+          this.markingAsCritical.set(false);
           this.toastService.showToast({
             variant: "error",
             title: "",
