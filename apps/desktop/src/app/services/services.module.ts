@@ -118,12 +118,7 @@ import { GlobalStateProvider, StateProvider } from "@bitwarden/common/platform/s
 import { SyncService } from "@bitwarden/common/platform/sync";
 import { CipherService as CipherServiceAbstraction } from "@bitwarden/common/vault/abstractions/cipher.service";
 import { FolderService } from "@bitwarden/common/vault/abstractions/folder/folder.service.abstraction";
-import {
-  COPY_CLICK_LISTENER,
-  CopyClickListener,
-  DialogService,
-  ToastService,
-} from "@bitwarden/components";
+import { COPY_CLICK_LISTENER, DialogService, ToastService } from "@bitwarden/components";
 import { GeneratorServicesModule } from "@bitwarden/generator-components";
 import { PasswordGenerationServiceAbstraction } from "@bitwarden/generator-legacy";
 import {
@@ -588,9 +583,8 @@ const safeProviders: SafeProvider[] = [
     deps: [Router, RoutedVaultFilterService, VaultFilterServiceAbstraction],
   }),
   safeProvider({
-    provide: COPY_CLICK_LISTENER as SafeInjectionToken<CopyClickListener>,
-    useFactory: (messagingService: MessagingServiceAbstraction) =>
-      new DesktopCopyListenerService(messagingService),
+    provide: COPY_CLICK_LISTENER,
+    useClass: DesktopCopyListenerService,
     deps: [MessagingServiceAbstraction],
   }),
   safeProvider({
