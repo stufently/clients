@@ -263,7 +263,7 @@ jobs:
       - name: Set artifact build commit
         id: set-artifact-commit
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ github.token }}
           _BUILD_WEB_RUN_ID: ${{ inputs.build-web-run-id }}
           _ARTIFACT_BUILD_COMMIT: ${{ steps.download-latest-artifacts-run-id.outputs.artifact-build-commit }}
           _DOWNLOAD_LATEST_ARTIFACTS_OUTCOME: ${{ steps.download-latest-artifacts.outcome }}
