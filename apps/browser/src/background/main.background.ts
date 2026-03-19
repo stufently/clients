@@ -2133,11 +2133,15 @@ export default class MainBackground {
       .pipe(
         concatMap(async (generated) => {
           this.platformUtilsService.copyToClipboard(generated.credential);
-          await trackGeneratedCredential(
-            this.generatorHistoryService,
-            this.accountService.activeAccount$,
-            generated,
-          );
+          try {
+            await trackGeneratedCredential(
+              this.generatorHistoryService,
+              this.accountService.activeAccount$,
+              generated,
+            );
+          } catch (e) {
+            this.logService.error(e);
+          }
           return generated.credential;
         }),
       );
