@@ -86,7 +86,7 @@ export class AutoConfirmPolicyDialogComponent
   protected managePoliciesOnly$: Observable<boolean> = this.accountService.activeAccount$.pipe(
     getUserId,
     switchMap((userId) => this.organizationService.organizations$(userId)),
-    getById(this.data.organizationId),
+    getById(this.data.organization.id),
     map((organization) => (!organization?.isAdmin && organization?.canManagePolicies) ?? false),
   );
 
@@ -213,7 +213,7 @@ export class AutoConfirmPolicyDialogComponent
 
     const autoConfirmRequest = await typedComponent.buildRequest();
 
-    await this.policyApiService.putPolicyVNext(this.data.organizationId, this.data.policy.type, {
+    await this.policyApiService.putPolicyVNext(this.data.organization.id, this.data.policy.type, {
       policy: autoConfirmRequest,
     });
 
@@ -244,7 +244,7 @@ export class AutoConfirmPolicyDialogComponent
       data: null,
     };
 
-    await this.policyApiService.putPolicyVNext(this.data.organizationId, PolicyType.SingleOrg, {
+    await this.policyApiService.putPolicyVNext(this.data.organization.id, PolicyType.SingleOrg, {
       policy: singleOrgRequest,
     });
   }

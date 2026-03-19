@@ -28,7 +28,6 @@ import { AccountService } from "@bitwarden/common/auth/abstractions/account.serv
 import { getUserId } from "@bitwarden/common/auth/services/account.service";
 import { assertNonNullish } from "@bitwarden/common/auth/utils";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
-import { OrganizationId } from "@bitwarden/common/types/guid";
 import {
   DIALOG_DATA,
   DialogConfig,
@@ -68,7 +67,7 @@ export class OrganizationDataOwnershipPolicyDialogComponent
   protected centralizeDataOwnershipEnabled$: Observable<boolean> = defer(() =>
     from(
       this.policyApiService.getPolicy(
-        this.data.organizationId,
+        this.data.organization.id,
         PolicyType.OrganizationDataOwnership,
       ),
     ).pipe(
@@ -152,12 +151,10 @@ export class OrganizationDataOwnershipPolicyDialogComponent
 
     assertNonNullish(orgKey, "Org key not provided");
 
-    const request = await typedComponent.buildVNextRequest(
-      orgKey[this.data.organizationId as OrganizationId],
-    );
+    const request = await typedComponent.buildVNextRequest(orgKey[this.data.organization.id]);
 
     await this.policyApiService.putPolicyVNext(
-      this.data.organizationId,
+      this.data.organization.id,
       this.data.policy.type,
       request,
     );

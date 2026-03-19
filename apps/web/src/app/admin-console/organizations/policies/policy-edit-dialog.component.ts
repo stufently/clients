@@ -22,7 +22,6 @@ import { PolicyResponse } from "@bitwarden/common/admin-console/models/response/
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { getUserId } from "@bitwarden/common/auth/services/account.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
-import { OrganizationId } from "@bitwarden/common/types/guid";
 import { OrgKey } from "@bitwarden/common/types/key";
 import {
   DIALOG_DATA,
@@ -43,14 +42,9 @@ export type PolicyEditDialogData = {
    */
   policy: BasePolicyEditDefinition;
   /**
-   * The organization ID for the policy.
+   * The organization for the policy.
    */
-  organizationId: string;
-  /**
-   * The organization object, used to determine which policy options are available
-   * based on the org's feature entitlements.
-   */
-  organization?: Organization;
+  organization: Organization;
 };
 
 export type PolicyEditDialogResult = "saved";
@@ -115,7 +109,6 @@ export class PolicyEditDialogComponent implements AfterViewInit {
     const component = policyFormRef.createComponent(this.data.policy.component).instance;
     component.policy = this.data.policy;
     component.policyResponse = policyResponse;
-    component.organization = this.data.organization;
     this.policyComponent.set(component);
 
     if (component.data) {
@@ -132,7 +125,10 @@ export class PolicyEditDialogComponent implements AfterViewInit {
 
   async load() {
     try {
-      return await this.policyApiService.getPolicy(this.data.organizationId, this.data.policy.type);
+      return await this.policyApiService.getPolicy(
+        this.data.organization.id,
+        this.data.policy.type,
+      );
     } catch (e: any) {
       // No policy exists yet, instantiate an empty one
       if (e.statusCode === 404) {
@@ -176,7 +172,7 @@ export class PolicyEditDialogComponent implements AfterViewInit {
         getUserId,
         switchMap((userId) => this.keyService.orgKeys$(userId)),
         filter((orgKeys) => orgKeys != null),
-        map((orgKeys) => orgKeys[this.data.organizationId as OrganizationId] ?? null),
+        map((orgKeys) => orgKeys[this.data.organization.id] ?? null),
       ),
     );
 
@@ -187,7 +183,7 @@ export class PolicyEditDialogComponent implements AfterViewInit {
     const request = await policyComponent.buildVNextRequest(orgKey);
 
     await this.policyApiService.putPolicyVNext(
-      this.data.organizationId,
+      this.data.organization.id,
       this.data.policy.type,
       request,
     );
