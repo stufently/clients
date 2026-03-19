@@ -2621,9 +2621,6 @@
   "restoreAccess": {
     "message": "Restore access"
   },
-  "restoreValue": {
-    "message": "Restore value"
-  },
   "premium": {
     "message": "Premium",
     "description": "Premium membership"
