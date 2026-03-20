@@ -107,6 +107,29 @@ export const ManyValues: Story = {
   },
 };
 
+export const WithValidation: Story = {
+  render: (args) => ({
+    props: {
+      ...args,
+      isValidEmail: (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
+    },
+    template: /* html */ `
+      <bit-form-field>
+        <bit-label>Emails</bit-label>
+        <bit-chip-input
+          placeholder="Add email address..."
+          [ngModel]="value"
+          [validate]="isValidEmail"
+        ></bit-chip-input>
+        <bit-hint>Invalid emails are highlighted in red.</bit-hint>
+      </bit-form-field>
+    `,
+  }),
+  args: {
+    value: ["alice@example.com", "not-an-email", "bob@example.com", "also-invalid"],
+  },
+};
+
 export const Disabled: Story = {
   render: (args) => ({
     props: {

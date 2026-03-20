@@ -3,16 +3,22 @@
   [class.tw-cursor-not-allowed]="disabled()"
   [class.tw-opacity-60]="disabled()"
 >
-  @for (chip of chips(); track chip; let i = $index) {
+  @for (chip of chipsWithValidity(); track chip.value; let i = $index) {
     <span
-      class="tw-inline-flex tw-items-center tw-gap-0.5 tw-py-0.5 tw-ps-2.5 tw-pe-1 tw-rounded-full tw-bg-secondary-300 tw-text-main tw-text-sm tw-leading-none tw-max-w-52"
+      class="tw-inline-flex tw-items-center tw-gap-0.5 tw-py-0.5 tw-ps-2.5 tw-pe-1 tw-rounded-full tw-text-sm tw-leading-none tw-max-w-52"
+      [class.tw-bg-secondary-300]="!chip.invalid"
+      [class.tw-text-main]="!chip.invalid"
+      [class.tw-bg-danger-100]="chip.invalid"
+      [class.tw-text-danger-700]="chip.invalid"
     >
-      <span class="tw-truncate">{{ chip }}</span>
+      <span class="tw-truncate">{{ chip.value }}</span>
       @if (!disabled()) {
         <button
           type="button"
-          class="tw-inline-flex tw-items-center tw-justify-center tw-rounded-full tw-w-[1.125rem] tw-h-[1.125rem] tw-shrink-0 tw-border-none tw-bg-transparent hover:tw-bg-secondary-500 tw-text-muted hover:tw-text-main tw-outline-none focus-visible:tw-ring-1 focus-visible:tw-ring-primary-600 tw-cursor-pointer"
-          [attr.aria-label]="'removeItem' | i18n: chip"
+          class="tw-inline-flex tw-items-center tw-justify-center tw-rounded-full tw-w-[1.125rem] tw-h-[1.125rem] tw-shrink-0 tw-border-none tw-bg-transparent tw-text-current tw-outline-none focus-visible:tw-ring-1 focus-visible:tw-ring-primary-600 tw-cursor-pointer"
+          [class.hover:tw-bg-secondary-500]="!chip.invalid"
+          [class.hover:tw-bg-danger-200]="chip.invalid"
+          [attr.aria-label]="'removeItem' | i18n: chip.value"
           (click)="removeChip(i)"
         >
           <i class="bwi bwi-close tw-text-xs" aria-hidden="true"></i>

@@ -30,6 +30,7 @@
               <bit-chip-input
                 formControlName="emails"
                 placeholder="{{ 'typeEmailAndPressComma' | i18n }}"
+                [validate]="isValidEmail"
               ></bit-chip-input>
 
               <bit-hint *ngIf="remaining.seats > 1">{{

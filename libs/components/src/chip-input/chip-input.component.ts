@@ -79,6 +79,9 @@ export class ChipInputComponent
   /** Placeholder text shown in the input when no chips are present */
   readonly placeholder = input<string>("");
 
+  /** Optional per-chip validator. Return false to mark a chip as invalid. */
+  readonly validate = input<(value: string) => boolean>();
+
   protected readonly disabledInput = input<boolean, unknown>(false, {
     alias: "disabled",
     transform: booleanAttribute,
@@ -89,6 +92,14 @@ export class ChipInputComponent
   readonly disabled = computed(() => this.disabledInput() || this.disabledState());
 
   protected readonly chips = signal<string[]>([]);
+
+  protected readonly chipsWithValidity = computed(() => {
+    const validateFn = this.validate();
+    return this.chips().map((value) => ({
+      value,
+      invalid: validateFn ? !validateFn(value) : false,
+    }));
+  });
 
   protected readonly inputValue = signal("");
 

@@ -1,7 +1,7 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
 import { Component, Inject, OnDestroy } from "@angular/core";
-import { FormBuilder, Validators } from "@angular/forms";
+import { AbstractControl, FormBuilder, Validators } from "@angular/forms";
 import {
   combineLatest,
   firstValueFrom,
@@ -127,6 +127,8 @@ export class MemberDialogComponent implements OnDestroy {
   protected organization$: Observable<Organization>;
   protected collectionAccessItems: AccessItemView[] = [];
   protected groupAccessItems: AccessItemView[] = [];
+  protected readonly isValidEmail = (email: string): boolean =>
+    Validators.email({ value: email } as AbstractControl) === null;
   protected tabIndex: MemberDialogTab;
   protected formGroup = this.formBuilder.group({
     emails: [[] as string[]],
