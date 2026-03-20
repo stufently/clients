@@ -31,6 +31,7 @@
 use std::{
     collections::HashMap,
     sync::{atomic::AtomicBool, Arc},
+    time::{Duration, Instant},
 };
 
 use aes::cipher::KeyInit;
@@ -64,6 +65,7 @@ use crate::{
     secure_memory::*,
 };
 
+const AUTHENTICATE_AVAILABLE_CACHE_TTL: Duration = Duration::from_secs(30);
 const KEYCHAIN_SERVICE_NAME: &str = "BitwardenBiometricsV2";
 const CREDENTIAL_NAME: &HSTRING = h!("BitwardenBiometricsV2");
 const CHALLENGE_LENGTH: usize = 16;
@@ -82,10 +84,14 @@ pub struct BiometricLockSystem {
     // The userkeys that are held in memory MUST be protected from memory dumping attacks, to
     // ensure locked vaults cannot be unlocked
     secure_memory: Arc<Mutex<crate::secure_memory::dpapi::DpapiSecretKVStore>>,
-    // Cache whether a keychain entry exists for a user to avoid excessive keychain lookups.
-    // Key = user_id, Value = true (entry exists) or false (no entry).
-    // If user_id not in map = cache miss. Updated on enroll (true) and unenroll (false).
+    // Cache whether a keychain entry exists for a user to avoid excessive keychain lookups
+    // (Windows audit event 5379). Key = user_id, Value = true (entry exists) or false (no
+    // entry). If user_id not in map = cache miss.
+    // Updated on enroll (true) and unenroll (false).
     has_keychain_entry_cache: Arc<Mutex<HashMap<String, bool>>>,
+    // Cache the result of authenticate_available() with a TTL to avoid
+    // repeated NGC vault reads (Windows audit event 5382).
+    authenticate_available_cache: Arc<Mutex<Option<(bool, Instant)>>>,
 }
 
 impl BiometricLockSystem {
@@ -96,6 +102,7 @@ impl BiometricLockSystem {
                 crate::secure_memory::dpapi::DpapiSecretKVStore::new(),
             )),
             has_keychain_entry_cache: Arc::new(Mutex::new(HashMap::new())),
+            authenticate_available_cache: Arc::new(Mutex::new(None)),
         }
     }
 }
@@ -112,11 +119,26 @@ impl super::BiometricTrait for BiometricLockSystem {
     }
 
     async fn authenticate_available(&self) -> Result<bool> {
-        match UserConsentVerifier::CheckAvailabilityAsync()?.await? {
+        {
+            let cache = self.authenticate_available_cache.lock().await;
+            if let Some((cached_result, cached_at)) = *cache {
+                // Only use cached value if it was `true` (available).
+                // Never cache `false` so that newly connected devices (e.g. YubiKey)
+                // are detected on the next poll without delay.
+                if cached_result && cached_at.elapsed() < AUTHENTICATE_AVAILABLE_CACHE_TTL {
+                    return Ok(true);
+                }
+            }
+        } // Release lock before the async Windows API call
+
+        let result = match UserConsentVerifier::CheckAvailabilityAsync()?.await? {
             UserConsentVerifierAvailability::Available
-            | UserConsentVerifierAvailability::DeviceBusy => Ok(true),
-            _ => Ok(false),
-        }
+            | UserConsentVerifierAvailability::DeviceBusy => true,
+            _ => false,
+        };
+
+        *self.authenticate_available_cache.lock().await = Some((result, std::time::Instant::now()));
+        Ok(result)
     }
 
     async fn unenroll(&self, user_id: &String) -> Result<()> {
