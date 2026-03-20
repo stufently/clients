@@ -19,7 +19,7 @@ export class AzureFileUploadService {
     url: string,
     data: EncArrayBuffer,
     renewalCallback: () => Promise<string>,
-    options: UploadOptions,
+    options?: UploadOptions,
   ) {
     if (data.buffer.byteLength <= MAX_SINGLE_BLOB_UPLOAD_SIZE) {
       return await this.azureUploadBlob(url, data, options);
@@ -27,7 +27,7 @@ export class AzureFileUploadService {
       return await this.azureUploadBlocks(url, data, renewalCallback, options);
     }
   }
-  private async azureUploadBlob(url: string, data: EncArrayBuffer, options: UploadOptions) {
+  private async azureUploadBlob(url: string, data: EncArrayBuffer, options?: UploadOptions) {
     const urlObject = Utils.getUrl(url);
     const headers = new Headers({
       "x-ms-date": new Date().toUTCString(),
@@ -56,7 +56,7 @@ export class AzureFileUploadService {
     url: string,
     data: EncArrayBuffer,
     renewalCallback: () => Promise<string>,
-    options: UploadOptions,
+    options?: UploadOptions,
   ) {
     const blockSize = 4000 * 1024 * 1024; // 4000 MiB, the max block size for the newest Azure version, to minimize number of blocks needed
     let blockIndex = 0;
@@ -93,7 +93,7 @@ export class AzureFileUploadService {
         });
 
         const blockResponse =
-          Utils.isBrowser && options.onProgress
+          Utils.isBrowser && options?.onProgress
             ? await this.apiService.nativeXMLHttpRequest(blockRequest, options.onProgress)
             : await this.apiService.nativeFetch(blockRequest);
 
