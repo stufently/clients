@@ -3,9 +3,9 @@
 import { ApiService } from "../../../abstractions/api.service";
 import { EncString } from "../../../key-management/crypto/models/enc-string";
 import {
-  AzureUploadOptions,
   FileUploadApiMethods,
   FileUploadService as FileUploadServiceAbstraction,
+  UploadOptions,
 } from "../../abstractions/file-upload/file-upload.service";
 import { LogService } from "../../abstractions/log.service";
 import { FileUploadType } from "../../enums";
@@ -31,7 +31,7 @@ export class FileUploadService implements FileUploadServiceAbstraction {
     fileName: EncString,
     encryptedFileData: EncArrayBuffer,
     fileUploadMethods: FileUploadApiMethods,
-    azureOptions?: AzureUploadOptions,
+    options?: UploadOptions,
   ) {
     try {
       switch (uploadData.fileUploadType) {
@@ -47,7 +47,7 @@ export class FileUploadService implements FileUploadServiceAbstraction {
             uploadData.url,
             encryptedFileData,
             fileUploadMethods.renewFileUploadUrl,
-            azureOptions,
+            options,
           );
           break;
         }

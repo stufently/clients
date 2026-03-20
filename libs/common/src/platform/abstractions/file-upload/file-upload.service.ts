@@ -1,6 +1,5 @@
 import { EncString } from "../../../key-management/crypto/models/enc-string";
 import { FileUploadType } from "../../enums";
-import { AzureUploadBlockSize } from "../../enums/azure-block-size.enum";
 import { EncArrayBuffer } from "../../models/domain/enc-array-buffer";
 
 export abstract class FileUploadService {
@@ -9,7 +8,7 @@ export abstract class FileUploadService {
     fileName: EncString,
     encryptedFileData: EncArrayBuffer,
     fileUploadMethods: FileUploadApiMethods,
-    azureOptions?: AzureUploadOptions,
+    options?: UploadOptions,
   ): Promise<void>;
 }
 
@@ -19,13 +18,8 @@ export type FileUploadApiMethods = {
   rollback: () => Promise<void>;
 };
 
-/** Options specific to Azure file uploads */
-export type AzureUploadOptions = {
-  /**
-   * Block size in bytes for Azure uploads.
-   * @default AzureUploadBlockSize.4000
-   */
-  blockSize?: AzureUploadBlockSize;
-  /** Callback function to receive upload progress updates as a percentage (0-100) for Azure uploads. */
+/** Options for file uploads */
+export type UploadOptions = {
+  /** Callback function to receive upload progress updates as a percentage (0-100) for uploads. */
   onProgress?: (percent: number) => void;
 };

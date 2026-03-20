@@ -73,6 +73,7 @@ type CipherAttachmentForm = FormGroup<{
     CardComponent,
     DeleteAttachmentComponent,
     DownloadAttachmentComponent,
+    ProgressModule,
   ],
 })
 export class CipherAttachmentsComponent {
@@ -237,9 +238,8 @@ export class CipherAttachmentsComponent {
         this.cipherDomain,
         file,
         this.activeUserId,
-        this.organization()?.canEditAllCiphers,
         this.admin(),
-        { onProgress: (percent) => this.uploadProgress.set(percent) },
+        { onProgress: (progress) => this.uploadProgress.set(progress) },
       );
 
       this.uploadProgress.set(100); // Direct uploads will not trigger onProgress, set to 100% so the user receives feedback that the upload is complete.

@@ -5,9 +5,9 @@ import { ApiService } from "../../../abstractions/api.service";
 import { EncString } from "../../../key-management/crypto/models/enc-string";
 import { ErrorResponse } from "../../../models/response/error.response";
 import {
-  AzureUploadOptions,
   FileUploadApiMethods,
   FileUploadService,
+  UploadOptions,
 } from "../../../platform/abstractions/file-upload/file-upload.service";
 import { EncArrayBuffer } from "../../../platform/models/domain/enc-array-buffer";
 import { SymmetricCryptoKey } from "../../../platform/models/domain/symmetric-crypto-key";
@@ -29,7 +29,7 @@ export class CipherFileUploadService implements CipherFileUploadServiceAbstracti
     encData: EncArrayBuffer,
     admin: boolean,
     dataEncKey: [SymmetricCryptoKey, EncString],
-    azureOptions?: AzureUploadOptions,
+    options: UploadOptions,
   ): Promise<CipherResponse> {
     const request: AttachmentRequest = {
       key: dataEncKey[1].encryptedString,
@@ -47,8 +47,8 @@ export class CipherFileUploadService implements CipherFileUploadServiceAbstracti
         uploadDataResponse,
         encFileName,
         encData,
-        this.generateMethods(uploadDataResponse, response, request.adminRequest),
-        azureOptions,
+        this.generateMethods(uploadDataResponse, response, request.adminRequest, options),
+        options,
       );
     } catch (e) {
       if (e instanceof ErrorResponse) {
@@ -64,18 +64,28 @@ export class CipherFileUploadService implements CipherFileUploadServiceAbstracti
     uploadData: AttachmentUploadDataResponse,
     response: CipherResponse,
     isAdmin: boolean,
+    options?: UploadOptions,
   ): FileUploadApiMethods {
     return {
-      postDirect: this.generatePostDirectCallback(uploadData, isAdmin),
+      postDirect: this.generatePostDirectCallback(uploadData, isAdmin, options),
       renewFileUploadUrl: this.generateRenewFileUploadUrlCallback(uploadData, response, isAdmin),
       rollback: this.generateRollbackCallback(response, uploadData, isAdmin),
     };
   }
 
-  private generatePostDirectCallback(uploadData: AttachmentUploadDataResponse, isAdmin: boolean) {
+  private generatePostDirectCallback(
+    uploadData: AttachmentUploadDataResponse,
+    isAdmin: boolean,
+    options?: UploadOptions,
+  ) {
     return (data: FormData) => {
       const response = isAdmin ? uploadData.cipherMiniResponse : uploadData.cipherResponse;
-      return this.apiService.postAttachmentFile(response.id, uploadData.attachmentId, data);
+      return this.apiService.postAttachmentFile(
+        response.id,
+        uploadData.attachmentId,
+        data,
+        options,
+      );
     };
   }
 
