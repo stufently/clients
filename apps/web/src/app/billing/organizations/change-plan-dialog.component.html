@@ -1,20 +1,20 @@
 <form [formGroup]="formGroup" [bitSubmit]="submit">
-  <bit-dialog dialogSize="large" [loading]="loading">
+  <bit-dialog dialogSize="large" [loading]="loading()">
     <span bitDialogTitle class="tw-font-medium">
-      {{ dialogHeaderName }}
+      {{ dialogHeaderName() }}
     </span>
     <div bitDialogContent>
       <p>{{ "upgradePlans" | i18n }}</p>
       <div class="tw-mb-3 tw-flex tw-justify-between">
-        <span [hidden]="isSubscriptionCanceled" class="tw-text-lg tw-pr-1 tw-font-medium">{{
+        <span [hidden]="isSubscriptionCanceled()" class="tw-text-lg tw-pr-1 tw-font-medium">{{
           "selectAPlan" | i18n
         }}</span>
         <!-- Discount Badge -->
         <div class="tw-flex tw-items-center tw-gap-2">
           <!-- Plan Interval Toggle -->
-          <div class="tw-inline-block" *ngIf="!isSubscriptionCanceled">
+          <div class="tw-inline-block" *ngIf="!isSubscriptionCanceled()">
             <bit-toggle-group
-              [selected]="selectedInterval"
+              [selected]="selectedInterval()"
               (selectedChange)="updateInterval($event)"
             >
               <bit-toggle
@@ -32,20 +32,20 @@
         </div>
       </div>
       <!-- Plan Selection Cards -->
-      <ng-container *ngIf="!loading && !selfHosted && this.passwordManagerPlans">
+      <ng-container *ngIf="!loading() && !selfHosted() && this.passwordManagerPlans()">
         <div
           class="tw-grid tw-grid-flow-col tw-gap-4 tw-mb-4"
-          [class]="'tw-grid-cols-' + selectableProducts.length"
+          [class]="'tw-grid-cols-' + selectableProducts().length"
         >
           <bit-card
             *ngFor="
-              let selectableProduct of selectableProducts;
+              let selectableProduct of selectableProducts();
               trackBy: manageSelectableProduct;
               let i = index
             "
-            [ngClass]="getPlanCardContainerClasses(selectableProduct, i)"
+            [ngClass]="getPlanCardContainerClasses(selectableProduct)"
             (click)="selectPlan(selectableProduct)"
-            [attr.tabindex]="focusedIndex !== i || isCardDisabled(i) ? '-1' : '0'"
+            [attr.tabindex]="focusedIndex() !== i || isCardDisabled(i) ? '-1' : '0'"
             (keyup)="onKeydown($event, i)"
             (focus)="onFocus(i)"
             [attr.aria-disabled]="isCardDisabled(i)"
@@ -55,12 +55,12 @@
               <div
                 *ngIf="
                   selectableProduct.productTier === productTypes.Enterprise &&
-                  !isSubscriptionCanceled
+                  !isSubscriptionCanceled()
                 "
                 class="tw-bg-secondary-100 tw-text-center !tw-border-0 tw-text-sm tw-font-medium tw-py-1"
                 [ngClass]="{
-                  'tw-bg-primary-700 !tw-text-contrast': selectableProduct === selectedPlan,
-                  'tw-bg-secondary-100': !(selectableProduct === selectedPlan),
+                  'tw-bg-primary-700 !tw-text-contrast': selectableProduct === selectedPlan(),
+                  'tw-bg-secondary-100': !(selectableProduct === selectedPlan()),
                 }"
               >
                 {{ "recommended" | i18n }}
@@ -68,8 +68,8 @@
               <div
                 class="tw-px-2 tw-pb-[4px]"
                 [ngClass]="{
-                  'tw-py-1': !(selectableProduct === selectedPlan),
-                  'tw-py-0': selectableProduct === selectedPlan,
+                  'tw-py-1': !(selectableProduct === selectedPlan()),
+                  'tw-py-0': selectableProduct === selectedPlan(),
                 }"
               >
                 <h3
@@ -81,7 +81,7 @@
                   <span
                     bitBadge
                     variant="secondary"
-                    *ngIf="selectableProduct === currentPlan"
+                    *ngIf="selectableProduct === currentPlan()"
                     class="tw-ml-2 tw-align-middle"
                   >
                     {{ "current" | i18n }}</span
@@ -89,7 +89,7 @@
                 </h3>
                 <span *ngIf="selectableProduct.productTier != productTypes.Free">
                   <ng-container
-                    *ngIf="selectableProduct.PasswordManager.basePrice && !acceptingSponsorship"
+                    *ngIf="selectableProduct.PasswordManager.basePrice && !acceptingSponsorship()"
                   >
                     <b class="tw-text-lg tw-font-medium">
                       {{
@@ -117,7 +117,7 @@
                             : selectableProduct.PasswordManager.seatPrice
                           ) | currency: "$"
                         }}
-                        /{{ selectedPlanInterval | i18n }}
+                        /{{ selectedPlanInterval() | i18n }}
                       </ng-container>
                     </b>
                   </ng-container>
@@ -132,7 +132,7 @@
                     >{{
                       "costPerMember"
                         | i18n
-                          : (((this.sub.useSecretsManager
+                          : (((this.sub()?.useSecretsManager
                               ? selectableProduct.SecretsManager.seatPrice
                               : 0) +
                               selectableProduct.PasswordManager.seatPrice) /
@@ -156,7 +156,7 @@
             >
               <p
                 class="tw-text-xs tw-px-2 tw-font-medium tw-mb-1"
-                *ngIf="organization.useSecretsManager"
+                *ngIf="organization()?.useSecretsManager"
               >
                 {{ "bitwardenPasswordManager" | i18n }}
               </p>
@@ -183,11 +183,11 @@
 
               <p
                 class="tw-text-xs tw-px-2 tw-font-medium tw-mb-1"
-                *ngIf="organization.useSecretsManager"
+                *ngIf="organization()?.useSecretsManager"
               >
                 {{ "bitwardenSecretsManager" | i18n }}
               </p>
-              <ul class="bwi-ul tw-text-xs" *ngIf="organization.useSecretsManager">
+              <ul class="bwi-ul tw-text-xs" *ngIf="organization()?.useSecretsManager">
                 <li>
                   <i class="bwi bwi-check tw-text-success bwi-li" aria-hidden="true"></i>
                   {{ "unlimitedSecretsStorage" | i18n }}
@@ -210,7 +210,7 @@
               <ng-container
                 *ngIf="
                   selectableProduct.productTier === productTypes.Teams &&
-                    teamsStarterPlanIsAvailable;
+                    teamsStarterPlanIsAvailable();
                   else fullFeatureList
                 "
               >
@@ -223,7 +223,7 @@
               <ng-template #fullFeatureList>
                 <p
                   class="tw-text-xs tw-px-2 tw-font-medium tw-mb-1"
-                  *ngIf="organization.useSecretsManager"
+                  *ngIf="organization()?.useSecretsManager"
                 >
                   {{ "bitwardenPasswordManager" | i18n }}
                 </p>
@@ -276,7 +276,7 @@
                 <p
                   class="tw-text-xs tw-px-2 tw-font-medium tw-mb-1"
                   *ngIf="
-                    organization.useSecretsManager &&
+                    organization()?.useSecretsManager &&
                     selectableProduct.productTier !== productTypes.Families
                   "
                 >
@@ -285,7 +285,7 @@
                 <ul
                   class="bwi-ul tw-text-xs"
                   *ngIf="
-                    organization.useSecretsManager &&
+                    organization()?.useSecretsManager &&
                     selectableProduct.productTier == productTypes.Teams
                   "
                 >
@@ -308,14 +308,14 @@
         </div>
         <br />
         <bit-callout
-          *ngIf="organization.useSecretsManager && !isSecretsManagerTrial()"
+          *ngIf="organization()?.useSecretsManager && !isSecretsManagerTrial()"
           type="info"
           title="SECRETS MANAGER SUBSCRIPTION"
         >
           {{ "secretsManagerSubscriptionInfo" | i18n }}
         </bit-callout>
         <bit-callout
-          *ngIf="organization.useSecretsManager && isSecretsManagerTrial()"
+          *ngIf="organization()?.useSecretsManager && isSecretsManagerTrial()"
           type="info"
           title="PASSWORD MANAGER SUBSCRIPTION"
         >
@@ -325,51 +325,54 @@
       </ng-container>
       <!-- Payment info -->
       <ng-container
-        *ngIf="formGroup.value.productTier !== productTypes.Free || isSubscriptionCanceled"
+        *ngIf="formGroup.value.productTier !== productTypes.Free || isSubscriptionCanceled()"
       >
         <h2 bitTypography="h4">{{ "paymentMethod" | i18n }}</h2>
-        <p *ngIf="!showPayment && !!paymentMethod && !isSubscriptionCanceled">
-          @switch (paymentMethod.type) {
-            @case ("bankAccount") {
-              <i class="bwi bwi-fw bwi-billing"></i>
-              {{ paymentMethod.bankName }}, *{{ paymentMethod.last4 }}
-              @if (paymentMethod.hostedVerificationUrl) {
-                <span>- {{ "unverified" | i18n }}</span>
-              }
-              <span
-                class="tw-ml-2 tw-text-primary-600 tw-cursor-pointer"
-                (click)="toggleShowPayment()"
-              >
-                {{ "changePaymentMethod" | i18n }}
-              </span>
-            }
-            @case ("card") {
-              <p class="tw-flex tw-items-center tw-gap-2">
-                @let cardBrandIcon = getCardBrandIcon();
-                @if (cardBrandIcon !== null) {
-                  <i class="bwi bwi-fw credit-card-icon {{ cardBrandIcon }}"></i>
-                } @else {
-                  <i class="bwi bwi-fw bwi-credit-card"></i>
+        <p *ngIf="!showPayment() && !!paymentMethod() && !isSubscriptionCanceled()">
+          @let pm = paymentMethod();
+          @if (pm) {
+            @switch (pm.type) {
+              @case ("bankAccount") {
+                <i class="bwi bwi-fw bwi-billing"></i>
+                {{ pm.bankName }}, *{{ pm.last4 }}
+                @if (pm.hostedVerificationUrl) {
+                  <span>- {{ "unverified" | i18n }}</span>
                 }
-                {{ paymentMethod.brand | titlecase }}, *{{ paymentMethod.last4 }},
-                {{ paymentMethod.expiration }}
                 <span
                   class="tw-ml-2 tw-text-primary-600 tw-cursor-pointer"
                   (click)="toggleShowPayment()"
                 >
                   {{ "changePaymentMethod" | i18n }}
                 </span>
-              </p>
-            }
-            @case ("payPal") {
-              <i class="bwi bwi-fw bwi-paypal tw-text-primary-600"></i>
-              {{ paymentMethod.email }}
-              <span
-                class="tw-ml-2 tw-text-primary-600 tw-cursor-pointer"
-                (click)="toggleShowPayment()"
-              >
-                {{ "changePaymentMethod" | i18n }}
-              </span>
+              }
+              @case ("card") {
+                <p class="tw-flex tw-items-center tw-gap-2">
+                  @let cardBrandIcon = getCardBrandIcon();
+                  @if (cardBrandIcon !== null) {
+                    <i class="bwi bwi-fw credit-card-icon {{ cardBrandIcon }}"></i>
+                  } @else {
+                    <i class="bwi bwi-fw bwi-credit-card"></i>
+                  }
+                  {{ pm.brand | titlecase }}, *{{ pm.last4 }},
+                  {{ pm.expiration }}
+                  <span
+                    class="tw-ml-2 tw-text-primary-600 tw-cursor-pointer"
+                    (click)="toggleShowPayment()"
+                  >
+                    {{ "changePaymentMethod" | i18n }}
+                  </span>
+                </p>
+              }
+              @case ("payPal") {
+                <i class="bwi bwi-fw bwi-paypal tw-text-primary-600"></i>
+                {{ pm.email }}
+                <span
+                  class="tw-ml-2 tw-text-primary-600 tw-cursor-pointer"
+                  (click)="toggleShowPayment()"
+                >
+                  {{ "changePaymentMethod" | i18n }}
+                </span>
+              }
             }
           }
           <a></a>
@@ -379,18 +382,18 @@
           </app-enter-payment-method>
           <app-enter-billing-address
             [group]="billingFormGroup.controls.billingAddress"
-            [scenario]="{ type: 'checkout', supportsTaxId }"
+            [scenario]="{ type: 'checkout', supportsTaxId: supportsTaxId() }"
           >
           </app-enter-billing-address>
         </ng-container>
-        <div class="tw-mt-4" *ngIf="cartData">
-          <billing-cart-summary [cart]="cartData"></billing-cart-summary>
+        <div class="tw-mt-4" *ngIf="cartData()">
+          <billing-cart-summary [cart]="cartData()"></billing-cart-summary>
         </div>
       </ng-container>
     </div>
     <ng-container bitDialogFooter>
       <button bitButton bitFormButton buttonType="primary" type="submit">
-        {{ submitButtonLabel }}
+        {{ submitButtonLabel() }}
       </button>
       <button bitButton buttonType="secondary" type="button" [bitDialogClose]="ResultType.Closed">
         {{ "cancel" | i18n }}
