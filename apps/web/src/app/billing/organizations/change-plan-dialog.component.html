@@ -372,9 +372,6 @@
               </span>
             }
           }
-          <!-- FIXME: Empty anchor element needs content or should be removed -->
-          <!-- eslint-disable-next-line @angular-eslint/template/elements-content -->
-          <a></a>
         </p>
         <ng-container *ngIf="canUpdatePaymentInformation()">
           <app-enter-payment-method [group]="billingFormGroup.controls.paymentMethod">
