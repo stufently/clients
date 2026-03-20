@@ -29,7 +29,7 @@ export class CipherFileUploadService implements CipherFileUploadServiceAbstracti
     encData: EncArrayBuffer,
     admin: boolean,
     dataEncKey: [SymmetricCryptoKey, EncString],
-    options: UploadOptions,
+    options?: UploadOptions,
   ): Promise<CipherResponse> {
     const request: AttachmentRequest = {
       key: dataEncKey[1].encryptedString,

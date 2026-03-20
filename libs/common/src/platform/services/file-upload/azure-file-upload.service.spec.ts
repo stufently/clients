@@ -44,16 +44,14 @@ function makeUrl(expiryOffset = 3600000): string {
   return `https://example.blob.core.windows.net/container/blob?sv=2020-08-04&se=${encodeURIComponent(expiry)}&sig=fake`;
 }
 
-const BLOCK_SIZE = 4000 * 1024 * 1024; // 4000 MiB, matches the hardcoded value in the service
-
 /**
  * Creates a fake EncArrayBuffer large enough to trigger block upload (> 256 MiB) without
  * allocating real memory. `slice` returns an empty ArrayBuffer since network calls are mocked.
  */
-function makeFakeBlockUploadData(numBlocks = 1): EncArrayBuffer {
+function makeFakeBlockUploadData(): EncArrayBuffer {
   return {
     buffer: {
-      byteLength: numBlocks * BLOCK_SIZE,
+      byteLength: 256 * 1024 * 1024 + 1, // 1 byte over single blob upload limit to trigger block upload
       slice: () => new ArrayBuffer(0),
     },
   } as unknown as EncArrayBuffer;
@@ -73,7 +71,7 @@ describe("AzureFileUploadService", () => {
   });
 
   it("calls onProgress for each block via XMLHttpRequest", async () => {
-    const data = makeFakeBlockUploadData(3);
+    const data = makeFakeBlockUploadData();
     const url = makeUrl();
     const renewalCallback = jest.fn().mockResolvedValue(url);
     const progressValues: number[] = [];
@@ -81,7 +79,7 @@ describe("AzureFileUploadService", () => {
     // In browser mode, each block PUT uses nativeXMLHttpRequest which calls onProgress
     apiService.nativeXMLHttpRequest.mockImplementation(
       async (_req: Request, onProgress: (percentage: number) => void) => {
-        onProgress(100);
+        onProgress(75);
         return { status: 201 } as Response;
       },
     );
@@ -91,22 +89,7 @@ describe("AzureFileUploadService", () => {
       onProgress: (p) => progressValues.push(p),
     } as UploadOptions);
 
-    // 3 block PUTs via XHR (each calls onProgress(100)) + 1 block list PUT via nativeFetch
-    expect(progressValues).toEqual([100, 100, 100]);
-  });
-
-  it("throws when numBlocks exceeds MAX_BLOCKS_PER_BLOB", async () => {
-    const maxBlocks = 50000;
-    // Use a fake buffer with only byteLength set to avoid allocating real memory.
-    const data = {
-      buffer: { byteLength: (maxBlocks + 1) * BLOCK_SIZE },
-    } as unknown as EncArrayBuffer;
-    const url = makeUrl();
-    const renewalCallback = jest.fn();
-
-    await expect(service.upload(url, data, renewalCallback)).rejects.toThrow(
-      "Cannot upload file, exceeds maximum size",
-    );
+    expect(progressValues).toEqual([75]);
   });
 
   it("calls renewalCallback when URL is near expiry", async () => {

@@ -7,7 +7,6 @@ import { Utils } from "../../misc/utils";
 import { EncArrayBuffer } from "../../models/domain/enc-array-buffer";
 
 const MAX_SINGLE_BLOB_UPLOAD_SIZE = 256 * 1024 * 1024; // 256 MiB
-const MAX_BLOCKS_PER_BLOB = 50000;
 
 export class AzureFileUploadService {
   constructor(
@@ -58,58 +57,40 @@ export class AzureFileUploadService {
     renewalCallback: () => Promise<string>,
     options?: UploadOptions,
   ) {
-    const blockSize = 4000 * 1024 * 1024; // 4000 MiB, the max block size for the newest Azure version, to minimize number of blocks needed
-    let blockIndex = 0;
-    const numBlocks = Math.ceil(data.buffer.byteLength / blockSize);
-    const blocksStaged: string[] = [];
-
-    if (numBlocks > MAX_BLOCKS_PER_BLOB) {
-      throw new Error(
-        `Cannot upload file, exceeds maximum size of ${blockSize * MAX_BLOCKS_PER_BLOB}`,
-      );
-    }
-
     // eslint-disable-next-line
     try {
-      while (blockIndex < numBlocks) {
-        url = await this.renewUrlIfNecessary(url, renewalCallback);
-        const blockUrl = Utils.getUrl(url);
-        const blockId = this.encodedBlockId(blockIndex);
-        blockUrl.searchParams.append("comp", "block");
-        blockUrl.searchParams.append("blockid", blockId);
-        const start = blockIndex * blockSize;
-        const blockData = data.buffer.slice(start, start + blockSize);
-        const blockHeaders = new Headers({
-          "x-ms-date": new Date().toUTCString(),
-          "x-ms-version": blockUrl.searchParams.get("sv"),
-          "Content-Length": blockData.byteLength.toString(),
-        });
+      url = await this.renewUrlIfNecessary(url, renewalCallback);
+      const blockUrl = Utils.getUrl(url);
+      const blockId = this.encodedBlockId(0); // Only one block supported since max block size exceeds max file size
+      blockUrl.searchParams.append("comp", "block");
+      blockUrl.searchParams.append("blockid", blockId);
+      const blockHeaders = new Headers({
+        "x-ms-date": new Date().toUTCString(),
+        "x-ms-version": blockUrl.searchParams.get("sv"),
+        "Content-Length": data.buffer.byteLength.toString(),
+      });
 
-        const blockRequest = new Request(blockUrl.toString(), {
-          body: blockData,
-          cache: "no-store",
-          method: "PUT",
-          headers: blockHeaders,
-        });
+      const blockRequest = new Request(blockUrl.toString(), {
+        body: data.buffer as BodyInit,
+        cache: "no-store",
+        method: "PUT",
+        headers: blockHeaders,
+      });
 
-        const blockResponse =
-          Utils.isBrowser && options?.onProgress
-            ? await this.apiService.nativeXMLHttpRequest(blockRequest, options.onProgress)
-            : await this.apiService.nativeFetch(blockRequest);
+      const blockResponse =
+        Utils.isBrowser && options?.onProgress
+          ? await this.apiService.nativeXMLHttpRequest(blockRequest, options.onProgress)
+          : await this.apiService.nativeFetch(blockRequest);
 
-        if (blockResponse.status !== 201) {
-          const message = `Unsuccessful block PUT. Received status ${blockResponse.status}`;
-          this.logService.error(message + "\n" + (await blockResponse.json()));
-          throw new Error(message);
-        }
-
-        blocksStaged.push(blockId);
-        blockIndex++;
+      if (blockResponse.status !== 201) {
+        const message = `Unsuccessful block PUT. Received status ${blockResponse.status}`;
+        this.logService.error(message + "\n" + (await blockResponse.json()));
+        throw new Error(message);
       }
 
       url = await this.renewUrlIfNecessary(url, renewalCallback);
       const blockListUrl = Utils.getUrl(url);
-      const blockListXml = this.blockListXml(blocksStaged);
+      const blockListXml = this.blockListXml([blockId]);
       blockListUrl.searchParams.append("comp", "blocklist");
       const headers = new Headers({
         "x-ms-date": new Date().toUTCString(),
