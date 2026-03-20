@@ -126,7 +126,7 @@ export class SendComponent implements OnDestroy {
     private sendApiService: SendApiService,
     private dialogService: DialogService,
     private toastService: ToastService,
-    private addEditFormConfigService: DefaultSendFormConfigService,
+    private sendFormConfigService: DefaultSendFormConfigService,
     private accountService: AccountService,
     private route: ActivatedRoute,
     private router: Router,
@@ -164,13 +164,13 @@ export class SendComponent implements OnDestroy {
       return;
     }
 
-    const config = await this.addEditFormConfigService.buildConfig("add", null, SendType.Text);
+    const config = await this.sendFormConfigService.buildConfig("add", null, SendType.Text);
 
     await this.openSendItemDialog(config);
   }
 
   async editSend(send: SendView) {
-    const config = await this.addEditFormConfigService.buildConfig(
+    const config = await this.sendFormConfigService.buildConfig(
       send == null ? "add" : "edit",
       send == null ? null : (send.id as SendId),
       send.type,
@@ -203,14 +203,25 @@ export class SendComponent implements OnDestroy {
     const result: SendItemDialogResult = await lastValueFrom(this.sendItemDialogRef.closed);
     this.sendItemDialogRef = undefined;
 
+    // If we created a new Send and the feature flag is on, open the success drawer
     if (
-      result?.result === SendItemDialogResult.Saved &&
+      result?.result === SendItemDialogResult.Created &&
       result?.send &&
       (await this.configService.getFeatureFlag(FeatureFlag.SendUIRefresh))
     ) {
       this.dialogService.openDrawer(SendSuccessDrawerDialogComponent, {
         data: result.send,
       });
+    }
+
+    // If we updated a Send, open the drawer back up with the updated Send now set as the original
+    if (result?.result === SendItemDialogResult.Updated && result?.send) {
+      const newConfig = await this.sendFormConfigService.buildConfig(
+        formConfig.mode,
+        result.send.id as SendId,
+        result.send.type,
+      );
+      await this.openSendItemDialog(newConfig);
     }
   }
 

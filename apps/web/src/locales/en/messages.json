@@ -6505,9 +6505,6 @@
   "dateParsingError": {
     "message": "There was an error saving your deletion and expiration dates."
   },
-  "hideYourEmail": {
-    "message": "Hide your email address from viewers."
-  },
   "webAuthnFallbackMsg": {
     "message": "To verify your 2FA please click the button below."
   },
@@ -13139,5 +13136,11 @@
         "example": "4"
       }
     }
+  },
+  "hideEmail": {
+    "message": "Hide my email address from recipients."
+  },
+  "fileToShare": {
+    "message": "File to share"
   }
 }

@@ -94,7 +94,11 @@ describe("SendDetailsComponent", () => {
 
     fixture = TestBed.createComponent(SendDetailsComponent);
     component = fixture.componentInstance;
-    component.config = { areSendsAllowed: true, mode: "add", sendType: SendType.Text };
+    fixture.componentRef.setInput("config", {
+      areSendsAllowed: true,
+      mode: "add",
+      sendType: SendType.Text,
+    });
     fixture.detectChanges();
   });
 

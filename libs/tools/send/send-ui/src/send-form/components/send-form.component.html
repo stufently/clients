@@ -1,8 +1,36 @@
 <form [id]="formId" [formGroup]="sendForm" [bitSubmit]="submit">
-  <ng-container *ngIf="!loading">
+  @if (!loading) {
+    @if (!editing()) {
+      <bit-card>
+        <bit-form-field bitTypography="h4">
+          <bit-label class="tw-text-main">{{ "sendLink" | i18n }}</bit-label>
+          <input
+            class="tw-text-muted"
+            data-testid="send-link"
+            bitInput
+            type="text"
+            [value]="sendLink()"
+            readonly
+          />
+        </bit-form-field>
+        <button
+          class="tw-w-full"
+          bitButton
+          type="button"
+          showToast
+          buttonType="primary"
+          startIcon="bwi-clone"
+          [appCopyClick]="sendLink()"
+          [valueLabel]="'sendLink' | i18n"
+        >
+          Copy
+        </button>
+      </bit-card>
+    }
     <tools-send-details
       [config]="config"
       [originalSendView]="originalSendView"
+      [editing]="editing()"
     ></tools-send-details>
-  </ng-container>
+  }
 </form>

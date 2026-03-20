@@ -1,10 +1,9 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
 import { CommonModule } from "@angular/common";
-import { Component, Inject } from "@angular/core";
+import { Component, Inject, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 
-import { JslibModule } from "@bitwarden/angular/jslib.module";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { SendView } from "@bitwarden/common/tools/send/models/view/send.view";
 import { SendApiService } from "@bitwarden/common/tools/send/services/send-api.service.abstraction";
@@ -20,6 +19,7 @@ import {
   ToastService,
   DialogModule,
 } from "@bitwarden/components";
+import { I18nPipe } from "@bitwarden/ui-common";
 
 import { SendFormConfig, SendFormMode, SendFormModule } from "../send-form";
 
@@ -37,9 +37,11 @@ export interface SendItemDialogParams {
 
 /** A result of the Send add/edit dialog. */
 export const SendItemDialogResult = Object.freeze({
-  /** The send item was created or updated. */
-  Saved: "saved",
-  /** The send item was deleted. */
+  /** The Send item was created*/
+  Created: "created",
+  /** The Send item was updated */
+  Updated: "updated",
+  /** The Send item was deleted. */
   Deleted: "deleted",
 } as const);
 
@@ -58,7 +60,7 @@ export type SendItemDialogResult = {
   imports: [
     CommonModule,
     SearchModule,
-    JslibModule,
+    I18nPipe,
     FormsModule,
     ButtonModule,
     IconButtonModule,
@@ -78,6 +80,11 @@ export class SendAddEditDialogComponent {
    */
   config: SendFormConfig;
 
+  /**
+   * Whether the Send is actively being edited
+   */
+  protected readonly editing = signal(false);
+
   constructor(
     @Inject(DIALOG_DATA) protected params: SendItemDialogParams,
     private dialogRef: DialogRef<SendItemDialogResult>,
@@ -87,6 +94,7 @@ export class SendAddEditDialogComponent {
     private dialogService: DialogService,
   ) {
     this.config = params.formConfig;
+    this.editing.set(this.config.mode === "add");
     this.headerText = this.getHeaderText(this.config.mode, this.config.sendType);
   }
 
@@ -95,15 +103,14 @@ export class SendAddEditDialogComponent {
    */
   async onSendCreated(send: SendView) {
     // FIXME Add dialogService.open send-created dialog
-    this.dialogRef.close({ result: SendItemDialogResult.Saved, send });
-    return;
+    this.dialogRef.close({ result: SendItemDialogResult.Created, send });
   }
 
   /**
    * Handles the event when the send is updated.
    */
   async onSendUpdated(send: SendView) {
-    this.dialogRef.close({ result: SendItemDialogResult.Saved });
+    this.dialogRef.close({ result: SendItemDialogResult.Updated, send });
   }
 
   /**
@@ -160,6 +167,18 @@ export class SendAddEditDialogComponent {
       [SendType.File]: isEditMode ? "editItemHeaderFileSend" : "newItemHeaderFileSend",
     };
     return this.i18nService.t(translation[type]);
+  }
+
+  protected editSend() {
+    this.editing.set(true);
+  }
+
+  protected cancelEditSend() {
+    if (this.config.mode === "add") {
+      this.dialogRef.close();
+    } else {
+      this.editing.set(false);
+    }
   }
 
   /**

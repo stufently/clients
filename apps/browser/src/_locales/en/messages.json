@@ -3142,9 +3142,6 @@
   "dateParsingError": {
     "message": "There was an error saving your deletion and expiration dates."
   },
-  "hideYourEmail": {
-    "message": "Hide your email address from viewers."
-  },
   "passwordPrompt": {
     "message": "Master password re-prompt"
   },
@@ -6187,5 +6184,12 @@
   },
   "downloadFailed": {
     "message": "Failed to download."
+  },
+  "maxAccessCount": {
+    "message": "Maximum access count",
+    "description": "This text will be displayed after a Send has been accessed the maximum amount of times."
+  },
+  "hideEmail": {
+    "message": "Hide my email address from recipients."
   }
 }

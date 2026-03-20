@@ -1,22 +1,24 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
-import { NgIf } from "@angular/common";
 import {
   AfterViewInit,
   Component,
+  computed,
   DestroyRef,
   EventEmitter,
   forwardRef,
   inject,
+  input,
   Input,
   OnChanges,
   OnInit,
   Output,
   ViewChild,
 } from "@angular/core";
-import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import { takeUntilDestroyed, toSignal } from "@angular/core/rxjs-interop";
 import { FormBuilder, ReactiveFormsModule } from "@angular/forms";
 
+import { EnvironmentService } from "@bitwarden/common/platform/abstractions/environment.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { SendView } from "@bitwarden/common/tools/send/models/view/send.view";
 import { SendType } from "@bitwarden/common/tools/send/types/send-type";
@@ -24,12 +26,16 @@ import {
   AsyncActionsModule,
   BitSubmitDirective,
   ButtonComponent,
+  ButtonModule,
+  CardComponent,
+  CopyClickDirective,
   FormFieldModule,
   ItemModule,
   SelectModule,
   ToastService,
   TypographyModule,
 } from "@bitwarden/components";
+import { I18nPipe } from "@bitwarden/ui-common";
 
 import { SendFormConfig } from "../abstractions/send-form-config.service";
 import { SendFormService } from "../abstractions/send-form.service";
@@ -55,8 +61,11 @@ import { SendDetailsComponent } from "./send-details/send-details.component";
     FormFieldModule,
     ReactiveFormsModule,
     SelectModule,
-    NgIf,
     SendDetailsComponent,
+    I18nPipe,
+    CopyClickDirective,
+    ButtonModule,
+    CardComponent,
   ],
 })
 export class SendFormComponent implements AfterViewInit, OnInit, OnChanges, SendFormContainer {
@@ -89,6 +98,17 @@ export class SendFormComponent implements AfterViewInit, OnInit, OnChanges, Send
   // eslint-disable-next-line @angular-eslint/prefer-signals
   @Input()
   submitBtn?: ButtonComponent;
+
+  protected readonly editing = input<boolean>();
+  private readonly environment = toSignal(this.envService.environment$);
+  protected readonly sendLink = computed(() => {
+    return (
+      this.environment().getSendUrl() +
+      this.originalSendView.accessId +
+      "/" +
+      this.originalSendView.urlB64Key
+    );
+  });
 
   /**
    * Event emitted when the send is created successfully.
@@ -203,6 +223,7 @@ export class SendFormComponent implements AfterViewInit, OnInit, OnChanges, Send
     private addEditFormService: SendFormService,
     private toastService: ToastService,
     private i18nService: I18nService,
+    private envService: EnvironmentService,
   ) {}
 
   onFileSelected(file: File): void {
