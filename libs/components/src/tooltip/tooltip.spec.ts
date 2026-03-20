@@ -50,25 +50,25 @@ describe("TooltipDirective (visibility only)", () => {
     const positionChanges$ = new Subject<ConnectedOverlayPositionChange>();
 
     const strategy: StrategyLike = {
-      withFlexibleDimensions: jest.fn(() => strategy),
-      withPush: jest.fn(() => strategy),
-      withPositions: jest.fn(() => strategy),
+      withFlexibleDimensions: vi.fn(() => strategy),
+      withPush: vi.fn(() => strategy),
+      withPositions: vi.fn(() => strategy),
       get positionChanges() {
         return positionChanges$.asObservable();
       },
     };
 
     const overlayRefStub: OverlayRefStub = {
-      attach: jest.fn(() => ({
-        changeDetectorRef: { detectChanges: jest.fn() },
+      attach: vi.fn(() => ({
+        changeDetectorRef: { detectChanges: vi.fn() },
         location: {
           nativeElement: {
-            querySelector: jest.fn().mockReturnValue({ id: "tip-123" }),
+            querySelector: vi.fn().mockReturnValue({ id: "tip-123" }),
           },
         },
       })),
-      updatePosition: jest.fn(),
-      dispose: jest.fn(),
+      updatePosition: vi.fn(),
+      dispose: vi.fn(),
     };
 
     const overlayMock: OverlayLike = {
@@ -110,7 +110,7 @@ describe("TooltipDirective (visibility only)", () => {
 
     // Mock matches to return true for :focus-visible (simulates keyboard navigation)
     const originalMatches = button.matches.bind(button);
-    button.matches = jest.fn((selector: string) => {
+    button.matches = vi.fn((selector: string) => {
       if (selector === ":focus-visible") {
         return true;
       }

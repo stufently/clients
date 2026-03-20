@@ -2,7 +2,9 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "isolatedModules": true,
-    "emitDecoratorMetadata": false
+    "emitDecoratorMetadata": false,
+    "types": ["vitest/globals"]
   },
-  "files": ["./test.setup.ts"]
+  "files": ["./test.setup.ts"],
+  "include": ["src/**/*.spec.ts", "src/**/*.d.ts"]
 }

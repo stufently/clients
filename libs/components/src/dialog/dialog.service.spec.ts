@@ -3,7 +3,6 @@ import { ChangeDetectionStrategy, Component } from "@angular/core";
 import { TestBed } from "@angular/core/testing";
 import { provideRouter } from "@angular/router";
 import { RouterTestingHarness } from "@angular/router/testing";
-import { mock, MockProxy } from "jest-mock-extended";
 import { BehaviorSubject } from "rxjs";
 
 import { AuthService } from "@bitwarden/common/auth/abstractions/auth.service";
@@ -35,14 +34,14 @@ class OtherRouteComponent {}
 
 describe("DialogService", () => {
   let service: DialogService;
-  let drawerService: MockProxy<DrawerService>;
-  let cdkDialog: MockProxy<CdkDialog>;
+  let drawerService: DrawerService;
+  let cdkDialog: CdkDialog;
   let routerHarness: RouterTestingHarness;
   let authStatus$: BehaviorSubject<AuthenticationStatus>;
 
   beforeEach(async () => {
-    drawerService = mock<DrawerService>();
-    cdkDialog = mock<CdkDialog>();
+    drawerService = vi.mockObject(DrawerService.prototype);
+    cdkDialog = vi.mockObject({} as CdkDialog);
     authStatus$ = new BehaviorSubject<AuthenticationStatus>(AuthenticationStatus.Unlocked);
 
     TestBed.configureTestingModule({

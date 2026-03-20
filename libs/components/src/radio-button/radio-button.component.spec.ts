@@ -31,7 +31,7 @@ describe("RadioButton", () => {
   });
 
   it("should emit value when clicking on radio button", () => {
-    const spyFn = jest.spyOn(radioButtonGroup, "onInputChange");
+    const spyFn = vi.spyOn(radioButtonGroup, "onInputChange");
 
     radioButtons[1].triggerEventHandler("change");
     fixture.detectChanges();

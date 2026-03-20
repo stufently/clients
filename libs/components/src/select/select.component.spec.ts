@@ -2,7 +2,6 @@ import { Component } from "@angular/core";
 import { TestBed } from "@angular/core/testing";
 import { FormControl, FormGroup, ReactiveFormsModule } from "@angular/forms";
 import { By } from "@angular/platform-browser";
-import { mock } from "jest-mock-extended";
 
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 
@@ -29,7 +28,7 @@ describe("Select Component", () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [TestFormComponent],
-      providers: [{ provide: I18nService, useValue: mock<I18nService>() }],
+      providers: [{ provide: I18nService, useValue: { t: vi.fn((id: string) => id) } }],
     }).compileComponents();
     const fixture = TestBed.createComponent(TestFormComponent);
     fixture.detectChanges();

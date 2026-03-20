@@ -4,7 +4,7 @@ import { functionToObservable } from "./function-to-observable";
 
 describe("functionToObservable", () => {
   it("should execute function when calling", () => {
-    const func = jest.fn();
+    const func = vi.fn();
 
     functionToObservable(func);
 

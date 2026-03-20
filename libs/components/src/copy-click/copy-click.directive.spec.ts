@@ -1,6 +1,5 @@
 import { Component, ElementRef, ViewChild } from "@angular/core";
 import { ComponentFixture, TestBed } from "@angular/core/testing";
-import { mock } from "jest-mock-extended";
 
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
@@ -43,9 +42,9 @@ class TestCopyClickComponent {
 
 describe("CopyClickDirective", () => {
   let fixture: ComponentFixture<TestCopyClickComponent>;
-  const copyToClipboard = jest.fn();
-  const showToast = jest.fn();
-  const copyClickListener = mock<CopyClickListener>();
+  const copyToClipboard = vi.fn();
+  const showToast = vi.fn();
+  const copyClickListener = vi.mockObject({ onCopy() {} } as CopyClickListener);
 
   beforeEach(async () => {
     copyToClipboard.mockClear();

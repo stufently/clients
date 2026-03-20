@@ -43,6 +43,7 @@
     "libs/**/*"
   ],
   "devDependencies": {
+    "@analogjs/vitest-angular": "2.3.1",
     "@angular-devkit/build-angular": "20.3.12",
     "@angular-eslint/schematics": "20.7.0",
     "@angular/cli": "20.3.12",
@@ -150,6 +151,7 @@
     "typescript-strict-plugin": "2.4.4",
     "url": "0.11.4",
     "util": "0.12.5",
+    "vitest": "3.2.4",
     "wait-on": "9.0.3",
     "webpack": "5.104.1",
     "webpack-cli": "6.0.1",

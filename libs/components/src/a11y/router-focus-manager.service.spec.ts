@@ -9,8 +9,8 @@ import {
 } from "@angular/core";
 import { TestBed } from "@angular/core/testing";
 import { Event, Navigation, NavigationEnd, Router } from "@angular/router";
-import { mock } from "jest-mock-extended";
 import { BehaviorSubject, Subject } from "rxjs";
+import { describe, expect, it } from "vitest";
 
 import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
 import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
@@ -42,7 +42,7 @@ describe("RouterFocusManagerService", () => {
     readonly currentNavigationExtras = signal({});
 
     readonly currentNavigation: Signal<Navigation> = computed(() => ({
-      ...mock<Navigation>(),
+      ...vi.mockObject({} as Navigation),
       extras: this.currentNavigationExtras(),
     }));
 
@@ -60,14 +60,14 @@ describe("RouterFocusManagerService", () => {
   let mockConfigService: Partial<ConfigService>;
   let mockNgZoneRef: MockNgZone;
 
-  let querySelectorSpy: jest.SpyInstance;
-  let consoleWarnSpy: jest.SpyInstance;
+  let querySelectorSpy: ReturnType<typeof vi.spyOn>;
+  let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     // Mock ConfigService
     featureFlagSubject = new BehaviorSubject<boolean>(true);
     mockConfigService = {
-      getFeatureFlag$: jest.fn((flag: FeatureFlag) => {
+      getFeatureFlag$: vi.fn((flag: FeatureFlag) => {
         if (flag === FeatureFlag.RouterFocusManagement) {
           return featureFlagSubject.asObservable();
         }
@@ -76,8 +76,8 @@ describe("RouterFocusManagerService", () => {
     };
 
     // Spy on document.querySelector and console.warn
-    querySelectorSpy = jest.spyOn(document, "querySelector");
-    consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+    querySelectorSpy = vi.spyOn(document, "querySelector");
+    consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation();
 
     TestBed.configureTestingModule({
       providers: [
@@ -85,7 +85,7 @@ describe("RouterFocusManagerService", () => {
         { provide: Router, useClass: MockRouter },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: NgZone, useClass: MockNgZone },
-        { provide: DestroyRef, useValue: { onDestroy: jest.fn() } },
+        { provide: DestroyRef, useValue: { onDestroy: vi.fn() } },
       ],
     });
 
@@ -105,7 +105,7 @@ describe("RouterFocusManagerService", () => {
   describe("default behavior", () => {
     it("should focus main element after navigation", () => {
       const mainElement = document.createElement("main");
-      mainElement.focus = jest.fn();
+      mainElement.focus = vi.fn();
       querySelectorSpy.mockReturnValue(mainElement);
 
       // Subscribe to start the service
@@ -126,7 +126,7 @@ describe("RouterFocusManagerService", () => {
     it("should focus custom element when focusAfterNav selector is provided", () => {
       const customElement = document.createElement("button");
       customElement.id = "custom-btn";
-      customElement.focus = jest.fn();
+      customElement.focus = vi.fn();
       querySelectorSpy.mockReturnValue(customElement);
 
       // Subscribe to start the service
@@ -147,7 +147,7 @@ describe("RouterFocusManagerService", () => {
   describe("opt-out", () => {
     it("should not focus when focusAfterNav is false", () => {
       const mainElement = document.createElement("main");
-      mainElement.focus = jest.fn();
+      mainElement.focus = vi.fn();
       querySelectorSpy.mockReturnValue(mainElement);
 
       // Subscribe to start the service
@@ -190,7 +190,7 @@ describe("RouterFocusManagerService", () => {
   describe("feature flag", () => {
     it("should not activate when RouterFocusManagement flag is disabled", () => {
       const mainElement = document.createElement("main");
-      mainElement.focus = jest.fn();
+      mainElement.focus = vi.fn();
       querySelectorSpy.mockReturnValue(mainElement);
 
       // Disable feature flag
@@ -211,7 +211,7 @@ describe("RouterFocusManagerService", () => {
 
     it("should activate when RouterFocusManagement flag is enabled", () => {
       const mainElement = document.createElement("main");
-      mainElement.focus = jest.fn();
+      mainElement.focus = vi.fn();
       querySelectorSpy.mockReturnValue(mainElement);
 
       // Ensure feature flag is enabled
@@ -234,7 +234,7 @@ describe("RouterFocusManagerService", () => {
   describe("first navigation skip", () => {
     it("should not trigger focus management on first navigation after page load", () => {
       const mainElement = document.createElement("main");
-      mainElement.focus = jest.fn();
+      mainElement.focus = vi.fn();
       querySelectorSpy.mockReturnValue(mainElement);
 
       // Subscribe to start the service
@@ -249,7 +249,7 @@ describe("RouterFocusManagerService", () => {
 
     it("should trigger focus management on second and subsequent navigations", () => {
       const mainElement = document.createElement("main");
-      mainElement.focus = jest.fn();
+      mainElement.focus = vi.fn();
       querySelectorSpy.mockReturnValue(mainElement);
 
       // Subscribe to start the service
@@ -265,7 +265,7 @@ describe("RouterFocusManagerService", () => {
       expect(mainElement.focus).toHaveBeenCalledTimes(1);
 
       // Emit third navigation (should also trigger focus)
-      mainElement.focus = jest.fn(); // Reset mock
+      mainElement.focus = vi.fn(); // Reset mock
       mockRouter.routerEventsSubject.next(new NavigationEnd(3, "/third", "/third"));
 
       expect(mainElement.focus).toHaveBeenCalledTimes(1);
@@ -275,7 +275,7 @@ describe("RouterFocusManagerService", () => {
   describe("NgZone stability", () => {
     it("should focus immediately when zone is stable", () => {
       const mainElement = document.createElement("main");
-      mainElement.focus = jest.fn();
+      mainElement.focus = vi.fn();
       querySelectorSpy.mockReturnValue(mainElement);
 
       // Subscribe to start the service
@@ -292,7 +292,7 @@ describe("RouterFocusManagerService", () => {
 
     it("should wait for zone stability before focusing when zone is not stable", async () => {
       const mainElement = document.createElement("main");
-      mainElement.focus = jest.fn();
+      mainElement.focus = vi.fn();
       querySelectorSpy.mockReturnValue(mainElement);
 
       // Set zone as not stable

@@ -25,7 +25,7 @@ describe("Toggle", () => {
   });
 
   it("should emit value when clicking on radio button", () => {
-    const spyFn = jest.spyOn(toggleGroup, "onInputInteraction");
+    const spyFn = vi.spyOn(toggleGroup, "onInputInteraction");
 
     toggleButtons[1].triggerEventHandler("change");
     fixture.detectChanges();

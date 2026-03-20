@@ -177,7 +177,7 @@ describe("ChipSelectComponent", () => {
     });
 
     it("should update form value when option is selected", () => {
-      const onChangeSpy = jest.fn();
+      const onChangeSpy = vi.fn();
       component.registerOnChange(onChangeSpy);
 
       component.writeValue("opt2");
@@ -256,7 +256,7 @@ describe("ChipSelectComponent", () => {
 
   describe("Option Selection", () => {
     it("should select option and notify form control", () => {
-      const onChangeSpy = jest.fn();
+      const onChangeSpy = vi.fn();
       component.registerOnChange(onChangeSpy);
 
       const option = testOptions[0];
@@ -284,7 +284,7 @@ describe("ChipSelectComponent", () => {
     });
 
     it("should clear selection when clear button is clicked", () => {
-      const onChangeSpy = jest.fn();
+      const onChangeSpy = vi.fn();
       component.registerOnChange(onChangeSpy);
 
       component.writeValue("opt1");
