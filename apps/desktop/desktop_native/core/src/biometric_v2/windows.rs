@@ -131,11 +131,11 @@ impl super::BiometricTrait for BiometricLockSystem {
             }
         } // Release lock before the async Windows API call
 
-        let result = match UserConsentVerifier::CheckAvailabilityAsync()?.await? {
+        let result = matches!(
+            UserConsentVerifier::CheckAvailabilityAsync()?.await?,
             UserConsentVerifierAvailability::Available
-            | UserConsentVerifierAvailability::DeviceBusy => true,
-            _ => false,
-        };
+                | UserConsentVerifierAvailability::DeviceBusy
+        );
 
         *self.authenticate_available_cache.lock().await = Some((result, std::time::Instant::now()));
         Ok(result)
