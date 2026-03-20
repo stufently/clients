@@ -1,3 +1,5 @@
+// FIXME(https://bitwarden.atlassian.net/browse/CL-1062): `OnPush` components should not use mutable properties
+/* eslint-disable @bitwarden/components/enforce-readonly-angular-properties */
 import {
   ChangeDetectionStrategy,
   Component,
@@ -43,8 +45,8 @@ export class ChipInputComponent
 
   /** BitFormFieldControl */
   readonly id = signal(`bit-chip-input-${nextId++}`);
-  readonly ariaDescribedBy?: string;
-  readonly readOnly = false;
+  ariaDescribedBy?: string;
+  readOnly = false;
   // type and spellcheck are optional on BitFormFieldControl
 
   get labelForId(): string {
@@ -88,7 +90,7 @@ export class ChipInputComponent
 
   protected readonly chips = signal<string[]>([]);
 
-  protected readonly inputValue = "";
+  protected readonly inputValue = signal("");
 
   constructor(@Optional() @Self() private readonly ngControl: NgControl) {
     if (this.ngControl) {
@@ -99,30 +101,30 @@ export class ChipInputComponent
   protected addChip(value: string): void {
     const trimmed = value.trim();
     if (!trimmed || this.chips().includes(trimmed)) {
-      this.inputValue = "";
+      this.inputValue.set("");
       return;
     }
     this.chips.update((chips) => [...chips, trimmed]);
-    this.inputValue = "";
-    this.notifyOnChange?.(this.chips());
+    this.inputValue.set("");
+    this.cvaCallbacks.onChange?.(this.chips());
   }
 
   protected removeChip(index: number): void {
     this.chips.update((chips) => chips.filter((_, i) => i !== index));
-    this.notifyOnChange?.(this.chips());
+    this.cvaCallbacks.onChange?.(this.chips());
   }
 
   protected onInput(event: Event): void {
-    this.inputValue = (event.target as HTMLInputElement).value;
+    this.inputValue.set((event.target as HTMLInputElement).value);
   }
 
   protected onKeydown(event: KeyboardEvent): void {
     if (event.key === "," || event.key === "Enter") {
       event.preventDefault();
-      this.addChip(this.inputValue);
-    } else if (event.key === "Backspace" && !this.inputValue) {
+      this.addChip(this.inputValue());
+    } else if (event.key === "Backspace" && !this.inputValue()) {
       this.chips.update((chips) => chips.slice(0, -1));
-      this.notifyOnChange?.(this.chips());
+      this.cvaCallbacks.onChange?.(this.chips());
     }
   }
 
@@ -133,27 +135,29 @@ export class ChipInputComponent
   }
 
   protected onBlur(): void {
-    if (this.inputValue.trim()) {
-      this.addChip(this.inputValue);
+    if (this.inputValue().trim()) {
+      this.addChip(this.inputValue());
     }
-    this.notifyOnTouched?.();
+    this.cvaCallbacks.onTouched?.();
   }
 
   /** ControlValueAccessor */
 
-  private readonly notifyOnChange?: (value: string[]) => void;
-  private readonly notifyOnTouched?: () => void;
+  private readonly cvaCallbacks: {
+    onChange?: (value: string[]) => void;
+    onTouched?: () => void;
+  } = {};
 
   writeValue(values: string[]): void {
     this.chips.set(Array.isArray(values) ? values : []);
   }
 
   registerOnChange(fn: (value: string[]) => void): void {
-    this.notifyOnChange = fn;
+    this.cvaCallbacks.onChange = fn;
   }
 
   registerOnTouched(fn: () => void): void {
-    this.notifyOnTouched = fn;
+    this.cvaCallbacks.onTouched = fn;
   }
 
   setDisabledState(isDisabled: boolean): void {

@@ -29,7 +29,7 @@
     [attr.aria-describedby]="ariaDescribedBy || null"
     [placeholder]="chips().length === 0 ? placeholder() : ''"
     [disabled]="disabled() || null"
-    [value]="inputValue"
+    [value]="inputValue()"
     (input)="onInput($event)"
     (keydown)="onKeydown($event)"
     (paste)="onPaste($event)"
