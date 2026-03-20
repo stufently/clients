@@ -47,6 +47,7 @@ import {
   ToastService,
 } from "@bitwarden/components";
 import { KeyService } from "@bitwarden/key-management";
+import { Cart, CartSummaryComponent, DiscountTypes } from "@bitwarden/pricing";
 import {
   OrganizationSubscriptionPlan,
   SubscriberBillingClient,
@@ -116,6 +117,7 @@ interface OnSuccessArgs {
     EnterPaymentMethodComponent,
     EnterBillingAddressComponent,
     CardComponent,
+    CartSummaryComponent,
   ],
 })
 export class ChangePlanDialogComponent implements OnInit, OnDestroy {
@@ -1104,4 +1106,82 @@ export class ChangePlanDialogComponent implements OnInit, OnDestroy {
   }
 
   getCardBrandIcon = () => getCardBrandIcon(this.paymentMethod);
+
+  get cartData(): Cart | null {
+    if (!this.selectedPlan) {
+      return null;
+    }
+
+    const cadence = this.selectedPlan.isAnnual ? "annually" : "monthly";
+
+    // Password Manager seats
+    const pmSeats = this.passwordManagerSeats;
+    const pmSeatCost = this.selectedPlan.PasswordManager.basePrice
+      ? this.selectedPlan.isAnnual
+        ? this.selectedPlan.PasswordManager.basePrice / 12
+        : this.selectedPlan.PasswordManager.basePrice
+      : this.selectedPlan.PasswordManager.seatPrice;
+
+    const cart: Cart = {
+      passwordManager: {
+        seats: {
+          translationKey: "members",
+          quantity: pmSeats,
+          cost: pmSeatCost,
+        },
+      },
+      cadence,
+      estimatedTax: this.estimatedTax,
+    };
+
+    // Additional storage
+    if (this.selectedPlan.PasswordManager.hasAdditionalStorageOption && this.storageGb > 0) {
+      cart.passwordManager.additionalStorage = {
+        translationKey: "additionalStorageGbMessage",
+        translationParams: [this.storageGb],
+        quantity: this.storageGb,
+        cost: this.selectedPlan.PasswordManager.additionalStoragePricePerGb,
+      };
+    }
+
+    // Secrets Manager
+    if (this.organization?.useSecretsManager && this.selectedPlan.SecretsManager) {
+      const smSeats = this.sub?.smSeats || 0;
+      const smSeatCost = this.selectedPlan.SecretsManager.basePrice
+        ? this.selectedPlan.isAnnual
+          ? this.selectedPlan.SecretsManager.basePrice / 12
+          : this.selectedPlan.SecretsManager.basePrice
+        : this.selectedPlan.SecretsManager.seatPrice;
+
+      cart.secretsManager = {
+        seats: {
+          translationKey: "members",
+          quantity: smSeats,
+          cost: smSeatCost,
+        },
+      };
+
+      // Additional service accounts
+      if (
+        this.selectedPlan.SecretsManager.hasAdditionalServiceAccountOption &&
+        this.additionalServiceAccount > 0
+      ) {
+        cart.secretsManager.additionalServiceAccounts = {
+          translationKey: "serviceAccounts",
+          quantity: this.additionalServiceAccount,
+          cost: this.selectedPlan.SecretsManager.additionalPricePerServiceAccount,
+        };
+      }
+    }
+
+    // Cart-level discount
+    if (this.discountPercentageFromSub > 0 && !this.isSecretsManagerTrial()) {
+      cart.discount = {
+        type: DiscountTypes.PercentOff,
+        value: this.discountPercentageFromSub,
+      };
+    }
+
+    return cart;
+  }
 }
