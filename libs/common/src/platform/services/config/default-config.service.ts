@@ -264,7 +264,6 @@ export class DefaultConfigService implements ConfigService {
               cookieDomain: bootstrap.cookieDomain,
               vaultUrl: vaultUrl,
               cookieValue: undefined,
-              vaultUrl: response.environment?.vault,
             },
           }
         : { bootstrap: { type: "direct" } };
