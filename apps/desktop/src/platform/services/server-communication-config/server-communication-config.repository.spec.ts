@@ -1,6 +1,5 @@
+import { FakeAccountService, FakeStateProvider } from "@bitwarden/common/spec";
 import { AcquiredCookie, ServerCommunicationConfig } from "@bitwarden/sdk-internal";
-
-import { FakeAccountService, FakeStateProvider } from "../../../../spec";
 
 import { ServerCommunicationConfigRepository } from "./server-communication-config.repository";
 
@@ -39,6 +38,7 @@ describe("ServerCommunicationConfigRepository", () => {
         cookieName: "auth_token",
         cookieDomain: ".acme.com",
         cookieValue: [{ name: "auth_token", value: "abc123" }] satisfies AcquiredCookie[],
+        vaultUrl: "https://vault.bitwarden.com",
       },
     };
 
@@ -56,6 +56,7 @@ describe("ServerCommunicationConfigRepository", () => {
         cookieName: "auth_token",
         cookieDomain: ".acme.com",
         cookieValue: undefined,
+        vaultUrl: "https://vault.bitwarden.com",
       },
     };
 
@@ -78,6 +79,7 @@ describe("ServerCommunicationConfigRepository", () => {
         cookieName: "token",
         cookieDomain: ".acme.com",
         cookieValue: [{ name: "token", value: "xyz789" }] satisfies AcquiredCookie[],
+        vaultUrl: "https://vault.bitwarden.com",
       },
     };
     await repository.save("vault.acme.com", newConfig);
@@ -97,6 +99,7 @@ describe("ServerCommunicationConfigRepository", () => {
         cookieName: "token",
         cookieDomain: ".example.com",
         cookieValue: [{ name: "token", value: "token123" }] satisfies AcquiredCookie[],
+        vaultUrl: "https://vault2.bitwarden.com",
       },
     };
 
@@ -141,6 +144,7 @@ describe("ServerCommunicationConfigRepository", () => {
           cookieName: "token",
           cookieDomain: ".acme.com",
           cookieValue: [{ name: "token", value: "abc123" }] satisfies AcquiredCookie[],
+          vaultUrl: "https://vault.bitwarden.com",
         },
       };
 
