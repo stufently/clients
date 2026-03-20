@@ -1,0 +1,38 @@
+<div
+  class="tw-flex tw-flex-wrap tw-items-center tw-gap-1.5 tw-w-full tw-min-h-7 tw-py-1"
+  [class.tw-cursor-not-allowed]="disabled()"
+  [class.tw-opacity-60]="disabled()"
+>
+  @for (chip of chips(); track chip; let i = $index) {
+    <span
+      class="tw-inline-flex tw-items-center tw-gap-0.5 tw-py-0.5 tw-ps-2.5 tw-pe-1 tw-rounded-full tw-bg-secondary-300 tw-text-main tw-text-sm tw-leading-none tw-max-w-52"
+    >
+      <span class="tw-truncate">{{ chip }}</span>
+      @if (!disabled()) {
+        <button
+          type="button"
+          class="tw-inline-flex tw-items-center tw-justify-center tw-rounded-full tw-w-[1.125rem] tw-h-[1.125rem] tw-shrink-0 tw-border-none tw-bg-transparent hover:tw-bg-secondary-500 tw-text-muted hover:tw-text-main tw-outline-none focus-visible:tw-ring-1 focus-visible:tw-ring-primary-600 tw-cursor-pointer"
+          [attr.aria-label]="'removeItem' | i18n: chip"
+          (click)="removeChip(i)"
+        >
+          <i class="bwi bwi-close tw-text-xs" aria-hidden="true"></i>
+        </button>
+      }
+    </span>
+  }
+
+  <input
+    #inputRef
+    type="text"
+    class="tw-flex-1 tw-min-w-28 tw-bg-transparent tw-border-none tw-outline-none tw-text-main tw-placeholder-text-muted tw-text-sm tw-p-0 disabled:tw-cursor-not-allowed"
+    [attr.id]="id()"
+    [attr.aria-describedby]="ariaDescribedBy || null"
+    [placeholder]="chips().length === 0 ? placeholder() : ''"
+    [disabled]="disabled() || null"
+    [value]="inputValue"
+    (input)="onInput($event)"
+    (keydown)="onKeydown($event)"
+    (paste)="onPaste($event)"
+    (blur)="onBlur()"
+  />
+</div>

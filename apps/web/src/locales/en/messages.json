@@ -3901,6 +3901,9 @@
   "inviteUserDesc": {
     "message": "Invite a new user to your organization by entering their Bitwarden account email address below. If they do not have a Bitwarden account already, they will be prompted to create a new account."
   },
+  "typeEmailAndPressComma": {
+    "message": "Type an email and press comma or Enter..."
+  },
   "inviteMultipleEmailDesc": {
     "message": "Enter up to $COUNT$ emails by separating with a comma.",
     "placeholders": {

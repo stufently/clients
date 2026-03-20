@@ -129,7 +129,7 @@ export class MemberDialogComponent implements OnDestroy {
   protected groupAccessItems: AccessItemView[] = [];
   protected tabIndex: MemberDialogTab;
   protected formGroup = this.formBuilder.group({
-    emails: [""],
+    emails: [[] as string[]],
     type: OrganizationUserType.User,
     externalId: this.formBuilder.control({ value: "", disabled: true }),
     ssoExternalId: this.formBuilder.control({ value: "", disabled: true }),
@@ -540,7 +540,7 @@ export class MemberDialogComponent implements OnDestroy {
   }
 
   private async handleInviteUsers(userView: OrganizationUserAdminView, organization: Organization) {
-    const emails = [...new Set(this.formGroup.value.emails.trim().split(/\s*,\s*/))];
+    const emails = [...new Set(this.formGroup.value.emails as string[])];
 
     await this.userService.invite(emails, userView);
 

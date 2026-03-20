@@ -27,7 +27,10 @@
             <p bitTypography="body1">{{ "inviteUserDesc" | i18n }}</p>
             <bit-form-field *ngIf="{ seats: remainingSeats$ | async } as remaining">
               <bit-label>{{ "email" | i18n }}</bit-label>
-              <input id="emails" type="text" appAutoFocus bitInput formControlName="emails" />
+              <bit-chip-input
+                formControlName="emails"
+                placeholder="{{ 'typeEmailAndPressComma' | i18n }}"
+              ></bit-chip-input>
 
               <bit-hint *ngIf="remaining.seats > 1">{{
                 "inviteMultipleEmailDesc" | i18n: remaining.seats

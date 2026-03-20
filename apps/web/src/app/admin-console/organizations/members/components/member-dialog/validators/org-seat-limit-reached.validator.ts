@@ -19,7 +19,9 @@ export function orgSeatLimitReachedValidator(
   occupiedSeatCount: number,
 ): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
-    if (!control.value?.trim()) {
+    const value = control.value;
+    const isEmpty = Array.isArray(value) ? value.length === 0 : !value?.trim();
+    if (isEmpty) {
       return null;
     }
 
@@ -57,18 +59,20 @@ function getUniqueNewEmailCount(
   allOrganizationUserEmails: string[],
   control: AbstractControl,
 ): number {
+  const value = control.value;
+
+  const inputEmails: string[] = Array.isArray(value)
+    ? value
+    : (value as string)
+        .split(",")
+        .map((e: string) => e.trim())
+        .filter(Boolean);
+
   const newEmailsToAdd = Array.from(
     new Set(
-      control.value
-        .split(",")
-        .filter(
-          (newEmailToAdd: string) =>
-            newEmailToAdd &&
-            newEmailToAdd.trim() !== "" &&
-            !allOrganizationUserEmails.some(
-              (existingEmail) => existingEmail === newEmailToAdd.trim(),
-            ),
-        ),
+      inputEmails.filter(
+        (email) => !allOrganizationUserEmails.some((existing) => existing === email),
+      ),
     ),
   );
 

@@ -1,6 +1,6 @@
 import { NgModule } from "@angular/core";
 
-import { RadioButtonModule } from "@bitwarden/components";
+import { ChipInputComponent, RadioButtonModule } from "@bitwarden/components";
 
 import { SharedOrganizationModule } from "../../../shared";
 
@@ -9,7 +9,7 @@ import { NestedCheckboxComponent } from "./nested-checkbox.component";
 
 @NgModule({
   declarations: [MemberDialogComponent, NestedCheckboxComponent],
-  imports: [SharedOrganizationModule, RadioButtonModule],
+  imports: [SharedOrganizationModule, RadioButtonModule, ChipInputComponent],
   exports: [MemberDialogComponent],
 })
 export class UserDialogModule {}
