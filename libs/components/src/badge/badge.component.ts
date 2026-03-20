@@ -98,7 +98,7 @@ export class BadgeComponent implements FocusableElement {
    * Tailwind max-width class to apply when truncating is enabled.
    * Must be a valid Tailwind max-width utility class (e.g., "tw-max-w-40", "tw-max-w-xs").
    */
-  readonly maxWidthClass = input<`tw-max-w-${string}`>("tw-max-w-40");
+  readonly maxWidthClass = input<`tw-max-w-${string}`>("tw-max-w-[30ch]");
 
   protected readonly classList = computed(() => {
     return [
