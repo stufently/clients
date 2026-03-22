@@ -115,6 +115,7 @@ export class DefaultLockService implements LockService {
     await this.wipeDecryptedState(userId);
     await this.waitForLockedStatus(userId);
     await this.systemService.clearPendingClipboard();
+    this.logService.info(`[LockService] running on lock actions for user ${userId}... number of actions: ${this.onLockActions.length}`);
     await this.runPlatformOnLockActions(userId);
 
     this.logService.info(`[LockService] Locked user ${userId}`);
@@ -163,6 +164,7 @@ export class DefaultLockService implements LockService {
   async runPlatformOnLockActions(
     userId: UserId
   ): Promise<void> {
+    this.logService.info(`[LockService] Running platform specific lock actions for user ${userId} number ${this.onLockActions.length}`);
     for (const action of this.onLockActions) {
       await action(userId);
     }

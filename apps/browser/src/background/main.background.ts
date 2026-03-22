@@ -1313,6 +1313,7 @@ export default class MainBackground {
       this.accountService,
       this.logService,
       this.authService,
+      this.platformUtilsService,
     );
 
     // Background
@@ -1564,6 +1565,7 @@ export default class MainBackground {
       this.accountService,
       this.lockService,
       this.keyService,
+      this.platformUtilsService,
     );
 
     this.endUserNotificationService = new DefaultEndUserNotificationService(

@@ -385,7 +385,7 @@ const safeProviders: SafeProvider[] = [
   safeProvider({
     provide: ProcessReloadServiceAbstraction,
     useClass: WebProcessReloadService,
-    deps: [WINDOW],
+    deps: [WINDOW, PlatformUtilsService, Router],
   }),
   safeProvider({
     provide: LoginEmailService,
@@ -427,7 +427,7 @@ const safeProviders: SafeProvider[] = [
   safeProvider({
     provide: SharedUnlockFollowerService,
     useClass: DefaultSharedUnlockFollowerService,
-    deps: [IpcService, AccountService, LockService, KeyServiceAbstraction],
+    deps: [IpcService, AccountService, LockService, KeyServiceAbstraction, PlatformUtilsService],
   }),
   safeProvider({
     provide: SshImportPromptService,

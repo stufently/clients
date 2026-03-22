@@ -8,18 +8,23 @@ import { AccountService } from "../../auth/abstractions/account.service";
 import { uuidAsString } from "../../platform/abstractions/sdk/sdk.service";
 import { SymmetricCryptoKey } from "../../platform/models/domain/symmetric-crypto-key";
 import { UserKey } from "../../types/key";
+import { ClientType } from "@bitwarden/client-type";
+import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
 
 export type UnlockManagementDriver = {
   lock_user(user_id: UserId): Promise<void>;
   unlock_user(user_id: UserId, key: number[]): Promise<void>;
   get_user_key(user_id: UserId): Promise<string>;
   list_users(): Promise<string[]>;
+  suppress_vault_timeout(until: number): Promise<void>;
+  get_client_name(): Promise<ClientType>;
 };
 
 export function createUnlockManagementDriver(
   accountService: AccountService,
   lockService: LockService,
   keyService: KeyService,
+  platformUtilsService: PlatformUtilsService,
 ): UnlockManagementDriver {
   return {
     async lock_user(user_id: UserId): Promise<void> {
@@ -38,6 +43,12 @@ export function createUnlockManagementDriver(
     async list_users(): Promise<string[]> {
       const accounts = await firstValueFrom(accountService.accounts$);
       return Object.keys(accounts);
+    },
+    async suppress_vault_timeout(until: number): Promise<void> {
+      console.log(`Suppressing vault timeout until ${new Date(until).toISOString()}`);
+    },
+    async get_client_name(): Promise<ClientType> {
+      return platformUtilsService.getClientType();
     },
   };
 }

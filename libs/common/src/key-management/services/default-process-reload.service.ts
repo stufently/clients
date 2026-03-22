@@ -18,6 +18,7 @@ import { MessagingService } from "../../platform/abstractions/messaging.service"
 import { UserId } from "../../types/guid";
 import { ProcessReloadServiceAbstraction } from "../abstractions/process-reload.service";
 import { PinServiceAbstraction } from "../pin/pin.service.abstraction";
+import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
 
 export class DefaultProcessReloadService implements ProcessReloadServiceAbstraction {
   private reloadInterval: any = null;
@@ -31,9 +32,21 @@ export class DefaultProcessReloadService implements ProcessReloadServiceAbstract
     private accountService: AccountService,
     private logService: LogService,
     private authService: AuthService,
+    private platformUtilsService: PlatformUtilsService,
   ) {}
 
   async startProcessReload(): Promise<void> {
+    if (this.platformUtilsService.isDev()) {
+      this.logService.info(
+        "[Process Reload Service] Process reload prevented in dev environment",
+      );
+      return;
+    } else {
+      this.logService.info(
+        "[Process Reload Service] Is not dev",
+      );
+    }
+
     const accounts = await firstValueFrom(this.accountService.accounts$);
     if (accounts != null) {
       const keys = Object.keys(accounts);
