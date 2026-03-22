@@ -7,6 +7,7 @@ import { AccountService } from "../../auth/abstractions/account.service";
 import { asUuid } from "../../platform/abstractions/sdk/sdk.service";
 import { IpcService } from "../../platform/ipc";
 import { SymmetricCryptoKey } from "../../platform/models/domain/symmetric-crypto-key";
+import { UserId } from "../../types/guid";
 import { SharedUnlockFollowerService } from "./shared-unlock-follower.service";
 import { createUnlockManagementDriver } from "./unlock-management-driver";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
@@ -41,32 +42,39 @@ export class DefaultSharedUnlockFollowerService implements SharedUnlockFollowerS
       );
     });
 
-    let previousUserKey: SymmetricCryptoKey | null = null;
+    const previousUserKeys = new Map<UserId, SymmetricCryptoKey | null>();
 
     // This is a temporary solution until unlock-service is used for all unlock flows.
     // At that point, this should be replaced with a hook into unlock service, that
     // is similar to the hook on lock service
     setInterval(async () => {
-      await firstValueFrom(this.accountService.accounts$);
-      const activeAccount = await firstValueFrom(this.accountService.activeAccount$);
-      if (activeAccount == null) {
-        return;
-      }
+      const accounts = await firstValueFrom(this.accountService.accounts$);
+      const accountIds = Object.keys(accounts) as UserId[];
 
-      const activeUserId = activeAccount.id;
-      const activeUserKey = await this.keyService.getUserKey(activeUserId);
-      if (previousUserKey == null && activeUserKey != null) {
-        await follower.handle_device_event(
-          {
-            ManualUnlock: {
-              user_id: asUuid(activeUserId),
-              user_key: Array.from(new Uint8Array(activeUserKey.toEncoded().buffer.slice(0))),
+      for (const accountId of accountIds) {
+        const accountUserKey = await this.keyService.getUserKey(accountId);
+        const previousUserKey = previousUserKeys.get(accountId) ?? null;
+        console.log(`Checking user key for account ${accountId}. Previous key: ${previousUserKey}, current key: ${accountUserKey}`);
+
+        if (previousUserKey == null && accountUserKey != null) {
+          await follower.handle_device_event(
+            {
+              ManualUnlock: {
+                user_id: asUuid(accountId),
+                user_key: Array.from(new Uint8Array(accountUserKey.toEncoded().buffer.slice(0))),
+              },
             },
-          },
-        );
+          );
+        }
+
+        previousUserKeys.set(accountId, accountUserKey);
       }
 
-      previousUserKey = activeUserKey;
+      for (const trackedUserId of previousUserKeys.keys()) {
+        if (!accountIds.includes(trackedUserId)) {
+          previousUserKeys.delete(trackedUserId);
+        }
+      }
     }, 1_000);
   }
 }
