@@ -11,6 +11,7 @@ import { SharedUnlockLeaderService } from "./shared-unlock-leader.service";
 import { createUnlockManagementDriver } from "./unlock-management-driver";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
 import { asUuid } from "@bitwarden/common/platform/abstractions/sdk/sdk.service";
+import { VaultTimeoutSettingsService } from "../vault-timeout/abstractions/vault-timeout-settings.service";
 
 export class DefaultSharedUnlockLeaderService implements SharedUnlockLeaderService {
   constructor(
@@ -19,6 +20,7 @@ export class DefaultSharedUnlockLeaderService implements SharedUnlockLeaderServi
     private lockService: LockService,
     private keyService: KeyService,
     private platformUtilsService: PlatformUtilsService,
+    private vaultTimeoutSettingsService: VaultTimeoutSettingsService,
   ) {}
 
   async start(): Promise<void> {
@@ -27,6 +29,7 @@ export class DefaultSharedUnlockLeaderService implements SharedUnlockLeaderServi
       this.lockService,
       this.keyService,
       this.platformUtilsService,
+      this.vaultTimeoutSettingsService,
     );
 
     const leader = await SharedUnlockLeader.try_new(this.ipcService.client, unlockManagementDriver);

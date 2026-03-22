@@ -1,6 +1,7 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
 import {
+  BehaviorSubject,
   catchError,
   combineLatest,
   distinctUntilChanged,
@@ -45,6 +46,13 @@ import {
 import { VAULT_TIMEOUT, VAULT_TIMEOUT_ACTION } from "./vault-timeout-settings.state";
 
 export class VaultTimeoutSettingsService implements VaultTimeoutSettingsServiceAbstraction {
+  private _vaultTimeoutSuppressedUntil$ = new BehaviorSubject<number | null>(null);
+  readonly vaultTimeoutSuppressedUntil$ = this._vaultTimeoutSuppressedUntil$.asObservable();
+
+  suppressVaultTimeout(until: number): void {
+    this._vaultTimeoutSuppressedUntil$.next(until);
+  }
+
   constructor(
     private accountService: AccountService,
     private pinStateService: PinStateServiceAbstraction,

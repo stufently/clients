@@ -1,4 +1,7 @@
 <div [formGroup]="formGroup">
+  @if (isTimeoutSuppressed()) {
+    <bit-hint>{{ "sessionTimeoutSuppressedByConnectedDevice" | i18n }}</bit-hint>
+  }
   @if (availableTimeoutOptions$ | async; as options) {
     <bit-session-timeout-input
       [availableTimeoutOptions]="options"

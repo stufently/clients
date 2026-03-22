@@ -76,6 +76,7 @@ import { DefaultSharedUnlockFollowerService } from "@bitwarden/common/key-manage
 import { SessionTimeoutTypeService } from "@bitwarden/common/key-management/session-timeout";
 import {
   VaultTimeout,
+  VaultTimeoutSettingsService,
   VaultTimeoutStringType,
 } from "@bitwarden/common/key-management/vault-timeout";
 import { AppIdService } from "@bitwarden/common/platform/abstractions/app-id.service";
@@ -427,7 +428,7 @@ const safeProviders: SafeProvider[] = [
   safeProvider({
     provide: SharedUnlockFollowerService,
     useClass: DefaultSharedUnlockFollowerService,
-    deps: [IpcService, AccountService, LockService, KeyServiceAbstraction, PlatformUtilsService],
+    deps: [IpcService, AccountService, LockService, KeyServiceAbstraction, PlatformUtilsService, VaultTimeoutSettingsService],
   }),
   safeProvider({
     provide: SshImportPromptService,

@@ -5,6 +5,7 @@ import { UserId as TSUserId } from "@bitwarden/common/types/guid";
 import { firstValueFrom } from "rxjs";
 
 import { AccountService } from "../../auth/abstractions/account.service";
+import { VaultTimeoutSettingsService } from "../../key-management/vault-timeout/abstractions/vault-timeout-settings.service";
 import { uuidAsString } from "../../platform/abstractions/sdk/sdk.service";
 import { SymmetricCryptoKey } from "../../platform/models/domain/symmetric-crypto-key";
 import { UserKey } from "../../types/key";
@@ -25,6 +26,7 @@ export function createUnlockManagementDriver(
   lockService: LockService,
   keyService: KeyService,
   platformUtilsService: PlatformUtilsService,
+  vaultTimeoutSettingsService: VaultTimeoutSettingsService,
 ): UnlockManagementDriver {
   return {
     async lock_user(user_id: UserId): Promise<void> {
@@ -45,7 +47,7 @@ export function createUnlockManagementDriver(
       return Object.keys(accounts);
     },
     async suppress_vault_timeout(until: number): Promise<void> {
-      console.log(`Suppressing vault timeout until ${new Date(until).toISOString()}`);
+      vaultTimeoutSettingsService.suppressVaultTimeout(until);
     },
     async get_client_name(): Promise<ClientType> {
       return platformUtilsService.getClientType();

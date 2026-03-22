@@ -11,6 +11,7 @@ import { UserId } from "../../types/guid";
 import { SharedUnlockFollowerService } from "./shared-unlock-follower.service";
 import { createUnlockManagementDriver } from "./unlock-management-driver";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
+import { VaultTimeoutSettingsService } from "../vault-timeout/abstractions/vault-timeout-settings.service";
 
 export class DefaultSharedUnlockFollowerService implements SharedUnlockFollowerService {
   constructor(
@@ -19,6 +20,7 @@ export class DefaultSharedUnlockFollowerService implements SharedUnlockFollowerS
     private lockService: LockService,
     private keyService: KeyService,
     private platformUtilsService: PlatformUtilsService,
+    private vaultTimeoutSettingsService: VaultTimeoutSettingsService,
   ) {}
 
   async start(): Promise<void> {
@@ -27,6 +29,7 @@ export class DefaultSharedUnlockFollowerService implements SharedUnlockFollowerS
       this.lockService,
       this.keyService,
       this.platformUtilsService,
+      this.vaultTimeoutSettingsService,
     );
 
     const follower = await SharedUnlockFollower.try_new(this.ipcService.client, unlockManagementDriver);
