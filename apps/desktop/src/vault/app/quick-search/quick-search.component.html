@@ -34,7 +34,7 @@
   </div>
 
   <!-- Results list -->
-  <div class="tw-flex-1 tw-overflow-y-auto" [class.tw-py-2]="isMac">
+  <div class="qs-results tw-flex-1 tw-overflow-y-auto" [class.tw-py-2]="isMac">
     @for (cipher of filteredCiphers(); track cipher.id; let i = $index) {
       <div
         class="tw-flex tw-cursor-pointer tw-items-center tw-gap-3 tw-px-4 tw-py-3 tw-transition-colors"

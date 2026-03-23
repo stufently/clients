@@ -44,6 +44,16 @@ import { CopyCipherFieldDirective, CopyCipherFieldService } from "@bitwarden/vau
   selector: "app-quick-search",
   templateUrl: "quick-search.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: [
+    `
+      .qs-results::-webkit-scrollbar {
+        display: none;
+      }
+      .qs-results {
+        scrollbar-width: none;
+      }
+    `,
+  ],
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -113,6 +123,12 @@ export class QuickSearchComponent implements OnInit {
   );
 
   ngOnInit() {
+    void this.accountService.setShowHeader(false);
+
+    this.destroyRef.onDestroy(() => {
+      void this.accountService.setShowHeader(true);
+    });
+
     // Reset selected index when search text changes
     this.searchText$
       .pipe(takeUntilDestroyed(this.destroyRef))
