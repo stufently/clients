@@ -83,6 +83,10 @@ export class WindowMain {
     });
 
     ipcMain.on("window-focus", () => {
+      // Don't steal focus from the quick search window when it is open.
+      if (this.quickSearchWin?.isVisible()) {
+        return;
+      }
       if (this.win != null) {
         this.win.show();
         this.win.focus();
@@ -214,8 +218,8 @@ export class WindowMain {
           // dock icon is clicked and there are no other windows open.
           if (this.win == null) {
             await this.createWindow();
-          } else {
-            // Show the window when clicking on Dock icon
+          } else if (!this.quickSearchWin?.isVisible()) {
+            // Don't steal focus from the quick search window when it is open.
             this.win.show();
           }
         });
@@ -242,8 +246,13 @@ export class WindowMain {
         this.quickSearchWin!.webContents.once("did-finish-load", () => resolve());
       });
     }
-    this.quickSearchWin.show();
-    this.quickSearchWin.focus();
+    // show/focus is deferred to showQuickSearch(), called after OPEN IPC is sent
+    // so the window only becomes visible once Angular has navigated to /quick-search.
+  }
+
+  showQuickSearch(): void {
+    this.quickSearchWin?.show();
+    this.quickSearchWin?.focus();
   }
 
   closeQuickSearch(): void {
