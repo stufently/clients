@@ -1,15 +1,10 @@
 import { BrowserWindow } from "electron";
 
-import { isMac } from "../utils";
-
 import { WindowState } from "./models/domain/window-state";
 
 // change as needed, however limited by mainwindow minimum size
 const popupWidth = 600;
 const popupHeight = 600;
-
-const quickSearchWidth = 640;
-const quickSearchHeight = 520;
 
 type Position = { x: number; y: number };
 
@@ -48,36 +43,8 @@ function positionWindow(window: BrowserWindow, position?: Position) {
   }
 }
 
-export function applyQuickSearchStyles(window: BrowserWindow) {
-  window.unmaximize();
-  window.setSize(quickSearchWidth, quickSearchHeight);
-  window.setWindowButtonVisibility?.(false);
-  window.setMenuBarVisibility?.(false);
-  window.setResizable(false);
-  window.setAlwaysOnTop(true);
-
-  if (isMac()) {
-    window.setVibrancy("under-window");
-    window.setHasShadow(true);
-  }
-
-  if (window.isFullScreen()) {
-    window.setFullScreen(false);
-    window.once("leave-full-screen", () => {
-      window.setSize(quickSearchWidth, quickSearchHeight);
-      window.center();
-    });
-  } else {
-    window.center();
-  }
-}
-
 export function applyMainWindowStyles(window: BrowserWindow, existingWindowState: WindowState) {
   window.setMinimumSize(popupWidth, popupHeight);
-
-  if (isMac()) {
-    window.setVibrancy(null);
-  }
 
   // need to guard against null/undefined values
 

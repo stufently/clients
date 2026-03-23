@@ -16,11 +16,7 @@ import { BiometricStateService } from "@bitwarden/key-management";
 
 import { SafeShell } from "../platform/main/safe-shell.main";
 import { WindowState } from "../platform/models/domain/window-state";
-import {
-  applyMainWindowStyles,
-  applyPopupModalStyles,
-  applyQuickSearchStyles,
-} from "../platform/popup-modal-styles";
+import { applyMainWindowStyles, applyPopupModalStyles } from "../platform/popup-modal-styles";
 import { DesktopSettingsService } from "../platform/services/desktop-settings.service";
 import {
   cleanUserAgent,
@@ -36,6 +32,7 @@ const mainWindowSizeKey = "mainWindowSize";
 const WindowEventHandlingDelay = 100;
 export class WindowMain {
   win: BrowserWindow;
+  quickSearchWin: BrowserWindow | null = null;
   isQuitting = false;
   isClosing = false;
 
@@ -43,8 +40,6 @@ export class WindowMain {
   private windowStates: { [key: string]: WindowState } = {};
   private enableAlwaysOnTop = false;
   private enableRendererProcessForceCrashReload = true;
-  private quickSearchActive = false;
-  private wasVisibleBeforeQuickSearch = false;
   session: Electron.Session;
 
   readonly defaultWidth = 950;
@@ -240,29 +235,19 @@ export class WindowMain {
     }
   }
 
-  openQuickSearch() {
-    if (this.win == null) {
-      return;
+  async openQuickSearch(): Promise<void> {
+    if (this.quickSearchWin == null || this.quickSearchWin.isDestroyed()) {
+      this.quickSearchWin = this.createQuickSearchWindow();
+      await new Promise<void>((resolve) => {
+        this.quickSearchWin!.webContents.once("did-finish-load", () => resolve());
+      });
     }
-
-    this.wasVisibleBeforeQuickSearch = this.win.isVisible();
-    this.quickSearchActive = true;
-    applyQuickSearchStyles(this.win);
-    this.win.show();
-    this.win.focus();
+    this.quickSearchWin.show();
+    this.quickSearchWin.focus();
   }
 
-  closeQuickSearch() {
-    if (this.win == null) {
-      return;
-    }
-
-    this.quickSearchActive = false;
-    applyMainWindowStyles(this.win, this.windowStates[mainWindowSizeKey]);
-
-    if (!this.wasVisibleBeforeQuickSearch) {
-      this.win.hide();
-    }
+  closeQuickSearch(): void {
+    this.quickSearchWin?.hide();
   }
 
   // TODO: REMOVE ONCE WE CAN STOP USING FAKE POP UP BTN FROM TRAY
@@ -309,9 +294,6 @@ export class WindowMain {
     this.session = session.fromPartition("persist:bitwarden", { cache: false });
 
     // Create the browser window.
-    // transparent: true is required on macOS to enable vibrancy effects for the quick search overlay.
-    // The web content provides its own backgrounds during normal use; transparency only shows through
-    // when the Angular component explicitly sets its background to transparent (quick search on macOS).
     this.win = new BrowserWindow({
       width: this.windowStates[mainWindowSizeKey].width,
       height: this.windowStates[mainWindowSizeKey].height,
@@ -323,8 +305,7 @@ export class WindowMain {
       icon: isLinux() ? path.join(__dirname, "/images/icon.png") : undefined,
       titleBarStyle: isMac() ? "hiddenInset" : undefined,
       show: false,
-      transparent: isMac() ? true : undefined,
-      backgroundColor: isMac() ? undefined : await this.getBackgroundColor(),
+      backgroundColor: await this.getBackgroundColor(),
       alwaysOnTop: this.enableAlwaysOnTop,
       webPreferences: {
         preload: path.join(__dirname, "preload.js"),
@@ -405,6 +386,10 @@ export class WindowMain {
       this.isClosing = false;
       await this.updateWindowState(mainWindowSizeKey, this.win);
 
+      // Destroy the quick search window so the app can quit properly.
+      this.quickSearchWin?.destroy();
+      this.quickSearchWin = null;
+
       // Dereference the window object, usually you would store window
       // in an array if your app supports multi windows, this is the time
       // when you should delete the corresponding element.
@@ -461,6 +446,64 @@ export class WindowMain {
     }
   }
 
+  private createQuickSearchWindow(): BrowserWindow {
+    const quickSearchWidth = 640;
+    const quickSearchHeight = 520;
+
+    const win = new BrowserWindow({
+      width: quickSearchWidth,
+      height: quickSearchHeight,
+      resizable: false,
+      alwaysOnTop: true,
+      show: false,
+      skipTaskbar: true,
+      transparent: isMac() ? true : undefined,
+      webPreferences: {
+        preload: path.join(__dirname, "preload.js"),
+        spellcheck: false,
+        nodeIntegration: false,
+        backgroundThrottling: false,
+        contextIsolation: true,
+        session: this.session,
+        devTools: isDev(),
+      },
+    });
+
+    if (isMac()) {
+      win.setVibrancy("under-window");
+      win.setHasShadow(true);
+      win.setWindowButtonVisibility?.(false);
+    } else {
+      win.setMenuBarVisibility(false);
+    }
+
+    void win.loadURL(
+      url.format({
+        protocol: "file:",
+        pathname: path.join(__dirname, "/index.html"),
+        slashes: true,
+      }),
+      {
+        userAgent: cleanUserAgent(win.webContents.userAgent),
+      },
+    );
+
+    win.on("close", (event) => {
+      if (!this.isQuitting) {
+        event.preventDefault();
+        win.hide();
+      }
+    });
+
+    win.on("closed", () => {
+      this.quickSearchWin = null;
+    });
+
+    win.center();
+
+    return win;
+  }
+
   // Retrieve the background color
   // Resolves background color mismatch when starting the application.
   async getBackgroundColor(): Promise<string> {
@@ -502,10 +545,6 @@ export class WindowMain {
 
   private async updateWindowState(configKey: string, win: BrowserWindow) {
     if (win == null || win.isDestroyed()) {
-      return;
-    }
-
-    if (this.quickSearchActive) {
       return;
     }
 

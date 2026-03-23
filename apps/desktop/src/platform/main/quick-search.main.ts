@@ -19,7 +19,7 @@ export class QuickSearchMain {
 
   init() {
     const registered = globalShortcut.register(DEFAULT_SHORTCUT, () => {
-      this.triggerOpen();
+      void this.triggerOpen();
     });
 
     if (!registered) {
@@ -38,26 +38,29 @@ export class QuickSearchMain {
     ipcMain.removeAllListeners(QUICK_SEARCH_IPC_CHANNELS.CLOSE);
   }
 
-  private triggerOpen() {
-    if (this.windowMain.win == null) {
+  private async triggerOpen() {
+    await this.windowMain.openQuickSearch();
+
+    const qsWin = this.windowMain.quickSearchWin;
+    if (qsWin == null) {
       return;
     }
 
-    this.windowMain.openQuickSearch();
-    this.windowMain.win.webContents.send(QUICK_SEARCH_IPC_CHANNELS.OPEN);
+    qsWin.webContents.send(QUICK_SEARCH_IPC_CHANNELS.OPEN);
 
     this.blurHandler = () => {
       this.blurHandler = null;
       this.windowMain.closeQuickSearch();
-      this.windowMain.win?.webContents.send(QUICK_SEARCH_IPC_CHANNELS.BLUR_CLOSE);
+      this.windowMain.quickSearchWin?.webContents.send(QUICK_SEARCH_IPC_CHANNELS.BLUR_CLOSE);
     };
-    this.windowMain.win.once("blur", this.blurHandler);
+    qsWin.once("blur", this.blurHandler);
   }
 
   private registerIpcListeners() {
     ipcMain.on(QUICK_SEARCH_IPC_CHANNELS.CLOSE, () => {
-      if (this.blurHandler && this.windowMain.win) {
-        this.windowMain.win.off("blur", this.blurHandler);
+      const qsWin = this.windowMain.quickSearchWin;
+      if (this.blurHandler && qsWin) {
+        qsWin.off("blur", this.blurHandler);
         this.blurHandler = null;
       }
       this.windowMain.closeQuickSearch();
