@@ -6194,10 +6194,10 @@
   "sharedUnlock": {
     "message": "Shared unlock"
   },
-  "allowIntegrateWithWebApp": {
-    "message": "Allow integrating with the web app"
+  "unlockTogetherWithWebApp": {
+    "message": "Unlock together with the web app"
   },
-  "allowIntegrateWithDesktopApp": {
-    "message": "Allow integrating with the desktop app"
+  "unlockTogetherWithDesktopApp": {
+    "message": "Unlock together with the desktop app"
   }
 }

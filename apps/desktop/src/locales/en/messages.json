@@ -4711,7 +4711,7 @@
   "userVerificationFailed": {
     "message": "User verification failed."
   },
-  "allowIntegrateWithBrowserExtension": {
-    "message": "Allow integrating with the browser extension"
+  "unlockTogetherWithBrowserExtension": {
+    "message": "Unlock together with the browser extension"
   }
 }
