@@ -1,6 +1,4 @@
-// This import has been flagged as unallowed for this class. It may be involved in a circular dependency loop.
-// eslint-disable-next-line no-restricted-imports
-import { CollectionView } from "@bitwarden/admin-console/common";
+import { CollectionView } from "@bitwarden/common/admin-console/models/collections";
 
 import { ImportResult } from "../models/import-result";
 
@@ -47,8 +45,11 @@ export class PasspackCsvImporter extends BaseImporter implements Importer {
           }
 
           if (addCollection) {
-            const collection = new CollectionView();
-            collection.name = tag;
+            // FIXME use a different model if ID is not required.
+            // @ts-expect-error current functionality creates this view with no Id since its being imported.
+            const collection = new CollectionView({
+              name: tag,
+            });
             result.collections.push(collection);
           }
 

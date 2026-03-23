@@ -1,12 +1,19 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
 import { Injectable } from "@angular/core";
-import { Subject } from "rxjs";
+import { filter, firstValueFrom, map, Subject, switchMap } from "rxjs";
 
 import { ApiService } from "@bitwarden/common/abstractions/api.service";
+import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
+import { getUserId } from "@bitwarden/common/auth/services/account.service";
 import { EncryptService } from "@bitwarden/common/key-management/crypto/abstractions/encrypt.service";
+import {
+  DECRYPT_ERROR,
+  EncString,
+} from "@bitwarden/common/key-management/crypto/models/enc-string";
 import { ErrorResponse } from "@bitwarden/common/models/response/error.response";
-import { EncString } from "@bitwarden/common/platform/models/domain/enc-string";
+import { SymmetricCryptoKey } from "@bitwarden/common/platform/models/domain/symmetric-crypto-key";
+import { OrganizationId } from "@bitwarden/common/types/guid";
 import { KeyService } from "@bitwarden/key-management";
 
 import { SecretsManagerImportError } from "../models/error/sm-import-error";
@@ -31,7 +38,21 @@ export class SecretsManagerPortingApiService {
     private apiService: ApiService,
     private encryptService: EncryptService,
     private keyService: KeyService,
+    private accountService: AccountService,
   ) {}
+
+  private getOrganizationKey$(organizationId: string) {
+    return this.accountService.activeAccount$.pipe(
+      getUserId,
+      switchMap((userId) => this.keyService.orgKeys$(userId)),
+      filter((orgKeys) => !!orgKeys),
+      map((organizationKeysById) => organizationKeysById[organizationId as OrganizationId]),
+    );
+  }
+
+  private async getOrganizationKey(organizationId: string): Promise<SymmetricCryptoKey> {
+    return await firstValueFrom(this.getOrganizationKey$(organizationId));
+  }
 
   async export(organizationId: string): Promise<string> {
     const response = await this.apiService.send(
@@ -78,7 +99,7 @@ export class SecretsManagerPortingApiService {
     const encryptedImport = new SecretsManagerImportRequest();
 
     try {
-      const orgKey = await this.keyService.getOrgKey(organizationId);
+      const orgKey = await this.getOrganizationKey(organizationId);
       encryptedImport.projects = [];
       encryptedImport.secrets = [];
 
@@ -120,7 +141,7 @@ export class SecretsManagerPortingApiService {
     organizationId: string,
     exportData: SecretsManagerExportResponse,
   ): Promise<SecretsManagerExport> {
-    const orgKey = await this.keyService.getOrgKey(organizationId);
+    const orgKey = await this.getOrganizationKey(organizationId);
     const decryptedExport = new SecretsManagerExport();
     decryptedExport.projects = [];
     decryptedExport.secrets = [];
@@ -129,7 +150,11 @@ export class SecretsManagerPortingApiService {
       exportData.projects.map(async (p) => {
         const project = new SecretsManagerExportProject();
         project.id = p.id;
-        project.name = await this.encryptService.decryptString(new EncString(p.name), orgKey);
+        try {
+          project.name = await this.encryptService.decryptString(new EncString(p.name), orgKey);
+        } catch {
+          project.name = DECRYPT_ERROR;
+        }
         return project;
       }),
     );

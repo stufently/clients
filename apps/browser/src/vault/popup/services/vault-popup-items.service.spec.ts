@@ -1,28 +1,38 @@
-import { WritableSignal, signal } from "@angular/core";
+import { signal, WritableSignal } from "@angular/core";
 import { TestBed } from "@angular/core/testing";
 import { mock } from "jest-mock-extended";
-import { BehaviorSubject, firstValueFrom, timeout } from "rxjs";
+import { BehaviorSubject, firstValueFrom, of, take, timeout } from "rxjs";
 
-import { CollectionService, CollectionView } from "@bitwarden/admin-console/common";
-import { SearchService } from "@bitwarden/common/abstractions/search.service";
+import { CollectionService } from "@bitwarden/admin-console/common";
 import { OrganizationService } from "@bitwarden/common/admin-console/abstractions/organization/organization.service.abstraction";
+import { CollectionView } from "@bitwarden/common/admin-console/models/collections";
 import { Organization } from "@bitwarden/common/admin-console/models/domain/organization";
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { ProductTierType } from "@bitwarden/common/billing/enums";
+import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
+import { uuidAsString } from "@bitwarden/common/platform/abstractions/sdk/sdk.service";
 import { Utils } from "@bitwarden/common/platform/misc/utils";
 import { SyncService } from "@bitwarden/common/platform/sync";
-import { ObservableTracker, mockAccountServiceWith } from "@bitwarden/common/spec";
+import { mockAccountServiceWith, ObservableTracker } from "@bitwarden/common/spec";
 import { CipherId, UserId } from "@bitwarden/common/types/guid";
+import { CipherArchiveService } from "@bitwarden/common/vault/abstractions/cipher-archive.service";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
+import { SearchService } from "@bitwarden/common/vault/abstractions/search.service";
 import { VaultSettingsService } from "@bitwarden/common/vault/abstractions/vault-settings/vault-settings.service";
 import { CipherType } from "@bitwarden/common/vault/enums";
 import { CipherData } from "@bitwarden/common/vault/models/data/cipher.data";
 import { LocalData } from "@bitwarden/common/vault/models/data/local.data";
 import { CipherView } from "@bitwarden/common/vault/models/view/cipher.view";
+import {
+  RestrictedCipherType,
+  RestrictedItemTypesService,
+} from "@bitwarden/common/vault/services/restricted-item-types.service";
+import { CipherViewLikeUtils } from "@bitwarden/common/vault/utils/cipher-view-like-utils";
 
 import { InlineMenuFieldQualificationService } from "../../../autofill/services/inline-menu-field-qualification.service";
 import { BrowserApi } from "../../../platform/browser/browser-api";
 import { PopupViewCacheService } from "../../../platform/popup/view-cache/popup-view-cache.service";
+import { PopupCipherViewLike } from "../views/popup-cipher.view";
 
 import { VaultPopupAutofillService } from "./vault-popup-autofill.service";
 import { VaultPopupItemsService } from "./vault-popup-items.service";
@@ -36,7 +46,7 @@ describe("VaultPopupItemsService", () => {
 
   let mockOrg: Organization;
   let mockCollections: CollectionView[];
-  let activeUserLastSync$: BehaviorSubject<Date>;
+  let activeUserLastSync$: BehaviorSubject<Date | null>;
   let viewCacheService: {
     signal: jest.Mock;
     mockSignal: WritableSignal<string | null>;
@@ -57,6 +67,14 @@ describe("VaultPopupItemsService", () => {
   const inlineMenuFieldQualificationServiceMock = mock<InlineMenuFieldQualificationService>();
   const userId = Utils.newGuid() as UserId;
   const accountServiceMock = mockAccountServiceWith(userId);
+  const configServiceMock = mock<ConfigService>();
+  const cipherArchiveServiceMock = mock<CipherArchiveService>();
+  cipherArchiveServiceMock.hasArchiveFlagEnabled$ = of(true);
+
+  const restrictedItemTypesService = {
+    restricted$: new BehaviorSubject<RestrictedCipherType[]>([]),
+    isCipherRestricted: jest.fn().mockReturnValue(false),
+  };
 
   beforeEach(() => {
     allCiphers = cipherFactory(10);
@@ -71,7 +89,9 @@ describe("VaultPopupItemsService", () => {
     cipherList[2].favorite = true;
     cipherList[3].favorite = true;
 
-    cipherServiceMock.getAllDecrypted.mockResolvedValue(cipherList);
+    const cipherList$ = new BehaviorSubject<CipherView[]>(cipherList);
+
+    cipherServiceMock.cipherListViews$.mockReturnValue(cipherList$.asObservable());
 
     ciphersSubject = new BehaviorSubject<Record<CipherId, CipherData>>({});
     localDataSubject = new BehaviorSubject<Record<CipherId, LocalData>>({});
@@ -87,9 +107,9 @@ describe("VaultPopupItemsService", () => {
       failedToDecryptCiphersSubject.asObservable(),
     );
 
-    searchService.searchCiphers.mockImplementation(async (userId, _, __, ciphers) => ciphers);
+    searchService.searchCiphers.mockImplementation(async (userId, _, __, ciphers) => ciphers!);
     cipherServiceMock.filterCiphersForUrl.mockImplementation(async (ciphers) =>
-      ciphers.filter((c) => ["0", "1"].includes(c.id)),
+      ciphers.filter((c) => ["0", "1"].includes(uuidAsString(c.id))),
     );
     vaultSettingsServiceMock.showCardsCurrentTab$ = new BehaviorSubject(false);
     vaultSettingsServiceMock.showIdentitiesCurrentTab$ = new BehaviorSubject(false);
@@ -102,7 +122,7 @@ describe("VaultPopupItemsService", () => {
     });
     // Return all ciphers, `filterFunction$` will be tested in `VaultPopupListFiltersService`
     vaultPopupListFiltersServiceMock.filterFunction$ = new BehaviorSubject(
-      (ciphers: CipherView[]) => ciphers,
+      (ciphers: PopupCipherViewLike[]) => ciphers,
     );
 
     vaultAutofillServiceMock.currentAutofillTab$ = new BehaviorSubject({
@@ -126,10 +146,11 @@ describe("VaultPopupItemsService", () => {
     ];
 
     organizationServiceMock.organizations$.mockReturnValue(new BehaviorSubject([mockOrg]));
-    collectionService.decryptedCollections$ = new BehaviorSubject(mockCollections);
+    collectionService.decryptedCollections$.mockReturnValue(new BehaviorSubject(mockCollections));
 
-    activeUserLastSync$ = new BehaviorSubject(new Date());
+    activeUserLastSync$ = new BehaviorSubject<Date | null>(new Date());
     syncServiceMock.activeUserLastSync$.mockReturnValue(activeUserLastSync$);
+    configServiceMock.getFeatureFlag$.mockReturnValue(of(true));
 
     const testSearchSignal = createMockSignal<string | null>("");
     viewCacheService = {
@@ -154,6 +175,15 @@ describe("VaultPopupItemsService", () => {
           useValue: inlineMenuFieldQualificationServiceMock,
         },
         { provide: PopupViewCacheService, useValue: viewCacheService },
+        { provide: ConfigService, useValue: configServiceMock },
+        {
+          provide: RestrictedItemTypesService,
+          useValue: restrictedItemTypesService,
+        },
+        {
+          provide: CipherArchiveService,
+          useValue: cipherArchiveServiceMock,
+        },
       ],
     });
 
@@ -266,7 +296,9 @@ describe("VaultPopupItemsService", () => {
           const current = ciphers[i];
           const next = ciphers[i + 1];
 
-          expect(expectedTypeOrder[current.type]).toBeLessThanOrEqual(expectedTypeOrder[next.type]);
+          expect(expectedTypeOrder[CipherViewLikeUtils.getType(current)]).toBeLessThanOrEqual(
+            expectedTypeOrder[CipherViewLikeUtils.getType(next)],
+          );
         }
         expect(cipherServiceMock.sortCiphersByLastUsedThenName).toHaveBeenCalled();
         done();
@@ -277,7 +309,7 @@ describe("VaultPopupItemsService", () => {
       const searchText = "Login";
 
       searchService.searchCiphers.mockImplementation(async (userId, q, _, ciphers) => {
-        return ciphers.filter((cipher) => {
+        return ciphers!.filter((cipher) => {
           return cipher.name.includes(searchText);
         });
       });
@@ -286,6 +318,25 @@ describe("VaultPopupItemsService", () => {
       service.autoFillCiphers$.subscribe((ciphers) => {
         expect(ciphers[0].name.includes(searchText)).toBe(true);
         expect(ciphers.length).toBe(1);
+        done();
+      });
+    });
+  });
+
+  describe("filteredCiphers$", () => {
+    it("should filter filteredCipher$ down to search term", (done) => {
+      const cipherList = Object.values(allCiphers);
+      const searchText = "Login";
+
+      searchService.searchCiphers.mockImplementation(async () => {
+        return cipherList.filter((cipher) => {
+          return cipher.name.includes(searchText);
+        });
+      });
+
+      service.filteredCiphers$.subscribe((ciphers) => {
+        // There are 10 ciphers but only 3 with "Login" in the name
+        expect(ciphers.length).toBe(3);
         done();
       });
     });
@@ -319,61 +370,36 @@ describe("VaultPopupItemsService", () => {
     });
   });
 
-  describe("remainingCiphers$", () => {
-    beforeEach(() => {
-      searchService.isSearchable.mockImplementation(async (text) => text.length > 2);
-    });
-
-    it("should exclude autofill and favorite ciphers", (done) => {
-      service.remainingCiphers$.subscribe((ciphers) => {
-        // 2 autofill ciphers, 2 favorite ciphers = 6 remaining ciphers to show
-        expect(ciphers.length).toBe(6);
-        done();
-      });
-    });
-
-    it("should filter remainingCiphers$ down to search term", (done) => {
-      const cipherList = Object.values(allCiphers);
-      const searchText = "Login";
-
-      searchService.searchCiphers.mockImplementation(async () => {
-        return cipherList.filter((cipher) => {
-          return cipher.name.includes(searchText);
-        });
-      });
-
-      service.remainingCiphers$.subscribe((ciphers) => {
-        // There are 6 remaining ciphers but only 2 with "Login" in the name
-        expect(ciphers.length).toBe(2);
-        done();
-      });
-    });
-  });
-
   describe("emptyVault$", () => {
     it("should return true if there are no ciphers", (done) => {
-      cipherServiceMock.getAllDecrypted.mockResolvedValue([]);
-      service.emptyVault$.subscribe((empty) => {
+      cipherServiceMock.cipherListViews$.mockReturnValue(of([]));
+      service.emptyVault$.pipe(take(1)).subscribe((empty) => {
         expect(empty).toBe(true);
         done();
       });
     });
 
     it("should return false if there are ciphers", (done) => {
-      service.emptyVault$.subscribe((empty) => {
+      cipherServiceMock.cipherListViews$.mockReturnValue(
+        of([{ id: "1", type: CipherType.Login, name: "Login 1" }] as CipherView[]),
+      );
+
+      service.emptyVault$.pipe(take(1)).subscribe((empty) => {
         expect(empty).toBe(false);
         done();
       });
     });
 
-    it("should return true when all ciphers are deleted", (done) => {
-      cipherServiceMock.getAllDecrypted.mockResolvedValue([
-        { id: "1", type: CipherType.Login, name: "Login 1", isDeleted: true },
-        { id: "2", type: CipherType.Login, name: "Login 2", isDeleted: true },
-        { id: "3", type: CipherType.Login, name: "Login 3", isDeleted: true },
-      ] as CipherView[]);
+    it("should return true when all ciphers are deleted/archived", (done) => {
+      cipherServiceMock.cipherListViews$.mockReturnValue(
+        of([
+          { id: "1", type: CipherType.Login, name: "Login 1", isDeleted: true },
+          { id: "2", type: CipherType.Login, name: "Login 2", isDeleted: true },
+          { id: "3", type: CipherType.Login, name: "Login 3", isDeleted: false, isArchived: true },
+        ] as CipherView[]),
+      );
 
-      service.emptyVault$.subscribe((empty) => {
+      service.emptyVault$.pipe(take(1)).subscribe((empty) => {
         expect(empty).toBe(true);
         done();
       });
@@ -403,8 +429,7 @@ describe("VaultPopupItemsService", () => {
       deletedCipher.deletedDate = new Date();
       const ciphers = [new CipherView(), new CipherView(), new CipherView(), deletedCipher];
 
-      cipherServiceMock.getAllDecrypted.mockResolvedValue(ciphers);
-
+      cipherServiceMock.cipherListViews$.mockReturnValue(of(ciphers));
       ciphersSubject.next({});
 
       const deletedCiphers = await firstValueFrom(service.deletedCiphers$);
@@ -437,8 +462,8 @@ describe("VaultPopupItemsService", () => {
       // Start tracking loading$ emissions
       tracked = new ObservableTracker(service.loading$);
 
-      // Track remainingCiphers$ to make cipher observables active
-      trackedCiphers = new ObservableTracker(service.remainingCiphers$);
+      // Track favoriteCiphers$ to make cipher observables active
+      trackedCiphers = new ObservableTracker(service.favoriteCiphers$);
     });
 
     it("should initialize with true first", async () => {

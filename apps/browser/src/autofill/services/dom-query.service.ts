@@ -1,14 +1,13 @@
-// FIXME: Update this file to be type safe and remove this and next line
-// @ts-strict-ignore
 import { EVENTS, MAX_DEEP_QUERY_RECURSION_DEPTH } from "@bitwarden/common/autofill/constants";
 
-import { nodeIsElement, sendExtensionMessage } from "../utils";
+import { nodeIsElement } from "../utils";
 
 import { DomQueryService as DomQueryServiceInterface } from "./abstractions/dom-query.service";
 
 export class DomQueryService implements DomQueryServiceInterface {
-  private pageContainsShadowDom: boolean;
-  private useTreeWalkerStrategyFlagSet = true;
+  /** Non-null asserted. */
+  private pageContainsShadowDom!: boolean;
+  private observedShadowRoots = new WeakSet<ShadowRoot>();
   private ignoredTreeWalkerNodes = new Set([
     "svg",
     "script",
@@ -56,7 +55,7 @@ export class DomQueryService implements DomQueryServiceInterface {
   ): T[] {
     const ignoredTreeWalkerNodes = ignoredTreeWalkerNodesOverride || this.ignoredTreeWalkerNodes;
 
-    if (!forceDeepQueryAttempt && this.pageContainsShadowDomElements()) {
+    if (!forceDeepQueryAttempt) {
       return this.queryAllTreeWalkerNodes<T>(
         root,
         treeWalkerFilter,
@@ -78,35 +77,68 @@ export class DomQueryService implements DomQueryServiceInterface {
   }
 
   /**
-   * Checks if the page contains any shadow DOM elements.
+   * Queries the page for shadow DOM elements and updates the cached state.
+   * Use this when you need to refresh the shadow DOM detection state.
+   *
+   * @returns True if the page contains any shadow DOM elements
    */
-  checkPageContainsShadowDom = (): void => {
+  updatePageContainsShadowDom = (): boolean => {
     this.pageContainsShadowDom = this.queryShadowRoots(globalThis.document.body, true).length > 0;
+    return this.pageContainsShadowDom;
   };
 
   /**
-   * Determines whether to use the treeWalker strategy for querying the DOM.
+   * Checks if any of the provided mutations occurred within shadow roots.
+   * This is a lightweight check that doesn't query the DOM.
+   * @param mutations - The mutation records to check
+   * @returns True if any mutation occurred within a shadow root
    */
-  pageContainsShadowDomElements(): boolean {
-    return this.useTreeWalkerStrategyFlagSet || this.pageContainsShadowDom;
-  }
+  checkMutationsInShadowRoots = (mutations: MutationRecord[]): boolean => {
+    return mutations.some((mutation) => {
+      const root = (mutation.target as Node).getRootNode();
+      return root instanceof ShadowRoot;
+    });
+  };
+
+  /**
+   * Queries the DOM for shadow roots and checks if any are not being observed.
+   * This is an expensive operation that should be debounced.
+   * @returns True if any new shadow roots are found that aren't being observed
+   */
+  checkForNewShadowRoots = (): boolean => {
+    let currentRoots: ShadowRoot[];
+    try {
+      currentRoots = this.recursivelyQueryShadowRoots(globalThis.document.body);
+    } catch {
+      currentRoots = this.queryShadowRoots(globalThis.document.body);
+    }
+
+    for (const root of currentRoots) {
+      if (!this.observedShadowRoots.has(root)) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  /**
+   * Resets the observed shadow roots tracking. This should be called when the mutation
+   * observer is recreated or on significant lifecycle events (like navigation).
+   */
+  resetObservedShadowRoots = (): void => {
+    this.observedShadowRoots = new WeakSet<ShadowRoot>();
+  };
 
   /**
    * Initializes the DomQueryService, checking for the presence of shadow DOM elements on the page.
    */
   private async init() {
-    const useTreeWalkerStrategyFlag = await sendExtensionMessage(
-      "getUseTreeWalkerApiForPageDetailsCollectionFeatureFlag",
-    );
-    if (useTreeWalkerStrategyFlag && typeof useTreeWalkerStrategyFlag.result === "boolean") {
-      this.useTreeWalkerStrategyFlagSet = useTreeWalkerStrategyFlag.result;
-    }
-
     if (globalThis.document.readyState === "complete") {
-      this.checkPageContainsShadowDom();
+      this.updatePageContainsShadowDom();
       return;
     }
-    globalThis.addEventListener(EVENTS.LOAD, this.checkPageContainsShadowDom);
+    globalThis.addEventListener(EVENTS.LOAD, this.updatePageContainsShadowDom);
   }
 
   /**
@@ -124,7 +156,7 @@ export class DomQueryService implements DomQueryServiceInterface {
   ): T[] {
     let elements = this.queryElements<T>(root, queryString);
 
-    const shadowRoots = this.recursivelyQueryShadowRoots(root);
+    const shadowRoots = this.pageContainsShadowDom ? this.recursivelyQueryShadowRoots(root) : [];
     for (let index = 0; index < shadowRoots.length; index++) {
       const shadowRoot = shadowRoots[index];
       elements = elements.concat(this.queryElements<T>(shadowRoot, queryString));
@@ -135,6 +167,7 @@ export class DomQueryService implements DomQueryServiceInterface {
           childList: true,
           subtree: true,
         });
+        this.observedShadowRoots.add(shadowRoot);
       }
     }
 
@@ -167,10 +200,6 @@ export class DomQueryService implements DomQueryServiceInterface {
     root: Document | ShadowRoot | Element,
     depth: number = 0,
   ): ShadowRoot[] {
-    if (!this.pageContainsShadowDom) {
-      return [];
-    }
-
     if (depth >= MAX_DEEP_QUERY_RECURSION_DEPTH) {
       throw new Error("Max recursion depth reached");
     }
@@ -235,13 +264,12 @@ export class DomQueryService implements DomQueryServiceInterface {
     if ((chrome as any).dom?.openOrClosedShadowRoot) {
       try {
         return (chrome as any).dom.openOrClosedShadowRoot(node);
-        // FIXME: Remove when updating file. Eslint update
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (error) {
+      } catch {
         return null;
       }
     }
 
+    // Firefox-specific equivalent of `openOrClosedShadowRoot`
     return (node as any).openOrClosedShadowRoot;
   }
 
@@ -294,7 +322,7 @@ export class DomQueryService implements DomQueryServiceInterface {
         ? NodeFilter.FILTER_REJECT
         : NodeFilter.FILTER_ACCEPT,
     );
-    let currentNode = treeWalker?.currentNode;
+    let currentNode: Node | null = treeWalker?.currentNode;
 
     while (currentNode) {
       if (filterCallback(currentNode)) {
@@ -309,6 +337,7 @@ export class DomQueryService implements DomQueryServiceInterface {
             childList: true,
             subtree: true,
           });
+          this.observedShadowRoots.add(nodeShadowRoot);
         }
 
         this.buildTreeWalkerNodesQueryResults(

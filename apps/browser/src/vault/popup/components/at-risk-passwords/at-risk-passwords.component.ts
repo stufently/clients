@@ -1,5 +1,12 @@
 import { CommonModule } from "@angular/common";
-import { Component, DestroyRef, inject, OnInit, signal } from "@angular/core";
+import {
+  Component,
+  DestroyRef,
+  inject,
+  OnInit,
+  signal,
+  ChangeDetectionStrategy,
+} from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { Router } from "@angular/router";
 import {
@@ -23,8 +30,6 @@ import {
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { AutofillOverlayVisibility } from "@bitwarden/common/autofill/constants";
 import { AutofillSettingsServiceAbstraction } from "@bitwarden/common/autofill/services/autofill-settings.service";
-import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
-import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
@@ -43,6 +48,7 @@ import {
   TypographyModule,
 } from "@bitwarden/components";
 import {
+  AtRiskPasswordCalloutService,
   ChangeLoginPasswordService,
   DefaultChangeLoginPasswordService,
   PasswordRepromptService,
@@ -77,36 +83,38 @@ import { AtRiskPasswordPageService } from "./at-risk-password-page.service";
   providers: [
     AtRiskPasswordPageService,
     { provide: ChangeLoginPasswordService, useClass: DefaultChangeLoginPasswordService },
+    AtRiskPasswordCalloutService,
   ],
   selector: "vault-at-risk-passwords",
   templateUrl: "./at-risk-passwords.component.html",
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AtRiskPasswordsComponent implements OnInit {
-  private taskService = inject(TaskService);
-  private organizationService = inject(OrganizationService);
-  private cipherService = inject(CipherService);
-  private i18nService = inject(I18nService);
-  private accountService = inject(AccountService);
-  private passwordRepromptService = inject(PasswordRepromptService);
-  private router = inject(Router);
-  private autofillSettingsService = inject(AutofillSettingsServiceAbstraction);
-  private toastService = inject(ToastService);
-  private atRiskPasswordPageService = inject(AtRiskPasswordPageService);
-  private changeLoginPasswordService = inject(ChangeLoginPasswordService);
-  private platformUtilsService = inject(PlatformUtilsService);
-  private dialogService = inject(DialogService);
-  private endUserNotificationService = inject(EndUserNotificationService);
-  private configService = inject(ConfigService);
-  private destroyRef = inject(DestroyRef);
+  private readonly taskService = inject(TaskService);
+  private readonly organizationService = inject(OrganizationService);
+  private readonly cipherService = inject(CipherService);
+  private readonly i18nService = inject(I18nService);
+  private readonly accountService = inject(AccountService);
+  private readonly passwordRepromptService = inject(PasswordRepromptService);
+  private readonly router = inject(Router);
+  private readonly autofillSettingsService = inject(AutofillSettingsServiceAbstraction);
+  private readonly toastService = inject(ToastService);
+  private readonly atRiskPasswordPageService = inject(AtRiskPasswordPageService);
+  private readonly changeLoginPasswordService = inject(ChangeLoginPasswordService);
+  private readonly platformUtilsService = inject(PlatformUtilsService);
+  private readonly dialogService = inject(DialogService);
+  private readonly endUserNotificationService = inject(EndUserNotificationService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly atRiskPasswordCalloutService = inject(AtRiskPasswordCalloutService);
 
   /**
    * The cipher that is currently being launched. Used to show a loading spinner on the badge button.
    * The UI utilize a bitBadge which does not support async actions (like bitButton does).
    * @protected
    */
-  protected launchingCipher = signal<CipherView | null>(null);
+  protected readonly launchingCipher = signal<CipherView | null>(null);
 
-  private activeUserData$ = this.accountService.activeAccount$.pipe(
+  private readonly activeUserData$ = this.accountService.activeAccount$.pipe(
     filterOutNullish(),
     switchMap((user) =>
       combineLatest([
@@ -126,19 +134,20 @@ export class AtRiskPasswordsComponent implements OnInit {
     shareReplay({ bufferSize: 1, refCount: true }),
   );
 
-  protected loading$ = this.activeUserData$.pipe(
+  protected readonly loading$ = this.activeUserData$.pipe(
     map(() => false),
     startWith(true),
   );
 
-  private calloutDismissed$ = this.activeUserData$.pipe(
+  private readonly calloutDismissed$ = this.activeUserData$.pipe(
     switchMap(({ userId }) => this.atRiskPasswordPageService.isCalloutDismissed(userId)),
   );
-  private inlineAutofillSettingEnabled$ = this.autofillSettingsService.inlineMenuVisibility$.pipe(
-    map((setting) => setting !== AutofillOverlayVisibility.Off),
-  );
+  private readonly inlineAutofillSettingEnabled$ =
+    this.autofillSettingsService.inlineMenuVisibility$.pipe(
+      map((setting) => setting !== AutofillOverlayVisibility.Off),
+    );
 
-  protected showAutofillCallout$ = combineLatest([
+  protected readonly showAutofillCallout$ = combineLatest([
     this.calloutDismissed$,
     this.inlineAutofillSettingEnabled$,
   ]).pipe(
@@ -148,39 +157,47 @@ export class AtRiskPasswordsComponent implements OnInit {
     startWith(false),
   );
 
-  protected atRiskItems$ = this.activeUserData$.pipe(
+  protected readonly atRiskItems$ = this.activeUserData$.pipe(
     map(({ tasks, ciphers }) =>
       tasks
         .filter(
           (t) =>
             t.type === SecurityTaskType.UpdateAtRiskCredential &&
             t.cipherId != null &&
-            ciphers[t.cipherId] != null,
+            ciphers[t.cipherId] != null &&
+            ciphers[t.cipherId].edit &&
+            ciphers[t.cipherId].viewPassword &&
+            !ciphers[t.cipherId].isDeleted,
         )
         .map((t) => ciphers[t.cipherId!]),
     ),
   );
 
-  protected pageDescription$ = this.activeUserData$.pipe(
-    switchMap(({ tasks, userId }) => {
-      const orgIds = new Set(tasks.map((t) => t.organizationId));
+  protected readonly pageDescription$ = combineLatest([
+    this.activeUserData$,
+    this.atRiskItems$,
+  ]).pipe(
+    switchMap(([{ userId }, atRiskCiphers]) => {
+      const orgIds = new Set(
+        atRiskCiphers.filter((c) => c.organizationId).map((c) => c.organizationId),
+      ) as Set<string>;
       if (orgIds.size === 1) {
         const [orgId] = orgIds;
         return this.organizationService.organizations$(userId).pipe(
           getOrganizationById(orgId),
           map((org) =>
             this.i18nService.t(
-              tasks.length === 1
+              atRiskCiphers.length === 1
                 ? "atRiskPasswordDescSingleOrg"
                 : "atRiskPasswordsDescSingleOrgPlural",
               org?.name,
-              tasks.length,
+              atRiskCiphers.length,
             ),
           ),
         );
       }
 
-      return of(this.i18nService.t("atRiskPasswordsDescMultiOrgPlural", tasks.length));
+      return of(this.i18nService.t("atRiskPasswordsDescMultiOrgPlural", atRiskCiphers.length));
     }),
   );
 
@@ -198,9 +215,12 @@ export class AtRiskPasswordsComponent implements OnInit {
       }
     }
 
-    if (await this.configService.getFeatureFlag(FeatureFlag.EndUserNotifications)) {
-      this.markTaskNotificationsAsRead();
-    }
+    this.markTaskNotificationsAsRead();
+
+    this.atRiskPasswordCalloutService.updateAtRiskPasswordState(userId, {
+      hasInteractedWithTasks: true,
+      tasksBannerDismissed: false,
+    });
   }
 
   private markTaskNotificationsAsRead() {
@@ -255,7 +275,11 @@ export class AtRiskPasswordsComponent implements OnInit {
     await this.atRiskPasswordPageService.dismissCallout(userId);
   }
 
-  launchChangePassword = async (cipher: CipherView) => {
+  protected hasLoginUri(cipher: CipherView) {
+    return cipher.login?.hasUris;
+  }
+
+  readonly launchChangePassword = async (cipher: CipherView) => {
     try {
       this.launchingCipher.set(cipher);
       const url = await this.changeLoginPasswordService.getChangePasswordUrl(cipher);
@@ -275,7 +299,7 @@ export class AtRiskPasswordsComponent implements OnInit {
    * which can conflict with the `PopupRouterCacheService`. This replaces the
    * built-in back button behavior so the user always navigates to the vault.
    */
-  protected async navigateToVault() {
+  protected readonly navigateToVault = async () => {
     await this.router.navigate(["/tabs/vault"]);
-  }
+  };
 }

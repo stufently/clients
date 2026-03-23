@@ -2,10 +2,12 @@ import { combineLatest, firstValueFrom, map } from "rxjs";
 
 import { ApiService } from "@bitwarden/common/abstractions/api.service";
 import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
+import { AccountCryptographicStateService } from "@bitwarden/common/key-management/account-cryptography/account-cryptographic-state.service";
+import { EncString } from "@bitwarden/common/key-management/crypto/models/enc-string";
 import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 import { SdkService } from "@bitwarden/common/platform/abstractions/sdk/sdk.service";
-import { EncString } from "@bitwarden/common/platform/models/domain/enc-string";
+import { EncryptionType } from "@bitwarden/common/platform/enums";
 import { UserId } from "@bitwarden/common/types/guid";
 import { UserKey } from "@bitwarden/common/types/key";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
@@ -14,9 +16,7 @@ import { KeyService } from "../../abstractions/key.service";
 import { UserAsymmetricKeysRegenerationApiService } from "../abstractions/user-asymmetric-key-regeneration-api.service";
 import { UserAsymmetricKeysRegenerationService } from "../abstractions/user-asymmetric-key-regeneration.service";
 
-export class DefaultUserAsymmetricKeysRegenerationService
-  implements UserAsymmetricKeysRegenerationService
-{
+export class DefaultUserAsymmetricKeysRegenerationService implements UserAsymmetricKeysRegenerationService {
   constructor(
     private keyService: KeyService,
     private cipherService: CipherService,
@@ -25,6 +25,7 @@ export class DefaultUserAsymmetricKeysRegenerationService
     private sdkService: SdkService,
     private apiService: ApiService,
     private configService: ConfigService,
+    private accountCryptographyStateService: AccountCryptographicStateService,
   ) {}
 
   async regenerateIfNeeded(userId: UserId): Promise<void> {
@@ -36,7 +37,7 @@ export class DefaultUserAsymmetricKeysRegenerationService
       if (privateKeyRegenerationFlag) {
         const shouldRegenerate = await this.shouldRegenerate(userId);
         if (shouldRegenerate) {
-          await this.regenerateUserAsymmetricKeys(userId);
+          await this.regenerateUserPublicKeyEncryptionKeyPair(userId);
         }
       }
     } catch (error) {
@@ -56,6 +57,13 @@ export class DefaultUserAsymmetricKeysRegenerationService
     if (!userKey) {
       this.logService.info(
         "[UserAsymmetricKeyRegeneration] User symmetric key unavailable, skipping regeneration for the user.",
+      );
+      return false;
+    }
+
+    if (userKey.inner().type === EncryptionType.CoseEncrypt0) {
+      this.logService.error(
+        "[UserAsymmetricKeyRegeneration] Cannot regenerate asymmetric keys for accounts on V2 encryption.",
       );
       return false;
     }
@@ -117,10 +125,13 @@ export class DefaultUserAsymmetricKeysRegenerationService
     return false;
   }
 
-  private async regenerateUserAsymmetricKeys(userId: UserId): Promise<void> {
+  async regenerateUserPublicKeyEncryptionKeyPair(userId: UserId): Promise<boolean> {
     const userKey = await firstValueFrom(this.keyService.userKey$(userId));
     if (userKey == null) {
       throw new Error("User key not found");
+    }
+    if (userKey.inner().type !== EncryptionType.AesCbc256_HmacSha256_B64) {
+      throw new Error("User key is not V1 encryption type");
     }
     const makeKeyPairResponse = await firstValueFrom(
       this.sdkService.client$.pipe(
@@ -143,36 +154,54 @@ export class DefaultUserAsymmetricKeysRegenerationService
         this.logService.info(
           "[UserAsymmetricKeyRegeneration] Regeneration not supported for this user at this time.",
         );
+        return false;
       } else {
         this.logService.error(
           "[UserAsymmetricKeyRegeneration] Regeneration error when submitting the request to the server: " +
             error,
         );
+        return false;
       }
-      return;
     }
 
-    await this.keyService.setPrivateKey(makeKeyPairResponse.userKeyEncryptedPrivateKey, userId);
+    await this.accountCryptographyStateService.setAccountCryptographicState(
+      {
+        V1: {
+          private_key: makeKeyPairResponse.userKeyEncryptedPrivateKey,
+        },
+      },
+      userId,
+    );
     this.logService.info(
       "[UserAsymmetricKeyRegeneration] User's asymmetric keys successfully regenerated.",
     );
+    return true;
   }
 
   private async userKeyCanDecrypt(userKey: UserKey, userId: UserId): Promise<boolean> {
     const ciphers = await this.cipherService.getAll(userId);
     const cipher = ciphers.find((cipher) => cipher.organizationId == null);
 
-    if (cipher != null) {
-      try {
-        await cipher.decrypt(userKey);
-        return true;
-      } catch (error) {
+    if (!cipher) {
+      return false;
+    }
+
+    try {
+      const cipherView = await cipher.decrypt(userKey);
+
+      if (cipherView.decryptionFailure) {
         this.logService.error(
-          "[UserAsymmetricKeyRegeneration] User Symmetric Key validation error: " + error,
+          "[UserAsymmetricKeyRegeneration] User Symmetric Key validation error: Cipher decryption failed",
         );
         return false;
       }
+
+      return true;
+    } catch (error) {
+      this.logService.error(
+        "[UserAsymmetricKeyRegeneration] User Symmetric Key validation error: " + error,
+      );
+      return false;
     }
-    return false;
   }
 }

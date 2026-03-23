@@ -2,16 +2,22 @@
 // @ts-strict-ignore
 import { importProvidersFrom } from "@angular/core";
 import { RouterModule } from "@angular/router";
-import { applicationConfig, Meta, moduleMetadata, StoryObj } from "@storybook/angular";
+import {
+  applicationConfig,
+  componentWrapperDecorator,
+  Meta,
+  moduleMetadata,
+  StoryObj,
+} from "@storybook/angular";
 import { BehaviorSubject, of } from "rxjs";
 
+import { OrganizationUserType } from "@bitwarden/common/admin-console/enums";
+import { PermissionsApi } from "@bitwarden/common/admin-console/models/api/permissions.api";
 import {
   CollectionAccessSelectionView,
   CollectionAdminView,
   Unassigned,
-} from "@bitwarden/admin-console/common";
-import { OrganizationUserType } from "@bitwarden/common/admin-console/enums";
-import { PermissionsApi } from "@bitwarden/common/admin-console/models/api/permissions.api";
+} from "@bitwarden/common/admin-console/models/collections";
 import { Organization } from "@bitwarden/common/admin-console/models/domain/organization";
 import { AvatarService } from "@bitwarden/common/auth/abstractions/avatar.service";
 import { TokenService } from "@bitwarden/common/auth/abstractions/token.service";
@@ -23,13 +29,19 @@ import {
 } from "@bitwarden/common/platform/abstractions/environment.service";
 import { StateService } from "@bitwarden/common/platform/abstractions/state.service";
 import { SymmetricCryptoKey } from "@bitwarden/common/platform/models/domain/symmetric-crypto-key";
+import { CollectionId, OrganizationId } from "@bitwarden/common/types/guid";
+import { CipherArchiveService } from "@bitwarden/common/vault/abstractions/cipher-archive.service";
 import { CipherType } from "@bitwarden/common/vault/enums";
 import { AttachmentView } from "@bitwarden/common/vault/models/view/attachment.view";
 import { CipherView } from "@bitwarden/common/vault/models/view/cipher.view";
 import { LoginUriView } from "@bitwarden/common/vault/models/view/login-uri.view";
 import { LoginView } from "@bitwarden/common/vault/models/view/login.view";
 import { CipherAuthorizationService } from "@bitwarden/common/vault/services/cipher-authorization.service";
-import { RestrictedItemTypesService } from "@bitwarden/vault";
+import { RestrictedItemTypesService } from "@bitwarden/common/vault/services/restricted-item-types.service";
+import { CipherViewLike } from "@bitwarden/common/vault/utils/cipher-view-like-utils";
+import { LayoutComponent, StorybookGlobalStateProvider } from "@bitwarden/components";
+import { GlobalStateProvider } from "@bitwarden/state";
+import { RoutedVaultFilterService } from "@bitwarden/vault";
 
 import { GroupView } from "../../../admin-console/organizations/core";
 import { PreloadedEnglishI18nModule } from "../../../core/tests";
@@ -49,8 +61,9 @@ export default {
   title: "Web/Vault/Items",
   component: VaultItemsComponent,
   decorators: [
+    componentWrapperDecorator((story) => `<bit-layout>${story}</bit-layout>`),
     moduleMetadata({
-      imports: [VaultItemsModule, RouterModule],
+      imports: [VaultItemsModule, RouterModule, LayoutComponent],
       providers: [
         {
           provide: EnvironmentService,
@@ -130,6 +143,24 @@ export default {
           provide: RestrictedItemTypesService,
           useValue: {
             restricted$: of([]), // No restricted item types for this story
+            isCipherRestricted: () => false, // No restrictions for this story
+          },
+        },
+        {
+          provide: CipherArchiveService,
+          useValue: {
+            hasArchiveFlagEnabled$: of(true),
+          },
+        },
+        {
+          provide: RoutedVaultFilterService,
+          useValue: {
+            filter$: of({
+              organizationId: null,
+              collectionId: null,
+              folderId: null,
+              type: null,
+            }),
           },
         },
       ],
@@ -138,6 +169,10 @@ export default {
       providers: [
         importProvidersFrom(RouterModule.forRoot([], { useHash: true })),
         importProvidersFrom(PreloadedEnglishI18nModule),
+        {
+          provide: GlobalStateProvider,
+          useClass: StorybookGlobalStateProvider,
+        },
       ],
     }),
   ],
@@ -150,7 +185,7 @@ export default {
   argTypes: { onEvent: { action: "onEvent" } },
 } as Meta;
 
-type Story = StoryObj<VaultItemsComponent>;
+type Story = StoryObj<VaultItemsComponent<CipherViewLike>>;
 
 export const Individual: Story = {
   args: {
@@ -251,9 +286,11 @@ export const OrganizationTrash: Story = {
   },
 };
 
-const unassignedCollection = new CollectionAdminView();
-unassignedCollection.id = Unassigned;
-unassignedCollection.name = "Unassigned";
+const unassignedCollection = new CollectionAdminView({
+  id: Unassigned as CollectionId,
+  name: "Unassigned",
+  organizationId: "org id" as OrganizationId,
+});
 export const OrganizationTopLevelCollection: Story = {
   args: {
     ciphers: [],
@@ -316,11 +353,11 @@ function createCipherView(i: number, deleted = false): CipherView {
 function createCollectionView(i: number): CollectionAdminView {
   const organization = organizations[i % (organizations.length + 1)];
   const group = groups[i % (groups.length + 1)];
-  const view = new CollectionAdminView();
-  view.id = `collection-${i}`;
-  view.name = `Collection ${i}`;
-  view.organizationId = organization?.id;
-  view.manage = true;
+  const view = new CollectionAdminView({
+    id: `collection-${i}` as CollectionId,
+    name: `Collection ${i}`,
+    organizationId: organization?.id ?? ("orgId" as OrganizationId),
+  });
 
   if (group !== undefined) {
     view.groups = [
@@ -333,6 +370,7 @@ function createCollectionView(i: number): CollectionAdminView {
     ];
   }
 
+  view.manage = true;
   return view;
 }
 
@@ -347,7 +385,7 @@ function createGroupView(i: number): GroupView {
 
 function createOrganization(i: number): Organization {
   const organization = new Organization();
-  organization.id = `organization-${i}`;
+  organization.id = `organization-${i}` as OrganizationId;
   organization.name = `Organization ${i}`;
   organization.type = OrganizationUserType.Owner;
   organization.permissions = new PermissionsApi();

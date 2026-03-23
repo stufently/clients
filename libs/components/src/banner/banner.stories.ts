@@ -5,7 +5,6 @@ import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.servic
 import { formatArgsForCodeSnippet } from "../../../../.storybook/format-args-for-code-snippet";
 import { IconButtonModule } from "../icon-button";
 import { LinkModule } from "../link";
-import { SharedModule } from "../shared/shared.module";
 import { I18nMockService } from "../utils/i18n-mock.service";
 
 import { BannerComponent } from "./banner.component";
@@ -15,13 +14,14 @@ export default {
   component: BannerComponent,
   decorators: [
     moduleMetadata({
-      imports: [SharedModule, IconButtonModule, LinkModule],
+      imports: [IconButtonModule, LinkModule],
       providers: [
         {
           provide: I18nService,
           useFactory: () => {
             return new I18nMockService({
               close: "Close",
+              loading: "Loading",
             });
           },
         },
@@ -49,10 +49,10 @@ export const Base: Story = {
   render: (args) => {
     return {
       props: args,
-      template: `
+      template: /*html*/ `
         <bit-banner ${formatArgsForCodeSnippet<BannerComponent>(args)}>
           Content Really Long Text Lorem Ipsum Ipsum Ipsum
-          <button bitLink linkType="secondary">Button</button>
+          <button type="button" bitLink linkType="secondary">Button</button>
         </bit-banner>
       `,
     };

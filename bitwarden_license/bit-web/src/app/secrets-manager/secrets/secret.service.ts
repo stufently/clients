@@ -1,12 +1,18 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
 import { Injectable } from "@angular/core";
-import { Subject } from "rxjs";
+import { Subject, firstValueFrom, switchMap, map, filter } from "rxjs";
 
 import { ApiService } from "@bitwarden/common/abstractions/api.service";
+import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
+import { getUserId } from "@bitwarden/common/auth/services/account.service";
 import { EncryptService } from "@bitwarden/common/key-management/crypto/abstractions/encrypt.service";
-import { EncString } from "@bitwarden/common/platform/models/domain/enc-string";
+import {
+  DECRYPT_ERROR,
+  EncString,
+} from "@bitwarden/common/key-management/crypto/models/enc-string";
 import { SymmetricCryptoKey } from "@bitwarden/common/platform/models/domain/symmetric-crypto-key";
+import { OrganizationId } from "@bitwarden/common/types/guid";
 import { KeyService } from "@bitwarden/key-management";
 
 import { SecretAccessPoliciesView } from "../models/view/access-policies/secret-access-policies.view";
@@ -27,7 +33,6 @@ import { SecretResponse } from "./responses/secret.response";
 })
 export class SecretService {
   protected _secret: Subject<SecretView> = new Subject();
-
   secret$ = this._secret.asObservable();
 
   constructor(
@@ -35,7 +40,21 @@ export class SecretService {
     private apiService: ApiService,
     private encryptService: EncryptService,
     private accessPolicyService: AccessPolicyService,
+    private accountService: AccountService,
   ) {}
+
+  private getOrganizationKey$(organizationId: string) {
+    return this.accountService.activeAccount$.pipe(
+      getUserId,
+      switchMap((userId) => this.keyService.orgKeys$(userId)),
+      filter((orgKeys) => !!orgKeys),
+      map((organizationKeysById) => organizationKeysById[organizationId as OrganizationId]),
+    );
+  }
+
+  private async getOrganizationKey(organizationId: string): Promise<SymmetricCryptoKey> {
+    return await firstValueFrom(this.getOrganizationKey$(organizationId));
+  }
 
   async getBySecretId(secretId: string): Promise<SecretView> {
     const r = await this.apiService.send("GET", "/secrets/" + secretId, null, true, true);
@@ -154,10 +173,6 @@ export class SecretService {
     this._secret.next(null);
   }
 
-  private async getOrganizationKey(organizationId: string): Promise<SymmetricCryptoKey> {
-    return await this.keyService.getOrgKey(organizationId);
-  }
-
   private async getSecretRequest(
     organizationId: string,
     secretView: SecretView,
@@ -258,9 +273,14 @@ export class SecretService {
       projects.map(async (s: SecretProjectResponse) => {
         const projectsMappedToSecretView = new SecretProjectView();
         projectsMappedToSecretView.id = s.id;
-        projectsMappedToSecretView.name = s.name
-          ? await this.encryptService.decryptString(new EncString(s.name), orgKey)
-          : null;
+        try {
+          projectsMappedToSecretView.name = s.name
+            ? await this.encryptService.decryptString(new EncString(s.name), orgKey)
+            : null;
+        } catch {
+          projectsMappedToSecretView.name = DECRYPT_ERROR;
+          projectsMappedToSecretView.decryptionError = true;
+        }
         return projectsMappedToSecretView;
       }),
     );

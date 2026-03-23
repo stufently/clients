@@ -1,10 +1,10 @@
 import { CommonModule, Location } from "@angular/common";
 import { Component, OnDestroy, OnInit } from "@angular/core";
 import { Router } from "@angular/router";
-import { Subject, firstValueFrom, map, of, startWith, switchMap } from "rxjs";
+import { Observable, Subject, firstValueFrom, map, of, startWith, switchMap } from "rxjs";
 
 import { JslibModule } from "@bitwarden/angular/jslib.module";
-import { LockService } from "@bitwarden/auth/common";
+import { LockService, LogoutService } from "@bitwarden/auth/common";
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { AuthService } from "@bitwarden/common/auth/abstractions/auth.service";
 import { AuthenticationStatus } from "@bitwarden/common/auth/enums/authentication-status";
@@ -18,13 +18,13 @@ import {
   AvatarModule,
   ButtonModule,
   DialogService,
+  IconModule,
   ItemModule,
   SectionComponent,
   SectionHeaderComponent,
   TypographyModule,
 } from "@bitwarden/components";
 
-import { enableAccountSwitching } from "../../../platform/flags";
 import { PopOutComponent } from "../../../platform/popup/components/pop-out.component";
 import { PopupHeaderComponent } from "../../../platform/popup/layout/popup-header.component";
 import { PopupPageComponent } from "../../../platform/popup/layout/popup-page.component";
@@ -33,6 +33,8 @@ import { AccountComponent } from "./account.component";
 import { CurrentAccountComponent } from "./current-account.component";
 import { AccountSwitcherService } from "./services/account-switcher.service";
 
+// FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
+// eslint-disable-next-line @angular-eslint/prefer-on-push-component-change-detection
 @Component({
   templateUrl: "account-switcher.component.html",
   imports: [
@@ -41,6 +43,7 @@ import { AccountSwitcherService } from "./services/account-switcher.service";
     ButtonModule,
     ItemModule,
     AvatarModule,
+    IconModule,
     PopupPageComponent,
     PopupHeaderComponent,
     PopOutComponent,
@@ -57,7 +60,7 @@ export class AccountSwitcherComponent implements OnInit, OnDestroy {
 
   loading = false;
   activeUserCanLock = false;
-  enableAccountSwitching = true;
+  enableAccountSwitching$: Observable<boolean>;
 
   constructor(
     private accountSwitcherService: AccountSwitcherService,
@@ -69,7 +72,10 @@ export class AccountSwitcherComponent implements OnInit, OnDestroy {
     private vaultTimeoutSettingsService: VaultTimeoutSettingsService,
     private authService: AuthService,
     private lockService: LockService,
-  ) {}
+    private logoutService: LogoutService,
+  ) {
+    this.enableAccountSwitching$ = this.accountSwitcherService.accountSwitchingEnabled$();
+  }
 
   get accountLimit() {
     return this.accountSwitcherService.ACCOUNT_LIMIT;
@@ -94,19 +100,21 @@ export class AccountSwitcherComponent implements OnInit, OnDestroy {
     switchMap((accounts) => {
       // If account switching is disabled, don't show the lock all button
       // as only one account should be shown.
-      if (!enableAccountSwitching()) {
-        return of(false);
-      }
+      return this.accountSwitcherService.accountSwitchingEnabled$().pipe(
+        switchMap((enabled) => {
+          if (!enabled) {
+            return of(false);
+          }
 
-      // When there are an inactive accounts provide the option to lock all accounts
-      // Note: "Add account" is counted as an inactive account, so check for more than one account
-      return of(accounts.length > 1);
+          // When there are inactive accounts provide the option to lock all accounts
+          // Note: "Add account" is counted as an inactive account, so check for more than one account
+          return of(accounts.length > 1);
+        }),
+      );
     }),
   );
 
   async ngOnInit() {
-    this.enableAccountSwitching = enableAccountSwitching();
-
     const availableVaultTimeoutActions = await firstValueFrom(
       this.vaultTimeoutSettingsService.availableVaultTimeoutActions$(),
     );
@@ -119,10 +127,8 @@ export class AccountSwitcherComponent implements OnInit, OnDestroy {
 
   async lock(userId: string) {
     this.loading = true;
-    await this.vaultTimeoutService.lock(userId);
-    // FIXME: Verify that this floating promise is intentional. If it is, add an explanatory comment and ensure there is proper error handling.
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    this.router.navigate(["lock"]);
+    await this.lockService.lock(userId as UserId);
+    await this.router.navigate(["lock"]);
   }
 
   async lockAll() {
@@ -140,12 +146,9 @@ export class AccountSwitcherComponent implements OnInit, OnDestroy {
     });
 
     if (confirmed) {
-      const result = await this.accountSwitcherService.logoutAccount(userId);
-      // unlocked logout responses need to be navigated out of the account switcher.
-      // other responses will be handled by background and app.component
-      if (result?.status === AuthenticationStatus.Unlocked) {
-        this.location.back();
-      }
+      await this.logoutService.logout(userId);
+      // navigate to root so redirect guard can properly route next active user or null user to correct page
+      await this.router.navigate(["/"]);
     }
     this.loading = false;
   }

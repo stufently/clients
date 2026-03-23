@@ -29,5 +29,11 @@ export enum NotificationType {
   Notification = 20,
   NotificationStatus = 21,
 
-  PendingSecurityTasks = 22,
+  RefreshSecurityTasks = 22,
+
+  OrganizationBankAccountVerified = 23,
+  ProviderBankAccountVerified = 24,
+
+  SyncPolicy = 25,
+  AutoConfirmMember = 26,
 }

@@ -1,24 +1,29 @@
-import { Component, computed, HostBinding, input } from "@angular/core";
+import {
+  Component,
+  computed,
+  ElementRef,
+  HostBinding,
+  HostListener,
+  inject,
+  input,
+} from "@angular/core";
 
+import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
 import { Utils } from "@bitwarden/common/platform/misc/utils";
 
-// FIXME: update to use a const object instead of a typescript enum
-// eslint-disable-next-line @bitwarden/platform/no-enums
-enum CharacterType {
-  Letter,
-  Emoji,
-  Special,
-  Number,
-}
+type CharacterType = "letter" | "emoji" | "special" | "number";
+
 /**
  * The color password is used primarily in the Generator pages and in the Login type form. It includes
  * the logic for displaying letters as `text-main`, numbers as `primary`, and special symbols as
  * `danger`.
  */
+// FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
+// eslint-disable-next-line @angular-eslint/prefer-on-push-component-change-detection
 @Component({
   selector: "bit-color-password",
   template: `@for (character of passwordCharArray(); track $index; let i = $index) {
-    <span [class]="getCharacterClass(character)">
+    <span [class]="getCharacterClass(character)" class="tw-font-mono" data-password-character>
       <span>{{ character }}</span>
       @if (showCount()) {
         <span class="tw-whitespace-nowrap tw-text-xs tw-leading-5 tw-text-main">{{ i + 1 }}</span>
@@ -27,24 +32,27 @@ enum CharacterType {
   }`,
 })
 export class ColorPasswordComponent {
-  password = input<string>("");
-  showCount = input<boolean>(false);
+  readonly password = input<string>("");
+  readonly showCount = input<boolean>(false);
 
   // Convert to an array to handle cases that strings have special characters, i.e.: emoji.
-  passwordCharArray = computed(() => {
+  readonly passwordCharArray = computed(() => {
     return Array.from(this.password() ?? "");
   });
 
+  private platformUtilsService = inject(PlatformUtilsService);
+  private elementRef = inject(ElementRef);
+
   characterStyles: Record<CharacterType, string[]> = {
-    [CharacterType.Emoji]: [],
-    [CharacterType.Letter]: ["tw-text-main"],
-    [CharacterType.Special]: ["tw-text-danger"],
-    [CharacterType.Number]: ["tw-text-primary-600"],
+    emoji: [],
+    letter: ["tw-text-main"],
+    special: ["tw-text-danger"],
+    number: ["tw-text-primary-600"],
   };
 
   @HostBinding("class")
   get classList() {
-    return ["tw-min-w-0", "tw-whitespace-pre-wrap", "tw-break-all"];
+    return ["tw-min-w-0", "tw-whitespace-pre-wrap", "tw-break-words"];
   }
 
   getCharacterClass(character: string) {
@@ -68,18 +76,42 @@ export class ColorPasswordComponent {
 
   private getCharacterType(character: string): CharacterType {
     if (character.match(Utils.regexpEmojiPresentation)) {
-      return CharacterType.Emoji;
+      return "emoji";
     }
 
     if (character.match(/\d/)) {
-      return CharacterType.Number;
+      return "number";
     }
 
     const specials = ["&", "<", ">", " "];
     if (specials.includes(character) || character.match(/[^\w ]/)) {
-      return CharacterType.Special;
+      return "special";
     }
 
-    return CharacterType.Letter;
+    return "letter";
+  }
+
+  @HostListener("copy", ["$event"])
+  onCopy(event: ClipboardEvent) {
+    event.preventDefault();
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      return;
+    }
+
+    const spanElements = this.elementRef.nativeElement.querySelectorAll(
+      "span[data-password-character]",
+    );
+    let copiedText = "";
+
+    spanElements.forEach((span: HTMLElement, index: number) => {
+      if (selection.containsNode(span, true)) {
+        copiedText += this.passwordCharArray()[index];
+      }
+    });
+
+    if (copiedText) {
+      this.platformUtilsService.copyToClipboard(copiedText);
+    }
   }
 }

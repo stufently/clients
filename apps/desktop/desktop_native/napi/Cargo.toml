@@ -14,18 +14,19 @@ default = []
 manual_test = []
 
 [dependencies]
-base64 = { workspace = true }
-hex = { workspace = true }
 anyhow = { workspace = true }
+async-trait = { workspace = true }
+autotype = { path = "../autotype" }
+chromium_importer = { path = "../chromium_importer" }
 desktop_core = { path = "../core" }
-log = { workspace = true }
-napi = { workspace = true, features = ["async"] }
+napi = { workspace = true, features = ["async", "anyhow"] }
 napi-derive = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-tokio = { workspace = true }
-tokio-util = { workspace = true }
-tokio-stream = { workspace = true }
+ssh_agent = { path = "../ssh_agent" }
+tokio = { workspace = true, features = ["time"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
 windows-registry = { workspace = true }
@@ -33,3 +34,6 @@ windows_plugin_authenticator = { path = "../windows_plugin_authenticator" }
 
 [build-dependencies]
 napi-build = { workspace = true }
+
+[lints]
+workspace = true

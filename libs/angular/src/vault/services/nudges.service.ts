@@ -1,8 +1,6 @@
 import { inject, Injectable } from "@angular/core";
-import { combineLatest, map, Observable, of, shareReplay, switchMap } from "rxjs";
+import { combineLatest, map, Observable, shareReplay } from "rxjs";
 
-import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
-import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
 import { UserKeyDefinition, NUDGES_DISK } from "@bitwarden/common/platform/state";
 import { UserId } from "@bitwarden/common/types/guid";
 import { UnionOfValues } from "@bitwarden/common/vault/types/union-of-values";
@@ -14,8 +12,10 @@ import {
   NewItemNudgeService,
   AccountSecurityNudgeService,
   VaultSettingsImportNudgeService,
+  NoOpNudgeService,
 } from "./custom-nudges-services";
 import { DefaultSingleNudgeService, SingleNudgeService } from "./default-single-nudge.service";
+import { AUTOFILL_NUDGE_SERVICE, AUTO_CONFIRM_NUDGE_SERVICE } from "./nudge-injection-tokens";
 
 export type NudgeStatus = {
   hasBadgeDismissed: boolean;
@@ -39,6 +39,8 @@ export const NudgeType = {
   NewNoteItemStatus: "new-note-item-status",
   NewSshItemStatus: "new-ssh-item-status",
   GeneratorNudgeStatus: "generator-nudge-status",
+  AutoConfirmNudge: "auto-confirm-nudge",
+  PremiumUpgrade: "premium-upgrade",
 } as const;
 
 export type NudgeType = UnionOfValues<typeof NudgeType>;
@@ -57,9 +59,24 @@ export class NudgesService {
   private newItemNudgeService = inject(NewItemNudgeService);
   private newAcctNudgeService = inject(NewAccountNudgeService);
 
+  // NoOp service that always returns dismissed
+  private noOpNudgeService = inject(NoOpNudgeService);
+
+  // Client specific services (optional, via injection tokens)
+  // These services require platform-specific features and fallback to NoOpNudgeService if not provided
+
+  private autofillNudgeService = inject(AUTOFILL_NUDGE_SERVICE, { optional: true });
+  private autoConfirmNudgeService = inject(AUTO_CONFIRM_NUDGE_SERVICE, { optional: true });
+
   /**
    * Custom nudge services to use for specific nudge types
    * Each nudge type can have its own service to determine when to show the nudge
+   *
+   * NOTE: If a custom nudge service requires client specific services/features:
+   *  1. The custom nudge service must be provided via injection token and marked as optional.
+   *  2. The custom nudge service must be manually registered with that token in the client(s).
+   *
+   *  See the README.md in the custom-nudge-services folder for more details on adding custom nudges.
    * @private
    */
   private customNudgeServices: Partial<Record<NudgeType, SingleNudgeService>> = {
@@ -67,7 +84,7 @@ export class NudgesService {
     [NudgeType.EmptyVaultNudge]: inject(EmptyVaultNudgeService),
     [NudgeType.VaultSettingsImportNudge]: inject(VaultSettingsImportNudgeService),
     [NudgeType.AccountSecurity]: inject(AccountSecurityNudgeService),
-    [NudgeType.AutofillNudge]: this.newAcctNudgeService,
+    [NudgeType.AutofillNudge]: this.autofillNudgeService ?? this.noOpNudgeService,
     [NudgeType.DownloadBitwarden]: this.newAcctNudgeService,
     [NudgeType.GeneratorNudgeStatus]: this.newAcctNudgeService,
     [NudgeType.NewLoginItemStatus]: this.newItemNudgeService,
@@ -75,6 +92,7 @@ export class NudgesService {
     [NudgeType.NewIdentityItemStatus]: this.newItemNudgeService,
     [NudgeType.NewNoteItemStatus]: this.newItemNudgeService,
     [NudgeType.NewSshItemStatus]: this.newItemNudgeService,
+    [NudgeType.AutoConfirmNudge]: this.autoConfirmNudgeService ?? this.noOpNudgeService,
   };
 
   /**
@@ -83,7 +101,6 @@ export class NudgesService {
    * @private
    */
   private defaultNudgeService = inject(DefaultSingleNudgeService);
-  private configService = inject(ConfigService);
 
   private getNudgeService(nudge: NudgeType): SingleNudgeService {
     return this.customNudgeServices[nudge] ?? this.defaultNudgeService;
@@ -95,16 +112,9 @@ export class NudgesService {
    * @param userId
    */
   showNudgeSpotlight$(nudge: NudgeType, userId: UserId): Observable<boolean> {
-    return this.configService.getFeatureFlag$(FeatureFlag.PM8851_BrowserOnboardingNudge).pipe(
-      switchMap((hasVaultNudgeFlag) => {
-        if (!hasVaultNudgeFlag) {
-          return of(false);
-        }
-        return this.getNudgeService(nudge)
-          .nudgeStatus$(nudge, userId)
-          .pipe(map((nudgeStatus) => !nudgeStatus.hasSpotlightDismissed));
-      }),
-    );
+    return this.getNudgeService(nudge)
+      .nudgeStatus$(nudge, userId)
+      .pipe(map((nudgeStatus) => !nudgeStatus.hasSpotlightDismissed));
   }
 
   /**
@@ -113,16 +123,9 @@ export class NudgesService {
    * @param userId
    */
   showNudgeBadge$(nudge: NudgeType, userId: UserId): Observable<boolean> {
-    return this.configService.getFeatureFlag$(FeatureFlag.PM8851_BrowserOnboardingNudge).pipe(
-      switchMap((hasVaultNudgeFlag) => {
-        if (!hasVaultNudgeFlag) {
-          return of(false);
-        }
-        return this.getNudgeService(nudge)
-          .nudgeStatus$(nudge, userId)
-          .pipe(map((nudgeStatus) => !nudgeStatus.hasBadgeDismissed));
-      }),
-    );
+    return this.getNudgeService(nudge)
+      .nudgeStatus$(nudge, userId)
+      .pipe(map((nudgeStatus) => !nudgeStatus.hasBadgeDismissed));
   }
 
   /**
@@ -131,14 +134,7 @@ export class NudgesService {
    * @param userId
    */
   showNudgeStatus$(nudge: NudgeType, userId: UserId) {
-    return this.configService.getFeatureFlag$(FeatureFlag.PM8851_BrowserOnboardingNudge).pipe(
-      switchMap((hasVaultNudgeFlag) => {
-        if (!hasVaultNudgeFlag) {
-          return of({ hasBadgeDismissed: true, hasSpotlightDismissed: true } as NudgeStatus);
-        }
-        return this.getNudgeService(nudge).nudgeStatus$(nudge, userId);
-      }),
-    );
+    return this.getNudgeService(nudge).nudgeStatus$(nudge, userId);
   }
 
   /**
@@ -159,7 +155,12 @@ export class NudgesService {
    */
   hasActiveBadges$(userId: UserId): Observable<boolean> {
     // Add more nudge types here if they have the settings badge feature
-    const nudgeTypes = [NudgeType.EmptyVaultNudge, NudgeType.DownloadBitwarden];
+    const nudgeTypes = [
+      NudgeType.EmptyVaultNudge,
+      NudgeType.DownloadBitwarden,
+      NudgeType.AutofillNudge,
+      NudgeType.AutoConfirmNudge,
+    ];
 
     const nudgeTypesWithBadge$ = nudgeTypes.map((nudge) => {
       return this.getNudgeService(nudge)

@@ -1,53 +1,73 @@
 import { NeverDomains } from "@bitwarden/common/models/domain/domain-service";
 import { ServerConfig } from "@bitwarden/common/platform/abstractions/config/server-config";
-import { UserId } from "@bitwarden/common/types/guid";
 import { CipherView } from "@bitwarden/common/vault/models/view/cipher.view";
 import { FolderView } from "@bitwarden/common/vault/models/view/folder.view";
-import { SecurityTask } from "@bitwarden/common/vault/tasks";
 
 import { CollectionView } from "../../content/components/common-types";
-import { NotificationQueueMessageTypes } from "../../enums/notification-queue-message-type.enum";
+import { NotificationType } from "../../enums/notification-type.enum";
 import AutofillPageDetails from "../../models/autofill-page-details";
 
-interface NotificationQueueMessage {
-  type: NotificationQueueMessageTypes;
+/**
+ * Generic notification queue message structure.
+ * All notification types use this structure with type-specific data.
+ */
+export interface NotificationQueueMessage<T, D> {
   domain: string;
   tab: chrome.tabs.Tab;
   launchTimestamp: number;
   expires: Date;
   wasVaultLocked: boolean;
+  type: T;
+  data: D;
 }
 
-interface AddChangePasswordQueueMessage extends NotificationQueueMessage {
-  type: "change";
-  cipherId: string;
-  newPassword: string;
-}
-
-interface AddLoginQueueMessage extends NotificationQueueMessage {
-  type: "add";
+// Notification data type definitions
+export type AddLoginNotificationData = {
   username: string;
   password: string;
   uri: string;
-}
+};
 
-interface AddUnlockVaultQueueMessage extends NotificationQueueMessage {
-  type: "unlock";
-}
+export type ChangePasswordNotificationData = {
+  cipherIds: CipherView["id"][];
+  newPassword: string;
+};
 
-interface AtRiskPasswordQueueMessage extends NotificationQueueMessage {
-  type: "at-risk-password";
+export type UnlockVaultNotificationData = never;
+
+export type AtRiskPasswordNotificationData = {
   organizationName: string;
   passwordChangeUri?: string;
-}
+};
 
-type NotificationQueueMessageItem =
+// Notification queue message types using generic pattern
+export type AddLoginQueueMessage = NotificationQueueMessage<
+  typeof NotificationType.AddLogin,
+  AddLoginNotificationData
+>;
+
+export type AddChangePasswordNotificationQueueMessage = NotificationQueueMessage<
+  typeof NotificationType.ChangePassword,
+  ChangePasswordNotificationData
+>;
+
+export type AddUnlockVaultQueueMessage = NotificationQueueMessage<
+  typeof NotificationType.UnlockVault,
+  UnlockVaultNotificationData
+>;
+
+export type AtRiskPasswordQueueMessage = NotificationQueueMessage<
+  typeof NotificationType.AtRiskPassword,
+  AtRiskPasswordNotificationData
+>;
+
+export type NotificationQueueMessageItem =
   | AddLoginQueueMessage
-  | AddChangePasswordQueueMessage
+  | AddChangePasswordNotificationQueueMessage
   | AddUnlockVaultQueueMessage
   | AtRiskPasswordQueueMessage;
 
-type LockedVaultPendingNotificationsData = {
+export type LockedVaultPendingNotificationsData = {
   commandToRetry: {
     message: {
       command: string;
@@ -60,42 +80,31 @@ type LockedVaultPendingNotificationsData = {
   target: string;
 };
 
-type AtRiskPasswordNotificationsData = {
-  activeUserId: UserId;
-  cipher: CipherView;
-  securityTask: SecurityTask;
-  uri: string;
-};
-
-type AdjustNotificationBarMessageData = {
+export type AdjustNotificationBarMessageData = {
   height: number;
 };
 
-type ChangePasswordMessageData = {
-  currentPassword: string;
-  newPassword: string;
-  url: string;
-};
-
-type AddLoginMessageData = {
+export type AddLoginMessageData = {
   username: string;
   password: string;
   url: string;
 };
 
-type UnlockVaultMessageData = {
+export type UnlockVaultMessageData = {
   skipNotification?: boolean;
 };
 
-type NotificationBackgroundExtensionMessage = {
+/**
+ * @todo Extend generics to this type, see NotificationQueueMessage
+ * - use new `data` types as generic
+ * - eliminate optional status of properties as needed per Notification Type
+ */
+export type NotificationBackgroundExtensionMessage = {
   [key: string]: any;
   command: string;
   data?: Partial<LockedVaultPendingNotificationsData> &
     Partial<AdjustNotificationBarMessageData> &
-    Partial<ChangePasswordMessageData> &
-    Partial<UnlockVaultMessageData> &
-    Partial<AtRiskPasswordNotificationsData>;
-  login?: AddLoginMessageData;
+    Partial<UnlockVaultMessageData>;
   folder?: string;
   edit?: boolean;
   details?: AutofillPageDetails;
@@ -110,7 +119,7 @@ type BackgroundMessageParam = { message: NotificationBackgroundExtensionMessage 
 type BackgroundSenderParam = { sender: chrome.runtime.MessageSender };
 type BackgroundOnMessageHandlerParams = BackgroundMessageParam & BackgroundSenderParam;
 
-type NotificationBackgroundExtensionMessageHandlers = {
+export type NotificationBackgroundExtensionMessageHandlers = {
   [key: string]: CallableFunction;
   unlockCompleted: ({ message, sender }: BackgroundOnMessageHandlerParams) => Promise<void>;
   bgGetFolderData: ({ message, sender }: BackgroundOnMessageHandlerParams) => Promise<FolderView[]>;
@@ -121,18 +130,6 @@ type NotificationBackgroundExtensionMessageHandlers = {
   bgCloseNotificationBar: ({ message, sender }: BackgroundOnMessageHandlerParams) => Promise<void>;
   bgOpenAtRiskPasswords: ({ message, sender }: BackgroundOnMessageHandlerParams) => Promise<void>;
   bgAdjustNotificationBar: ({ message, sender }: BackgroundOnMessageHandlerParams) => Promise<void>;
-  bgTriggerAddLoginNotification: ({
-    message,
-    sender,
-  }: BackgroundOnMessageHandlerParams) => Promise<boolean>;
-  bgTriggerChangedPasswordNotification: ({
-    message,
-    sender,
-  }: BackgroundOnMessageHandlerParams) => Promise<boolean>;
-  bgTriggerAtRiskPasswordNotification: ({
-    message,
-    sender,
-  }: BackgroundOnMessageHandlerParams) => Promise<boolean>;
   bgRemoveTabFromNotificationQueue: ({ sender }: BackgroundSenderParam) => void;
   bgSaveCipher: ({ message, sender }: BackgroundOnMessageHandlerParams) => void;
   bgOpenAddEditVaultItemPopout: ({
@@ -144,27 +141,12 @@ type NotificationBackgroundExtensionMessageHandlers = {
     sender,
   }: BackgroundOnMessageHandlerParams) => Promise<void>;
   bgNeverSave: ({ sender }: BackgroundSenderParam) => Promise<void>;
-  bgUnlockPopoutOpened: ({ message, sender }: BackgroundOnMessageHandlerParams) => Promise<void>;
   bgReopenUnlockPopout: ({ sender }: BackgroundSenderParam) => Promise<void>;
   checkNotificationQueue: ({ sender }: BackgroundSenderParam) => Promise<void>;
   collectPageDetailsResponse: ({ message }: BackgroundMessageParam) => Promise<void>;
   bgGetEnableChangedPasswordPrompt: () => Promise<boolean>;
   bgGetEnableAddedLoginPrompt: () => Promise<boolean>;
   bgGetExcludedDomains: () => Promise<NeverDomains>;
-  bgGetActiveUserServerConfig: () => Promise<ServerConfig>;
+  bgGetActiveUserServerConfig: () => Promise<ServerConfig | null>;
   getWebVaultUrlForNotification: () => Promise<string>;
-};
-
-export {
-  AddChangePasswordQueueMessage,
-  AddLoginQueueMessage,
-  AddUnlockVaultQueueMessage,
-  NotificationQueueMessageItem,
-  LockedVaultPendingNotificationsData,
-  AdjustNotificationBarMessageData,
-  ChangePasswordMessageData,
-  UnlockVaultMessageData,
-  AddLoginMessageData,
-  NotificationBackgroundExtensionMessage,
-  NotificationBackgroundExtensionMessageHandlers,
 };

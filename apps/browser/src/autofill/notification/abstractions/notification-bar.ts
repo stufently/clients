@@ -8,19 +8,30 @@ import {
 } from "../../../autofill/content/components/common-types";
 
 const NotificationTypes = {
+  /** represents scenarios handling saving new ciphers after form submit */
   Add: "add",
+  /** represents scenarios handling saving updated ciphers after form submit */
   Change: "change",
+  /** represents scenarios where user has interacted with an unlock action prompt or action otherwise requiring unlock as a prerequisite */
   Unlock: "unlock",
+  /** represents scenarios where the user has security tasks after updating ciphers */
   AtRiskPassword: "at-risk-password",
 } as const;
 
+/**
+ * @todo Deprecate in favor of apps/browser/src/autofill/enums/notification-type.enum.ts
+ * - Determine fix or workaround for restricted imports of that file.
+ */
 type NotificationType = (typeof NotificationTypes)[keyof typeof NotificationTypes];
 
 type NotificationTaskInfo = {
-  orgName: string;
+  orgName?: string;
   remainingTasksCount: number;
 };
 
+/**
+ * @todo Use generics to make this type specific to notification types, see Standard_NotificationQueueMessage.
+ */
 type NotificationBarIframeInitData = {
   ciphers?: NotificationCipherData[];
   folders?: FolderView[];
@@ -44,6 +55,7 @@ type NotificationBarWindowMessage = {
   };
   error?: string;
   initData?: NotificationBarIframeInitData;
+  parentOrigin?: string;
 };
 
 type NotificationBarWindowMessageHandlers = {
@@ -54,7 +66,7 @@ type NotificationBarWindowMessageHandlers = {
 
 type AtRiskPasswordNotificationParams = {
   passwordChangeUri?: string;
-  organizationName: string;
+  organizationName?: string;
 };
 
 export {

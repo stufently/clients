@@ -1,20 +1,13 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
+import { CommonModule } from "@angular/common";
 import { Component, OnDestroy, OnInit } from "@angular/core";
-import { FormBuilder } from "@angular/forms";
+import { FormBuilder, FormsModule, ReactiveFormsModule } from "@angular/forms";
+import { RouterModule } from "@angular/router";
 import { BehaviorSubject, Observable, Subject, firstValueFrom, of } from "rxjs";
-import {
-  concatMap,
-  debounceTime,
-  filter,
-  map,
-  switchMap,
-  takeUntil,
-  tap,
-  timeout,
-} from "rxjs/operators";
+import { concatMap, map, switchMap, takeUntil, timeout } from "rxjs/operators";
 
-import { PinServiceAbstraction } from "@bitwarden/auth/common";
+import { PremiumBadgeComponent } from "@bitwarden/angular/billing/components/premium-badge";
 import { PolicyService } from "@bitwarden/common/admin-console/abstractions/policy/policy.service.abstraction";
 import { PolicyType } from "@bitwarden/common/admin-console/enums";
 import { getFirstPolicy } from "@bitwarden/common/admin-console/services/policy/default-policy.service";
@@ -23,14 +16,11 @@ import { UserVerificationService as UserVerificationServiceAbstraction } from "@
 import { getUserId } from "@bitwarden/common/auth/services/account.service";
 import { AutofillSettingsServiceAbstraction } from "@bitwarden/common/autofill/services/autofill-settings.service";
 import { DomainSettingsService } from "@bitwarden/common/autofill/services/domain-settings.service";
+import { BillingAccountProfileStateService } from "@bitwarden/common/billing/abstractions";
 import { DeviceType } from "@bitwarden/common/enums";
-import {
-  VaultTimeout,
-  VaultTimeoutAction,
-  VaultTimeoutOption,
-  VaultTimeoutSettingsService,
-  VaultTimeoutStringType,
-} from "@bitwarden/common/key-management/vault-timeout";
+import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
+import { PinServiceAbstraction } from "@bitwarden/common/key-management/pin/pin.service.abstraction";
+import { VaultTimeoutSettingsService } from "@bitwarden/common/key-management/vault-timeout";
 import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
@@ -42,27 +32,70 @@ import { Theme, ThemeTypes } from "@bitwarden/common/platform/enums/theme-type.e
 import { Utils } from "@bitwarden/common/platform/misc/utils";
 import { ThemeStateService } from "@bitwarden/common/platform/theming/theme-state.service";
 import { UserId } from "@bitwarden/common/types/guid";
-import { DialogService } from "@bitwarden/components";
+import { PremiumUpgradePromptService } from "@bitwarden/common/vault/abstractions/premium-upgrade-prompt.service";
+import {
+  CheckboxModule,
+  DialogService,
+  FormFieldModule,
+  IconButtonModule,
+  IconModule,
+  ItemModule,
+  LinkModule,
+  SectionComponent,
+  SectionHeaderComponent,
+  SelectModule,
+  TypographyModule,
+} from "@bitwarden/components";
 import { KeyService, BiometricStateService, BiometricsStatus } from "@bitwarden/key-management";
+import { SessionTimeoutSettingsComponent } from "@bitwarden/key-management-ui";
+import { I18nPipe } from "@bitwarden/ui-common";
+import { PermitCipherDetailsPopoverComponent } from "@bitwarden/vault";
 
 import { SetPinComponent } from "../../auth/components/set-pin.component";
+import { AutotypeShortcutComponent } from "../../autofill/components/autotype-shortcut.component";
 import { SshAgentPromptType } from "../../autofill/models/ssh-agent-setting";
 import { DesktopAutofillSettingsService } from "../../autofill/services/desktop-autofill-settings.service";
+import { DesktopAutotypeService } from "../../autofill/services/desktop-autotype.service";
 import { DesktopBiometricsService } from "../../key-management/biometrics/desktop.biometrics.service";
 import { DesktopSettingsService } from "../../platform/services/desktop-settings.service";
+import { DesktopPremiumUpgradePromptService } from "../../services/desktop-premium-upgrade-prompt.service";
 import { NativeMessagingManifestService } from "../services/native-messaging-manifest.service";
 
+// FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
+// eslint-disable-next-line @angular-eslint/prefer-on-push-component-change-detection
 @Component({
   selector: "app-settings",
   templateUrl: "settings.component.html",
-  standalone: false,
+  standalone: true,
+  providers: [
+    {
+      provide: PremiumUpgradePromptService,
+      useClass: DesktopPremiumUpgradePromptService,
+    },
+  ],
+  imports: [
+    CheckboxModule,
+    CommonModule,
+    FormFieldModule,
+    FormsModule,
+    ReactiveFormsModule,
+    IconButtonModule,
+    IconModule,
+    ItemModule,
+    I18nPipe,
+    LinkModule,
+    RouterModule,
+    SectionComponent,
+    SectionHeaderComponent,
+    SelectModule,
+    TypographyModule,
+    SessionTimeoutSettingsComponent,
+    PermitCipherDetailsPopoverComponent,
+    PremiumBadgeComponent,
+  ],
 })
 export class SettingsComponent implements OnInit, OnDestroy {
-  // For use in template
-  protected readonly VaultTimeoutAction = VaultTimeoutAction;
-
   showMinToTray = false;
-  vaultTimeoutOptions: VaultTimeoutOption[] = [];
   localeOptions: any[];
   themeOptions: any[];
   clearClipboardOptions: any[];
@@ -72,9 +105,12 @@ export class SettingsComponent implements OnInit, OnDestroy {
   showAlwaysShowDock = false;
   requireEnableTray = false;
   showDuckDuckGoIntegrationOption = false;
+  showEnableAutotype = false;
+  autotypeShortcut: string;
   showOpenAtLoginOption = false;
   isWindows: boolean;
   isLinux: boolean;
+  isMac: boolean;
 
   enableTrayText: string;
   enableTrayDescText: string;
@@ -92,13 +128,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
   currentUserEmail: string;
   currentUserId: UserId;
 
-  availableVaultTimeoutActions$: Observable<VaultTimeoutAction[]>;
-  vaultTimeoutPolicyCallout: Observable<{
-    timeout: { hours: number; minutes: number };
-    action: "lock" | "logOut";
-  }>;
-  previousVaultTimeout: VaultTimeout = null;
-
   userHasMasterPassword: boolean;
   userHasPinSet: boolean;
 
@@ -106,12 +135,10 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
   form = this.formBuilder.group({
     // Security
-    vaultTimeout: [null as VaultTimeout | null],
-    vaultTimeoutAction: [VaultTimeoutAction.Lock],
     pin: [null as boolean | null],
     biometric: false,
+    requireMasterPasswordOnAppRestart: true,
     autoPromptBiometrics: false,
-    requirePasswordOnStart: false,
     // Account Preferences
     clearClipboard: [null],
     minimizeOnCopyToClipboard: false,
@@ -133,11 +160,16 @@ export class SettingsComponent implements OnInit, OnDestroy {
     sshAgentPromptBehavior: SshAgentPromptType.Always,
     allowScreenshots: false,
     enableDuckDuckGoBrowserIntegration: false,
+    enableAutotype: this.formBuilder.control<boolean>({
+      value: false,
+      disabled: true,
+    }),
+    autotypeShortcut: [null as string | null],
     theme: [null as Theme | null],
     locale: [null as string | null],
   });
 
-  private refreshTimeoutSettings$ = new BehaviorSubject<void>(undefined);
+  protected refreshTimeoutSettings$ = new BehaviorSubject<void>(undefined);
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -156,6 +188,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     private dialogService: DialogService,
     private userVerificationService: UserVerificationServiceAbstraction,
     private desktopSettingsService: DesktopSettingsService,
+    private desktopAutotypeService: DesktopAutotypeService,
     private biometricStateService: BiometricStateService,
     private biometricsService: DesktopBiometricsService,
     private desktopAutofillSettingsService: DesktopAutofillSettingsService,
@@ -164,32 +197,35 @@ export class SettingsComponent implements OnInit, OnDestroy {
     private nativeMessagingManifestService: NativeMessagingManifestService,
     private configService: ConfigService,
     private validationService: ValidationService,
+    private billingAccountProfileStateService: BillingAccountProfileStateService,
   ) {
-    const isMac = this.platformUtilsService.getDevice() === DeviceType.MacOsDesktop;
+    this.isMac = this.platformUtilsService.getDevice() === DeviceType.MacOsDesktop;
+    this.isLinux = this.platformUtilsService.getDevice() === DeviceType.LinuxDesktop;
+    this.isWindows = this.platformUtilsService.getDevice() === DeviceType.WindowsDesktop;
 
     // Workaround to avoid ghosting trays https://github.com/electron/electron/issues/17622
     this.requireEnableTray = this.platformUtilsService.getDevice() === DeviceType.LinuxDesktop;
 
-    const trayKey = isMac ? "enableMenuBar" : "enableTray";
+    const trayKey = this.isMac ? "enableMenuBar" : "enableTray";
     this.enableTrayText = this.i18nService.t(trayKey);
     this.enableTrayDescText = this.i18nService.t(trayKey + "Desc");
 
-    const minToTrayKey = isMac ? "enableMinToMenuBar" : "enableMinToTray";
+    const minToTrayKey = this.isMac ? "enableMinToMenuBar" : "enableMinToTray";
     this.enableMinToTrayText = this.i18nService.t(minToTrayKey);
     this.enableMinToTrayDescText = this.i18nService.t(minToTrayKey + "Desc");
 
-    const closeToTrayKey = isMac ? "enableCloseToMenuBar" : "enableCloseToTray";
+    const closeToTrayKey = this.isMac ? "enableCloseToMenuBar" : "enableCloseToTray";
     this.enableCloseToTrayText = this.i18nService.t(closeToTrayKey);
     this.enableCloseToTrayDescText = this.i18nService.t(closeToTrayKey + "Desc");
 
-    const startToTrayKey = isMac ? "startToMenuBar" : "startToTray";
+    const startToTrayKey = this.isMac ? "startToMenuBar" : "startToTray";
     this.startToTrayText = this.i18nService.t(startToTrayKey);
     this.startToTrayDescText = this.i18nService.t(startToTrayKey + "Desc");
 
     this.showOpenAtLoginOption = !ipc.platform.isWindowsStore;
 
     // DuckDuckGo browser is only for macos initially
-    this.showDuckDuckGoIntegrationOption = isMac;
+    this.showDuckDuckGoIntegrationOption = this.isMac;
 
     const localeOptions: any[] = [];
     this.i18nService.supportedTranslationLocales.forEach((locale) => {
@@ -232,53 +268,23 @@ export class SettingsComponent implements OnInit, OnDestroy {
   }
 
   async ngOnInit() {
-    this.vaultTimeoutOptions = await this.generateVaultTimeoutOptions();
     const activeAccount = await firstValueFrom(this.accountService.activeAccount$);
-    this.isLinux = (await this.platformUtilsService.getDevice()) === DeviceType.LinuxDesktop;
 
-    if (activeAccount == null || activeAccount.id == null) {
-      return;
+    // Autotype is for Windows initially
+    const isWindows = this.platformUtilsService.getDevice() === DeviceType.WindowsDesktop;
+    if (isWindows) {
+      this.configService
+        .getFeatureFlag$(FeatureFlag.WindowsDesktopAutotype)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe((enabled) => {
+          this.showEnableAutotype = enabled;
+        });
     }
 
     this.userHasMasterPassword = await this.userVerificationService.hasMasterPassword();
 
-    this.isWindows = this.platformUtilsService.getDevice() === DeviceType.WindowsDesktop;
-
     this.currentUserEmail = activeAccount.email;
     this.currentUserId = activeAccount.id;
-
-    this.availableVaultTimeoutActions$ = this.refreshTimeoutSettings$.pipe(
-      switchMap(() =>
-        this.vaultTimeoutSettingsService.availableVaultTimeoutActions$(activeAccount.id),
-      ),
-    );
-
-    // Load timeout policy
-    this.vaultTimeoutPolicyCallout = this.accountService.activeAccount$.pipe(
-      getUserId,
-      switchMap((userId) =>
-        this.policyService.policiesByType$(PolicyType.MaximumVaultTimeout, userId),
-      ),
-      getFirstPolicy,
-      filter((policy) => policy != null),
-      map((policy) => {
-        let timeout;
-        if (policy.data?.minutes) {
-          timeout = {
-            hours: Math.floor(policy.data?.minutes / 60),
-            minutes: policy.data?.minutes % 60,
-          };
-        }
-        return { timeout: timeout, action: policy.data?.action };
-      }),
-      tap((policy) => {
-        if (policy.action) {
-          this.form.controls.vaultTimeoutAction.disable({ emitEvent: false });
-        } else {
-          this.form.controls.vaultTimeoutAction.enable({ emitEvent: false });
-        }
-      }),
-    );
 
     // Load initial values
     this.userHasPinSet = await this.pinService.isPinSet(activeAccount.id);
@@ -295,18 +301,12 @@ export class SettingsComponent implements OnInit, OnDestroy {
     );
 
     const initialValues = {
-      vaultTimeout: await firstValueFrom(
-        this.vaultTimeoutSettingsService.getVaultTimeoutByUserId$(activeAccount.id),
-      ),
-      vaultTimeoutAction: await firstValueFrom(
-        this.vaultTimeoutSettingsService.getVaultTimeoutActionByUserId$(activeAccount.id),
-      ),
       pin: this.userHasPinSet,
-      biometric: await this.vaultTimeoutSettingsService.isBiometricLockSet(),
+      biometric: await this.vaultTimeoutSettingsService.isBiometricLockSet(activeAccount.id),
+      requireMasterPasswordOnAppRestart: !(await this.biometricsService.hasPersistentKey(
+        activeAccount.id,
+      )),
       autoPromptBiometrics: await firstValueFrom(this.biometricStateService.promptAutomatically$),
-      requirePasswordOnStart: await firstValueFrom(
-        this.biometricStateService.requirePasswordOnStart$,
-      ),
       clearClipboard: await firstValueFrom(this.autofillSettingsService.clearClipboardDelay$),
       minimizeOnCopyToClipboard: await firstValueFrom(this.desktopSettingsService.minimizeOnCopy$),
       enableFavicons: await firstValueFrom(this.domainSettingsService.showFavicons$),
@@ -333,6 +333,10 @@ export class SettingsComponent implements OnInit, OnDestroy {
         this.desktopSettingsService.sshAgentPromptBehavior$,
       ),
       allowScreenshots: !(await firstValueFrom(this.desktopSettingsService.preventScreenshots$)),
+      enableAutotype: await firstValueFrom(this.desktopAutotypeService.autotypeEnabledUserSetting$),
+      autotypeShortcut: this.getFormattedAutotypeShortcutText(
+        (await firstValueFrom(this.desktopAutotypeService.autotypeKeyboardShortcut$)) ?? [],
+      ),
       theme: await firstValueFrom(this.themeStateService.selectedTheme$),
       locale: await firstValueFrom(this.i18nService.userSetLocale$),
     };
@@ -345,39 +349,19 @@ export class SettingsComponent implements OnInit, OnDestroy {
     // Non-form values
     this.showMinToTray = this.platformUtilsService.getDevice() !== DeviceType.LinuxDesktop;
     this.showAlwaysShowDock = this.platformUtilsService.getDevice() === DeviceType.MacOsDesktop;
-    this.previousVaultTimeout = this.form.value.vaultTimeout;
 
-    this.refreshTimeoutSettings$
-      .pipe(
-        switchMap(() =>
-          this.vaultTimeoutSettingsService.getVaultTimeoutActionByUserId$(activeAccount.id),
-        ),
-        takeUntil(this.destroy$),
-      )
-      .subscribe((action) => {
-        this.form.controls.vaultTimeoutAction.setValue(action, { emitEvent: false });
-      });
+    if (isWindows) {
+      this.billingAccountProfileStateService
+        .hasPremiumFromAnySource$(activeAccount.id)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe((hasPremium) => {
+          if (hasPremium) {
+            this.form.controls.enableAutotype.enable();
+          }
+        });
+    }
 
     // Form events
-    this.form.controls.vaultTimeout.valueChanges
-      .pipe(
-        debounceTime(500),
-        concatMap(async (value) => {
-          await this.saveVaultTimeout(value);
-        }),
-        takeUntil(this.destroy$),
-      )
-      .subscribe();
-
-    this.form.controls.vaultTimeoutAction.valueChanges
-      .pipe(
-        concatMap(async (action) => {
-          await this.saveVaultTimeoutAction(action);
-        }),
-        takeUntil(this.destroy$),
-      )
-      .subscribe();
-
     this.form.controls.pin.valueChanges
       .pipe(
         concatMap(async (value) => {
@@ -398,6 +382,15 @@ export class SettingsComponent implements OnInit, OnDestroy {
       )
       .subscribe();
 
+    this.form.controls.requireMasterPasswordOnAppRestart.valueChanges
+      .pipe(
+        concatMap(async (value) => {
+          await this.updateRequireMasterPasswordOnAppRestartHandler(value, activeAccount.id);
+        }),
+        takeUntil(this.destroy$),
+      )
+      .subscribe();
+
     this.form.controls.enableBrowserIntegration.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe((enabled) => {
@@ -412,79 +405,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
     this.timerId = setInterval(async () => {
       this.supportsBiometric = await this.biometricsService.canEnableBiometricUnlock();
     }, 1000);
-  }
-
-  async saveVaultTimeout(newValue: VaultTimeout) {
-    if (newValue === VaultTimeoutStringType.Never) {
-      const confirmed = await this.dialogService.openSimpleDialog({
-        title: { key: "warning" },
-        content: { key: "neverLockWarning" },
-        type: "warning",
-      });
-
-      if (!confirmed) {
-        this.form.controls.vaultTimeout.setValue(this.previousVaultTimeout);
-        return;
-      }
-    }
-
-    // Avoid saving 0 since it's useless as a timeout value.
-    if (this.form.value.vaultTimeout === 0) {
-      return;
-    }
-
-    if (!this.form.controls.vaultTimeout.valid) {
-      this.platformUtilsService.showToast(
-        "error",
-        null,
-        this.i18nService.t("vaultTimeoutTooLarge"),
-      );
-      return;
-    }
-
-    this.previousVaultTimeout = this.form.value.vaultTimeout;
-
-    const activeAccount = await firstValueFrom(this.accountService.activeAccount$);
-
-    await this.vaultTimeoutSettingsService.setVaultTimeoutOptions(
-      activeAccount.id,
-      newValue,
-      this.form.value.vaultTimeoutAction,
-    );
-  }
-
-  async saveVaultTimeoutAction(newValue: VaultTimeoutAction) {
-    if (newValue === "logOut") {
-      const confirmed = await this.dialogService.openSimpleDialog({
-        title: { key: "vaultTimeoutLogOutConfirmationTitle" },
-        content: { key: "vaultTimeoutLogOutConfirmation" },
-        type: "warning",
-      });
-
-      if (!confirmed) {
-        this.form.controls.vaultTimeoutAction.patchValue(VaultTimeoutAction.Lock, {
-          emitEvent: false,
-        });
-        return;
-      }
-    }
-
-    if (this.form.controls.vaultTimeout.hasError("policyError")) {
-      this.platformUtilsService.showToast(
-        "error",
-        null,
-        this.i18nService.t("vaultTimeoutTooLarge"),
-      );
-      return;
-    }
-
-    const activeAccount = await firstValueFrom(this.accountService.activeAccount$);
-
-    await this.vaultTimeoutSettingsService.setVaultTimeoutOptions(
-      activeAccount.id,
-      this.form.value.vaultTimeout,
-      newValue,
-    );
   }
 
   async updatePinHandler(value: boolean) {
@@ -510,18 +430,21 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
       this.userHasPinSet = await firstValueFrom(dialogRef.closed);
       this.form.controls.pin.setValue(this.userHasPinSet, { emitEvent: false });
-    }
-
-    if (!value) {
-      // If user turned off PIN without having a MP and has biometric + require MP/PIN on restart enabled
-      if (this.form.value.requirePasswordOnStart && !this.userHasMasterPassword) {
-        // then must turn that off to prevent user from getting into bad state
-        this.form.controls.requirePasswordOnStart.setValue(false);
-        await this.updateRequirePasswordOnStart();
-      }
-
+    } else {
       const userId = await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
-      await this.vaultTimeoutSettingsService.clear(userId);
+
+      // On Windows if a user turned off PIN without having a MP and has biometrics + require MP/PIN on restart enabled.
+      if (
+        this.isWindows &&
+        this.supportsBiometric &&
+        this.form.value.requireMasterPasswordOnAppRestart &&
+        this.form.value.biometric &&
+        !this.userHasMasterPassword
+      ) {
+        // Allow biometric unlock on app restart so the user doesn't get into a bad state.
+        await this.enrollPersistentBiometricIfNeeded(userId);
+      }
+      await this.pinService.unsetPin(userId);
     }
   }
 
@@ -570,18 +493,20 @@ export class SettingsComponent implements OnInit, OnDestroy {
     await this.biometricStateService.setBiometricUnlockEnabled(true);
     if (this.isWindows) {
       // Recommended settings for Windows Hello
-      this.form.controls.requirePasswordOnStart.setValue(true);
       this.form.controls.autoPromptBiometrics.setValue(false);
       await this.biometricStateService.setPromptAutomatically(false);
-      await this.biometricStateService.setRequirePasswordOnStart(true);
-      await this.biometricStateService.setDismissedRequirePasswordOnStartCallout();
+
+      // If the user doesn't have a MP or PIN then they have to use biometrics on app restart.
+      if (!this.userHasMasterPassword && !this.userHasPinSet) {
+        // Allow biometric unlock on app restart so the user doesn't get into a bad state.
+        await this.enrollPersistentBiometricIfNeeded(activeUserId);
+      } else {
+        this.form.controls.requireMasterPasswordOnAppRestart.setValue(true);
+      }
     } else if (this.isLinux) {
       // Similar to Windows
-      this.form.controls.requirePasswordOnStart.setValue(true);
       this.form.controls.autoPromptBiometrics.setValue(false);
       await this.biometricStateService.setPromptAutomatically(false);
-      await this.biometricStateService.setRequirePasswordOnStart(true);
-      await this.biometricStateService.setDismissedRequirePasswordOnStartCallout();
     }
     await this.keyService.refreshAdditionalKeys(activeUserId);
 
@@ -595,30 +520,43 @@ export class SettingsComponent implements OnInit, OnDestroy {
     }
   }
 
+  async updateRequireMasterPasswordOnAppRestartHandler(enabled: boolean, userId: UserId) {
+    try {
+      await this.updateRequireMasterPasswordOnAppRestart(enabled, userId);
+    } catch (error) {
+      this.logService.error("Error updating require master password on app restart: ", error);
+      this.validationService.showError(error);
+    }
+  }
+
+  async updateRequireMasterPasswordOnAppRestart(enabled: boolean, userId: UserId) {
+    if (enabled) {
+      // Require master password or PIN on app restart
+      const userKey = await firstValueFrom(this.keyService.userKey$(userId));
+      await this.biometricsService.deleteBiometricUnlockKeyForUser(userId);
+      await this.biometricsService.setBiometricProtectedUnlockKeyForUser(userId, userKey);
+    } else {
+      // Allow biometric unlock on app restart
+      await this.enrollPersistentBiometricIfNeeded(userId);
+    }
+  }
+
+  private async enrollPersistentBiometricIfNeeded(userId: UserId): Promise<void> {
+    if (!(await this.biometricsService.hasPersistentKey(userId))) {
+      const userKey = await firstValueFrom(this.keyService.userKey$(userId));
+      await this.biometricsService.enrollPersistent(userId, userKey);
+      this.form.controls.requireMasterPasswordOnAppRestart.setValue(false, {
+        emitEvent: false,
+      });
+    }
+  }
+
   async updateAutoPromptBiometrics() {
     if (this.form.value.autoPromptBiometrics) {
-      // require password on start must be disabled if auto prompt biometrics is enabled
-      this.form.controls.requirePasswordOnStart.setValue(false);
-      await this.updateRequirePasswordOnStart();
       await this.biometricStateService.setPromptAutomatically(true);
     } else {
       await this.biometricStateService.setPromptAutomatically(false);
     }
-  }
-
-  async updateRequirePasswordOnStart() {
-    if (this.form.value.requirePasswordOnStart) {
-      // auto prompt biometrics must be disabled if require password on start is enabled
-      this.form.controls.autoPromptBiometrics.setValue(false);
-      await this.updateAutoPromptBiometrics();
-
-      await this.biometricStateService.setRequirePasswordOnStart(true);
-    } else {
-      await this.biometricStateService.setRequirePasswordOnStart(false);
-    }
-    await this.biometricStateService.setDismissedRequirePasswordOnStartCallout();
-    const userId = await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
-    await this.keyService.refreshAdditionalKeys(userId);
   }
 
   async saveFavicons() {
@@ -824,31 +762,41 @@ export class SettingsComponent implements OnInit, OnDestroy {
     }
   }
 
-  private async generateVaultTimeoutOptions(): Promise<VaultTimeoutOption[]> {
-    let vaultTimeoutOptions: VaultTimeoutOption[] = [
-      { name: this.i18nService.t("oneMinute"), value: 1 },
-      { name: this.i18nService.t("fiveMinutes"), value: 5 },
-      { name: this.i18nService.t("fifteenMinutes"), value: 15 },
-      { name: this.i18nService.t("thirtyMinutes"), value: 30 },
-      { name: this.i18nService.t("oneHour"), value: 60 },
-      { name: this.i18nService.t("fourHours"), value: 240 },
-      { name: this.i18nService.t("onIdle"), value: VaultTimeoutStringType.OnIdle },
-      { name: this.i18nService.t("onSleep"), value: VaultTimeoutStringType.OnSleep },
-    ];
+  async saveEnableAutotype() {
+    await this.desktopAutotypeService.setAutotypeEnabledState(this.form.value.enableAutotype);
+    const currentShortcut = await firstValueFrom(
+      this.desktopAutotypeService.autotypeKeyboardShortcut$,
+    );
+    if (currentShortcut) {
+      this.form.controls.autotypeShortcut.setValue(
+        this.getFormattedAutotypeShortcutText(currentShortcut),
+      );
+    }
+  }
 
-    if (await ipc.platform.powermonitor.isLockMonitorAvailable()) {
-      vaultTimeoutOptions.push({
-        name: this.i18nService.t("onLocked"),
-        value: VaultTimeoutStringType.OnLocked,
-      });
+  async saveAutotypeShortcut() {
+    // disable the shortcut so that the user can't re-enter the existing
+    // shortcut and trigger the feature during the settings menu.
+    // it is not necessary to check if it's already enabled, because
+    // the edit shortcut is only avaialble if the feature is enabled
+    // in the settings.
+    await this.desktopAutotypeService.setAutotypeEnabledState(false);
+
+    const dialogRef = AutotypeShortcutComponent.open(this.dialogService);
+
+    const newShortcutArray = await firstValueFrom(dialogRef.closed);
+
+    // re-enable
+    await this.desktopAutotypeService.setAutotypeEnabledState(true);
+
+    if (!newShortcutArray) {
+      return;
     }
 
-    vaultTimeoutOptions = vaultTimeoutOptions.concat([
-      { name: this.i18nService.t("onRestart"), value: VaultTimeoutStringType.OnRestart },
-      { name: this.i18nService.t("never"), value: VaultTimeoutStringType.Never },
-    ]);
-
-    return vaultTimeoutOptions;
+    this.form.controls.autotypeShortcut.setValue(
+      this.getFormattedAutotypeShortcutText(newShortcutArray),
+    );
+    await this.desktopAutotypeService.setAutotypeKeyboardShortcutState(newShortcutArray);
   }
 
   ngOnDestroy() {
@@ -870,27 +818,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     }
   }
 
-  get autoPromptBiometricsText() {
-    switch (this.platformUtilsService.getDevice()) {
-      case DeviceType.MacOsDesktop:
-        return "autoPromptTouchId";
-      case DeviceType.WindowsDesktop:
-        return "autoPromptWindowsHello";
-      case DeviceType.LinuxDesktop:
-        return "autoPromptPolkit";
-      default:
-        throw new Error("Unsupported platform");
-    }
-  }
-
-  get additionalBiometricSettingsText() {
-    switch (this.platformUtilsService.getDevice()) {
-      case DeviceType.MacOsDesktop:
-        return "additionalTouchIdSettings";
-      case DeviceType.WindowsDesktop:
-        return "additionalWindowsHelloSettings";
-      default:
-        throw new Error("Unsupported platform");
-    }
+  getFormattedAutotypeShortcutText(shortcut: string[]) {
+    return shortcut ? shortcut.join("+").replace("Super", "Win") : null;
   }
 }

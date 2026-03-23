@@ -10,9 +10,9 @@ import { FakeAccountService, mockAccountServiceWith } from "../../../../spec/fak
 import { FakeSingleUserState } from "../../../../spec/fake-state";
 import { FakeStateProvider } from "../../../../spec/fake-state-provider";
 import { EncryptService } from "../../../key-management/crypto/abstractions/encrypt.service";
+import { EncString } from "../../../key-management/crypto/models/enc-string";
 import { I18nService } from "../../../platform/abstractions/i18n.service";
 import { Utils } from "../../../platform/misc/utils";
-import { EncString } from "../../../platform/models/domain/enc-string";
 import { SymmetricCryptoKey } from "../../../platform/models/domain/symmetric-crypto-key";
 import { UserId } from "../../../types/guid";
 import { UserKey } from "../../../types/key";
@@ -49,7 +49,6 @@ describe("Folder Service", () => {
 
     keyService.userKey$.mockReturnValue(new BehaviorSubject("mockOriginalUserKey" as any));
     encryptService.decryptString.mockResolvedValue("DEC");
-    encryptService.decryptToUtf8.mockResolvedValue("DEC");
 
     folderService = new FolderService(
       keyService,
@@ -123,6 +122,7 @@ describe("Folder Service", () => {
         encryptedString: "ENC",
         encryptionType: 0,
       },
+      revisionDate: expect.any(Date),
     });
   });
 
@@ -133,7 +133,7 @@ describe("Folder Service", () => {
       expect(result).toEqual({
         id: "1",
         name: makeEncString("ENC_STRING_" + 1),
-        revisionDate: null,
+        revisionDate: expect.any(Date),
       });
     });
 
@@ -151,12 +151,12 @@ describe("Folder Service", () => {
       {
         id: "1",
         name: makeEncString("ENC_STRING_" + 1),
-        revisionDate: null,
+        revisionDate: expect.any(Date),
       },
       {
         id: "2",
         name: makeEncString("ENC_STRING_" + 2),
-        revisionDate: null,
+        revisionDate: expect.any(Date),
       },
     ]);
   });
@@ -168,7 +168,7 @@ describe("Folder Service", () => {
       {
         id: "4",
         name: makeEncString("ENC_STRING_" + 4),
-        revisionDate: null,
+        revisionDate: expect.any(Date),
       },
     ]);
   });
@@ -204,7 +204,7 @@ describe("Folder Service", () => {
 
     const folderViews = await firstValueFrom(folderService.folderViews$(mockUserId));
     expect(folderViews.length).toBe(1);
-    expect(folderViews[0].id).toBeNull(); // Should be the "No Folder" folder
+    expect(folderViews[0].id).toEqual(""); // Should be the "No Folder" folder
   });
 
   describe("getRotatedData", () => {

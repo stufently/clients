@@ -3,11 +3,13 @@ import { html, TemplateResult } from "lit";
 
 import { Theme } from "@bitwarden/common/platform/enums";
 
+import { EventSecurity } from "../../../utils/event-security";
 import { border, themes, typography, spacing } from "../constants/styles";
 import { Spinner } from "../icons";
 
 export type ActionButtonProps = {
   buttonText: string | TemplateResult;
+  dataTestId?: string;
   disabled?: boolean;
   isLoading?: boolean;
   theme: Theme;
@@ -17,6 +19,7 @@ export type ActionButtonProps = {
 
 export function ActionButton({
   buttonText,
+  dataTestId,
   disabled = false,
   isLoading = false,
   theme,
@@ -24,7 +27,7 @@ export function ActionButton({
   fullWidth = true,
 }: ActionButtonProps) {
   const handleButtonClick = (event: Event) => {
-    if (!disabled && !isLoading) {
+    if (EventSecurity.isEventTrusted(event) && !disabled && !isLoading) {
       handleClick(event);
     }
   };
@@ -32,6 +35,7 @@ export function ActionButton({
   return html`
     <button
       class=${actionButtonStyles({ disabled, fullWidth, isLoading, theme })}
+      data-testid="${dataTestId}"
       title=${buttonText}
       type="button"
       @click=${handleButtonClick}
@@ -65,7 +69,7 @@ const actionButtonStyles = ({
   overflow: hidden;
   text-align: center;
   text-overflow: ellipsis;
-  font-weight: 700;
+  font-weight: 500;
 
   ${disabled || isLoading
     ? `

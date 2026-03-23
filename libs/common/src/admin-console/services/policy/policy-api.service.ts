@@ -14,6 +14,7 @@ import { PolicyData } from "../../models/data/policy.data";
 import { MasterPasswordPolicyOptions } from "../../models/domain/master-password-policy-options";
 import { Policy } from "../../models/domain/policy";
 import { PolicyRequest } from "../../models/request/policy.request";
+import { PolicyStatusResponse } from "../../models/response/policy-status.response";
 import { PolicyResponse } from "../../models/response/policy.response";
 
 export class PolicyApiService implements PolicyApiServiceAbstraction {
@@ -23,7 +24,7 @@ export class PolicyApiService implements PolicyApiServiceAbstraction {
     private accountService: AccountService,
   ) {}
 
-  async getPolicy(organizationId: string, type: PolicyType): Promise<PolicyResponse> {
+  async getPolicy(organizationId: string, type: PolicyType): Promise<PolicyStatusResponse> {
     const r = await this.apiService.send(
       "GET",
       "/organizations/" + organizationId + "/policies/" + type,
@@ -116,16 +117,32 @@ export class PolicyApiService implements PolicyApiServiceAbstraction {
   }
 
   async putPolicy(organizationId: string, type: PolicyType, request: PolicyRequest): Promise<any> {
-    const r = await this.apiService.send(
+    const response = await this.apiService.send(
       "PUT",
       "/organizations/" + organizationId + "/policies/" + type,
       request,
       true,
       true,
     );
+    await this.handleResponse(response);
+  }
+
+  async putPolicyVNext(organizationId: string, type: PolicyType, request: any): Promise<any> {
+    const response = await this.apiService.send(
+      "PUT",
+      `/organizations/${organizationId}/policies/${type}/vnext`,
+      request,
+      true,
+      true,
+    );
+
+    await this.handleResponse(response);
+  }
+
+  private async handleResponse(response: any): Promise<void> {
     const userId = await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
-    const response = new PolicyResponse(r);
-    const data = new PolicyData(response);
+    const policyResponse = new PolicyResponse(response);
+    const data = new PolicyData(policyResponse);
     await this.policyService.upsert(data, userId);
   }
 }

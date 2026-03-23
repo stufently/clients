@@ -1,5 +1,3 @@
-// FIXME: Update this file to be type safe and remove this and next line
-// @ts-strict-ignore
 import { Observable } from "rxjs";
 
 import { UserId } from "../../../types/guid";
@@ -26,13 +24,6 @@ export abstract class BillingAccountProfileStateService {
    * Emits `true` when either `hasPremiumPersonally` or `hasPremiumFromAnyOrganization` is `true`
    */
   abstract hasPremiumFromAnySource$(userId: UserId): Observable<boolean>;
-
-  /**
-   * Emits `true` when the subscription menu item should be shown in navigation.
-   * This is hidden for organizations that provide premium, except if the user has premium personally
-   * or has a billing history.
-   */
-  abstract canViewSubscription$(userId: UserId): Observable<boolean>;
 
   /**
    * Sets the user's premium status fields upon every full sync, either from their personal

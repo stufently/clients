@@ -11,13 +11,13 @@ export class AuthRequestResponse extends BaseResponse {
   requestDeviceIdentifier: string;
   requestIpAddress: string;
   requestCountryName: string;
-  key: string; // could be either an encrypted MasterKey or an encrypted UserKey
-  masterPasswordHash: string; // if hash is present, the `key` above is an encrypted MasterKey (else `key` is an encrypted UserKey)
+  key: string; // Auth-request public-key encrypted user-key. Note: No sender authenticity provided!
   creationDate: string;
   requestApproved?: boolean;
   responseDate?: string;
   isAnswered: boolean;
   isExpired: boolean;
+  deviceId?: string; // could be null or empty
 
   constructor(response: any) {
     super(response);
@@ -29,10 +29,10 @@ export class AuthRequestResponse extends BaseResponse {
     this.requestIpAddress = this.getResponseProperty("RequestIpAddress");
     this.requestCountryName = this.getResponseProperty("RequestCountryName");
     this.key = this.getResponseProperty("Key");
-    this.masterPasswordHash = this.getResponseProperty("MasterPasswordHash");
     this.creationDate = this.getResponseProperty("CreationDate");
     this.requestApproved = this.getResponseProperty("RequestApproved");
     this.responseDate = this.getResponseProperty("ResponseDate");
+    this.deviceId = this.getResponseProperty("RequestDeviceId");
 
     const requestDate = new Date(this.creationDate);
     const requestDateUTC = Date.UTC(

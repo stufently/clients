@@ -3,19 +3,21 @@ import { BehaviorSubject, firstValueFrom, of } from "rxjs";
 
 import { CollectionService } from "@bitwarden/admin-console/common";
 import { OrganizationService } from "@bitwarden/common/admin-console/abstractions/organization/organization.service.abstraction";
-import { DefaultPolicyService } from "@bitwarden/common/admin-console/services/policy/default-policy.service";
-import { AccountInfo, AccountService } from "@bitwarden/common/auth/abstractions/account.service";
+import { PolicyService } from "@bitwarden/common/admin-console/abstractions/policy/policy.service.abstraction";
+import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { AuthenticationStatus } from "@bitwarden/common/auth/enums/authentication-status";
 import { AuthService } from "@bitwarden/common/auth/services/auth.service";
 import { ExtensionCommand } from "@bitwarden/common/autofill/constants";
 import { DomainSettingsService } from "@bitwarden/common/autofill/services/domain-settings.service";
-import { UserNotificationSettingsService } from "@bitwarden/common/autofill/services/user-notification-settings.service";
+import { UserNotificationSettingsServiceAbstraction } from "@bitwarden/common/autofill/services/user-notification-settings.service";
 import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
 import { EnvironmentService } from "@bitwarden/common/platform/abstractions/environment.service";
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 import { MessagingService } from "@bitwarden/common/platform/abstractions/messaging.service";
+import { ThemeTypes } from "@bitwarden/common/platform/enums";
 import { SelfHostedEnvironment } from "@bitwarden/common/platform/services/default-environment.service";
 import { ThemeStateService } from "@bitwarden/common/platform/theming/theme-state.service";
+import { mockAccountInfoWith } from "@bitwarden/common/spec";
 import { UserId } from "@bitwarden/common/types/guid";
 import { CipherRepromptType } from "@bitwarden/common/vault/enums/cipher-reprompt-type";
 import { CipherView } from "@bitwarden/common/vault/models/view/cipher.view";
@@ -25,19 +27,21 @@ import { FolderService } from "@bitwarden/common/vault/services/folder/folder.se
 import { TaskService, SecurityTask } from "@bitwarden/common/vault/tasks";
 
 import { BrowserApi } from "../../platform/browser/browser-api";
-import { NotificationQueueMessageType } from "../enums/notification-queue-message-type.enum";
+import { NotificationType } from "../enums/notification-type.enum";
+import { Fido2Background } from "../fido2/background/abstractions/fido2.background";
 import { FormData } from "../services/abstractions/autofill.service";
 import AutofillService from "../services/autofill.service";
 import { createAutofillPageDetailsMock, createChromeTabMock } from "../spec/autofill-mocks";
 import { flushPromises, sendMockExtensionMessage } from "../spec/testing-utils";
 
 import {
-  AddChangePasswordQueueMessage,
+  AddChangePasswordNotificationQueueMessage,
   AddLoginQueueMessage,
   AddUnlockVaultQueueMessage,
   LockedVaultPendingNotificationsData,
   NotificationBackgroundExtensionMessage,
 } from "./abstractions/notification.background";
+import { ModifyLoginCipherFormData } from "./abstractions/overlay-notifications.background";
 import NotificationBackground from "./notification.background";
 
 jest.mock("rxjs", () => {
@@ -58,27 +62,42 @@ describe("NotificationBackground", () => {
   const collectionService = mock<CollectionService>();
   let activeAccountStatusMock$: BehaviorSubject<AuthenticationStatus>;
   let authService: MockProxy<AuthService>;
-  const policyService = mock<DefaultPolicyService>();
+  const policyAppliesToUser$ = new BehaviorSubject<boolean>(true);
+  const policyService = mock<PolicyService>({
+    policyAppliesToUser$: jest.fn().mockReturnValue(policyAppliesToUser$),
+  });
   const folderService = mock<FolderService>();
-  const userNotificationSettingsService = mock<UserNotificationSettingsService>();
+  const enableChangedPasswordPromptMock$ = new BehaviorSubject(true);
+  const enableAddedLoginPromptMock$ = new BehaviorSubject(true);
+  const userNotificationSettingsService = mock<UserNotificationSettingsServiceAbstraction>();
+  userNotificationSettingsService.enableChangedPasswordPrompt$ = enableChangedPasswordPromptMock$;
+  userNotificationSettingsService.enableAddedLoginPrompt$ = enableAddedLoginPromptMock$;
+
   const domainSettingsService = mock<DomainSettingsService>();
   const environmentService = mock<EnvironmentService>();
   const logService = mock<LogService>();
+  const selectedThemeMock$ = new BehaviorSubject(ThemeTypes.Light);
   const themeStateService = mock<ThemeStateService>();
+  themeStateService.selectedTheme$ = selectedThemeMock$;
   const configService = mock<ConfigService>();
   const accountService = mock<AccountService>();
   const organizationService = mock<OrganizationService>();
+  const fido2Background = mock<Fido2Background>();
+  fido2Background.isCredentialRequestInProgress.mockReturnValue(false);
 
   const userId = "testId" as UserId;
-  const activeAccountSubject = new BehaviorSubject<{ id: UserId } & AccountInfo>({
+  const activeAccountSubject = new BehaviorSubject({
     id: userId,
-    email: "test@example.com",
-    emailVerified: true,
-    name: "Test User",
+    ...mockAccountInfoWith({
+      email: "test@example.com",
+      name: "Test User",
+    }),
   });
 
   beforeEach(() => {
-    activeAccountStatusMock$ = new BehaviorSubject(AuthenticationStatus.Locked);
+    activeAccountStatusMock$ = new BehaviorSubject(
+      AuthenticationStatus.Locked as AuthenticationStatus,
+    );
     authService = mock<AuthService>();
     authService.activeAccountStatus$ = activeAccountStatusMock$;
     accountService.activeAccount$ = activeAccountSubject;
@@ -99,6 +118,7 @@ describe("NotificationBackground", () => {
       userNotificationSettingsService,
       taskService,
       messagingService,
+      fido2Background,
     );
   });
 
@@ -110,9 +130,11 @@ describe("NotificationBackground", () => {
     it("returns a cipher view when passed an `AddLoginQueueMessage`", () => {
       const message: AddLoginQueueMessage = {
         type: "add",
-        username: "test",
-        password: "password",
-        uri: "https://example.com",
+        data: {
+          username: "test",
+          password: "password",
+          uri: "https://example.com",
+        },
         domain: "",
         tab: createChromeTabMock(),
         expires: new Date(),
@@ -123,22 +145,14 @@ describe("NotificationBackground", () => {
 
       expect(cipherView.name).toEqual("example.com");
       expect(cipherView.login).toEqual({
-        autofillOnPageLoad: null,
-        fido2Credentials: null,
-        password: message.password,
-        passwordRevisionDate: null,
-        totp: null,
+        fido2Credentials: [],
+        password: message.data.password,
         uris: [
           {
-            _canLaunch: null,
-            _domain: null,
-            _host: null,
-            _hostname: null,
-            _uri: message.uri,
-            match: null,
+            _uri: message.data.uri,
           },
         ],
-        username: message.username,
+        username: message.data.username,
       });
     });
 
@@ -146,9 +160,11 @@ describe("NotificationBackground", () => {
       const folderId = "folder-id";
       const message: AddLoginQueueMessage = {
         type: "add",
-        username: "test",
-        password: "password",
-        uri: "https://example.com",
+        data: {
+          username: "test",
+          password: "password",
+          uri: "https://example.com",
+        },
         domain: "example.com",
         tab: createChromeTabMock(),
         expires: new Date(),
@@ -162,9 +178,47 @@ describe("NotificationBackground", () => {
 
       expect(cipherView.folderId).toEqual(folderId);
     });
+
+    it("removes 'www.' prefix from hostname when generating cipher name", () => {
+      const message: AddLoginQueueMessage = {
+        type: "add",
+        data: {
+          username: "test",
+          password: "password",
+          uri: "https://www.example.com",
+        },
+        domain: "www.example.com",
+        tab: createChromeTabMock(),
+        expires: new Date(),
+        wasVaultLocked: false,
+        launchTimestamp: 0,
+      };
+      const cipherView = notificationBackground["convertAddLoginQueueMessageToCipherView"](message);
+
+      expect(cipherView.name).toEqual("example.com");
+    });
+
+    it("uses domain as fallback when hostname cannot be extracted from uri", () => {
+      const message: AddLoginQueueMessage = {
+        type: "add",
+        data: {
+          username: "test",
+          password: "password",
+          uri: "",
+        },
+        domain: "fallback-domain.com",
+        tab: createChromeTabMock(),
+        expires: new Date(),
+        wasVaultLocked: false,
+        launchTimestamp: 0,
+      };
+      const cipherView = notificationBackground["convertAddLoginQueueMessageToCipherView"](message);
+
+      expect(cipherView.name).toEqual("fallback-domain.com");
+    });
   });
 
-  describe("notification bar extension message handlers", () => {
+  describe("notification bar extension message handlers and triggers", () => {
     beforeEach(() => {
       notificationBackground.init();
     });
@@ -199,10 +253,16 @@ describe("NotificationBackground", () => {
       });
 
       it("triggers a retryHandler if the message target is `notification.background` and a handler exists", async () => {
+        const retrySender = mock<chrome.runtime.MessageSender>({
+          tab: { id: 1 } as chrome.tabs.Tab,
+        });
         const message: NotificationBackgroundExtensionMessage = {
           command: "unlockCompleted",
           data: {
-            commandToRetry: { message: { command: "bgSaveCipher" } },
+            commandToRetry: {
+              message: { command: "bgSaveCipher" },
+              sender: retrySender,
+            },
             target: "notification.background",
           } as LockedVaultPendingNotificationsData,
         };
@@ -279,10 +339,424 @@ describe("NotificationBackground", () => {
       let tab: chrome.tabs.Tab;
       let sender: chrome.runtime.MessageSender;
       let getEnableAddedLoginPromptSpy: jest.SpyInstance;
-      let getEnableChangedPasswordPromptSpy: jest.SpyInstance;
       let pushAddLoginToQueueSpy: jest.SpyInstance;
       let pushChangePasswordToQueueSpy: jest.SpyInstance;
       let getAllDecryptedForUrlSpy: jest.SpyInstance;
+      const mockModifyLoginCipherFormData: ModifyLoginCipherFormData = {
+        username: "test",
+        password: "password",
+        uri: "https://example.com",
+        newPassword: "",
+      };
+      beforeEach(() => {
+        tab = createChromeTabMock();
+        sender = mock<chrome.runtime.MessageSender>({ tab });
+        getEnableAddedLoginPromptSpy = jest.spyOn(
+          notificationBackground as any,
+          "getEnableAddedLoginPrompt",
+        );
+
+        pushAddLoginToQueueSpy = jest.spyOn(notificationBackground as any, "pushAddLoginToQueue");
+        pushChangePasswordToQueueSpy = jest.spyOn(
+          notificationBackground as any,
+          "pushChangePasswordToQueue",
+        );
+        getAllDecryptedForUrlSpy = jest.spyOn(cipherService, "getAllDecryptedForUrl");
+      });
+
+      it("skips attempting to add the login if the user is logged out", async () => {
+        const data: ModifyLoginCipherFormData = mockModifyLoginCipherFormData;
+        activeAccountStatusMock$.next(AuthenticationStatus.LoggedOut);
+
+        await notificationBackground.triggerAddLoginNotification(data, tab);
+
+        expect(getEnableAddedLoginPromptSpy).not.toHaveBeenCalled();
+        expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+      });
+
+      it("skips attempting to add the login if the login data does not contain a valid url", async () => {
+        const data: ModifyLoginCipherFormData = {
+          ...mockModifyLoginCipherFormData,
+          uri: "",
+        };
+        activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+
+        await notificationBackground.triggerAddLoginNotification(data, tab);
+
+        expect(getEnableAddedLoginPromptSpy).not.toHaveBeenCalled();
+        expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+      });
+
+      it("skips attempting to add the login if the user with a locked vault has disabled the login notification", async () => {
+        const data: ModifyLoginCipherFormData = mockModifyLoginCipherFormData;
+        activeAccountStatusMock$.next(AuthenticationStatus.Locked);
+        getEnableAddedLoginPromptSpy.mockReturnValueOnce(false);
+
+        await notificationBackground.triggerAddLoginNotification(data, tab);
+
+        expect(getEnableAddedLoginPromptSpy).toHaveBeenCalled();
+        expect(getAllDecryptedForUrlSpy).not.toHaveBeenCalled();
+        expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+      });
+
+      it("skips attempting to add the login if the user with an unlocked vault has disabled the login notification", async () => {
+        const data: ModifyLoginCipherFormData = mockModifyLoginCipherFormData;
+        activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+        getEnableAddedLoginPromptSpy.mockReturnValueOnce(false);
+        getAllDecryptedForUrlSpy.mockResolvedValueOnce([]);
+
+        await notificationBackground.triggerAddLoginNotification(data, tab);
+
+        expect(getEnableAddedLoginPromptSpy).toHaveBeenCalled();
+        expect(getAllDecryptedForUrlSpy).toHaveBeenCalled();
+        expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+      });
+
+      it("skips attempting to change the password for an existing login if the password has not changed", async () => {
+        const data: ModifyLoginCipherFormData = mockModifyLoginCipherFormData;
+        activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+        getEnableAddedLoginPromptSpy.mockReturnValueOnce(true);
+        getAllDecryptedForUrlSpy.mockResolvedValueOnce([
+          mock<CipherView>({ login: { username: "test", password: "password" } }),
+        ]);
+
+        await notificationBackground.triggerAddLoginNotification(data, tab);
+
+        expect(getEnableAddedLoginPromptSpy).toHaveBeenCalled();
+        expect(getAllDecryptedForUrlSpy).toHaveBeenCalled();
+        expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+      });
+
+      it("adds the login to the queue if the user has a locked account", async () => {
+        const data: ModifyLoginCipherFormData = mockModifyLoginCipherFormData;
+        activeAccountStatusMock$.next(AuthenticationStatus.Locked);
+        getEnableAddedLoginPromptSpy.mockReturnValueOnce(true);
+
+        await notificationBackground.triggerAddLoginNotification(data, tab);
+
+        expect(pushAddLoginToQueueSpy).toHaveBeenCalledWith(
+          "example.com",
+          {
+            url: data.uri,
+            username: data.username,
+            password: data.password,
+          },
+          sender.tab,
+          true, // will yield an unlock followed by a new password notification
+        );
+      });
+
+      it("adds the login to the queue if the user has an unlocked account and the login is new", async () => {
+        const data: ModifyLoginCipherFormData = {
+          ...mockModifyLoginCipherFormData,
+          username: "",
+        };
+
+        activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+        getEnableAddedLoginPromptSpy.mockReturnValueOnce(true);
+        getAllDecryptedForUrlSpy.mockResolvedValueOnce([
+          mock<CipherView>({ login: { username: "anotherTestUsername", password: "password" } }),
+        ]);
+
+        await notificationBackground.triggerAddLoginNotification(data, tab);
+
+        expect(pushAddLoginToQueueSpy).toHaveBeenCalledWith(
+          "example.com",
+          {
+            url: data.uri,
+            username: data.username,
+            password: data.password,
+          },
+          sender.tab,
+        );
+      });
+    });
+
+    describe("bgTriggerChangedPasswordNotification message handler", () => {
+      let tab: chrome.tabs.Tab;
+      let sender: chrome.runtime.MessageSender;
+      let getEnableChangedPasswordPromptSpy: jest.SpyInstance;
+      let pushChangePasswordToQueueSpy: jest.SpyInstance;
+      let getAllDecryptedForUrlSpy: jest.SpyInstance;
+      const mockModifyLoginCipherFormData: ModifyLoginCipherFormData = {
+        username: "",
+        uri: "",
+        password: "currentPassword",
+        newPassword: "newPassword",
+      };
+
+      beforeEach(() => {
+        tab = createChromeTabMock();
+        sender = mock<chrome.runtime.MessageSender>({ tab });
+        getEnableChangedPasswordPromptSpy = jest.spyOn(
+          notificationBackground as any,
+          "getEnableChangedPasswordPrompt",
+        );
+
+        pushChangePasswordToQueueSpy = jest.spyOn(
+          notificationBackground as any,
+          "pushChangePasswordToQueue",
+        );
+        getAllDecryptedForUrlSpy = jest.spyOn(cipherService, "getAllDecryptedForUrl");
+      });
+
+      afterEach(() => {
+        getEnableChangedPasswordPromptSpy.mockRestore();
+        pushChangePasswordToQueueSpy.mockRestore();
+        getAllDecryptedForUrlSpy.mockRestore();
+      });
+
+      it("skips attempting to change the password for an existing login if the user has disabled changing the password notification", async () => {
+        const data: ModifyLoginCipherFormData = {
+          ...mockModifyLoginCipherFormData,
+        };
+        activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+        getEnableChangedPasswordPromptSpy.mockReturnValueOnce(false);
+        getAllDecryptedForUrlSpy.mockResolvedValueOnce([
+          mock<CipherView>({ login: { username: "test", password: "oldPassword" } }),
+        ]);
+
+        await notificationBackground.triggerChangedPasswordNotification(data, tab);
+
+        expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+      });
+
+      it("skips attempting to add the change password message to the queue if the user is logged out", async () => {
+        const data: ModifyLoginCipherFormData = {
+          ...mockModifyLoginCipherFormData,
+          uri: "https://example.com",
+        };
+
+        activeAccountStatusMock$.next(AuthenticationStatus.LoggedOut);
+
+        await notificationBackground.triggerChangedPasswordNotification(data, tab);
+
+        expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+      });
+
+      it("skips attempting to add the change password message to the queue if the passed url is not valid", async () => {
+        const data: ModifyLoginCipherFormData = mockModifyLoginCipherFormData;
+
+        await notificationBackground.triggerChangedPasswordNotification(data, tab);
+
+        expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+      });
+
+      it("only only includes ciphers in notification data matching a username if username was present in the modify form data", async () => {
+        const data: ModifyLoginCipherFormData = {
+          ...mockModifyLoginCipherFormData,
+          uri: "https://example.com",
+          username: "userName",
+        };
+
+        activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+        getAllDecryptedForUrlSpy.mockResolvedValueOnce([
+          mock<CipherView>({
+            id: "cipher-id-1",
+            login: { username: "test", password: "currentPassword" },
+          }),
+          mock<CipherView>({
+            id: "cipher-id-2",
+            login: { username: "username", password: "currentPassword" },
+          }),
+          mock<CipherView>({
+            id: "cipher-id-3",
+            login: { username: "uSeRnAmE", password: "currentPassword" },
+          }),
+        ]);
+
+        await notificationBackground.triggerChangedPasswordNotification(data, tab);
+
+        expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
+          ["cipher-id-2", "cipher-id-3"],
+          "example.com",
+          data?.newPassword,
+          sender.tab,
+        );
+      });
+
+      it("adds a change password message to the queue with current password, if there is a current password, but no new password", async () => {
+        const data: ModifyLoginCipherFormData = {
+          ...mockModifyLoginCipherFormData,
+          uri: "https://example.com",
+          password: "newPasswordUpdatedElsewhere",
+          newPassword: "",
+        };
+        activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+        getAllDecryptedForUrlSpy.mockResolvedValueOnce([
+          mock<CipherView>({
+            id: "cipher-id-1",
+            login: { password: "currentPassword" },
+          }),
+        ]);
+        await notificationBackground.triggerChangedPasswordNotification(data, tab);
+
+        expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
+          ["cipher-id-1"],
+          "example.com",
+          data?.password,
+          sender.tab,
+        );
+      });
+
+      it("adds a change password message to the queue with new password, if new password is provided", async () => {
+        const data: ModifyLoginCipherFormData = {
+          ...mockModifyLoginCipherFormData,
+          uri: "https://example.com",
+          password: "password2",
+          newPassword: "password3",
+        };
+        activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+        getAllDecryptedForUrlSpy.mockResolvedValueOnce([
+          mock<CipherView>({
+            id: "cipher-id-1",
+            login: { password: "password1" },
+          }),
+          mock<CipherView>({
+            id: "cipher-id-4",
+            login: { password: "password4" },
+          }),
+        ]);
+        await notificationBackground.triggerChangedPasswordNotification(data, tab);
+
+        expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
+          ["cipher-id-1", "cipher-id-4"],
+          "example.com",
+          data?.newPassword,
+          sender.tab,
+        );
+      });
+
+      it("adds a change password message to the queue if the user has a locked account", async () => {
+        const data: ModifyLoginCipherFormData = {
+          ...mockModifyLoginCipherFormData,
+          uri: "https://example.com",
+        };
+
+        activeAccountStatusMock$.next(AuthenticationStatus.Locked);
+
+        await notificationBackground.triggerChangedPasswordNotification(data, tab);
+
+        expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
+          null,
+          "example.com",
+          data?.newPassword,
+          sender.tab,
+          true, // will yield an unlock followed by an update password notification
+        );
+      });
+
+      it("doesn't add a password if there is no current or new password", async () => {
+        const data: ModifyLoginCipherFormData = {
+          ...mockModifyLoginCipherFormData,
+          uri: "https://example.com",
+          password: "",
+          newPassword: "",
+        };
+        activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+        getAllDecryptedForUrlSpy.mockResolvedValueOnce([
+          mock<CipherView>({ login: { username: "test", password: "password" } }),
+        ]);
+        await notificationBackground.triggerChangedPasswordNotification(data, tab);
+
+        expect(getAllDecryptedForUrlSpy).toHaveBeenCalled();
+        expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+      });
+
+      it("adds a change password message to the queue if a single cipher matches the passed current password", async () => {
+        const data: ModifyLoginCipherFormData = {
+          ...mockModifyLoginCipherFormData,
+          uri: "https://example.com",
+        };
+        activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+        getAllDecryptedForUrlSpy.mockResolvedValueOnce([
+          mock<CipherView>({
+            id: "cipher-id",
+            login: { username: "test", password: "currentPassword" },
+          }),
+        ]);
+
+        await notificationBackground.triggerChangedPasswordNotification(data, tab);
+
+        expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
+          ["cipher-id"],
+          "example.com",
+          data?.newPassword,
+          sender.tab,
+        );
+      });
+
+      it("adds a change password message with all matching ciphers if no current password is passed and more than one cipher is found for a url", async () => {
+        const data: ModifyLoginCipherFormData = {
+          ...mockModifyLoginCipherFormData,
+          uri: "https://example.com",
+          password: "",
+        };
+        activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+        getAllDecryptedForUrlSpy.mockResolvedValueOnce([
+          mock<CipherView>({
+            id: "cipher-id-1",
+            login: { username: "test", password: "password" },
+          }),
+          mock<CipherView>({
+            id: "cipher-id-2",
+            login: { username: "test2", password: "password" },
+          }),
+        ]);
+
+        await notificationBackground.triggerChangedPasswordNotification(data, tab);
+
+        expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
+          ["cipher-id-1", "cipher-id-2"],
+          "example.com",
+          data?.newPassword,
+          sender.tab,
+        );
+      });
+
+      it("adds a change password message to the queue if no current password is passed with the message, but a single cipher is matched for the uri", async () => {
+        const data: ModifyLoginCipherFormData = {
+          ...mockModifyLoginCipherFormData,
+          uri: "https://example.com",
+          password: "",
+        };
+        activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+        getAllDecryptedForUrlSpy.mockResolvedValueOnce([
+          mock<CipherView>({
+            id: "cipher-id",
+            login: { username: "test", password: "password" },
+          }),
+        ]);
+
+        await notificationBackground.triggerChangedPasswordNotification(data, tab);
+
+        expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
+          ["cipher-id"],
+          "example.com",
+          data?.newPassword,
+          sender.tab,
+        );
+      });
+    });
+
+    describe("triggerCipherNotification message handler", () => {
+      let tab: chrome.tabs.Tab;
+      let sender: chrome.runtime.MessageSender;
+      let getEnableChangedPasswordPromptSpy: jest.SpyInstance;
+      let getEnableAddedLoginPromptSpy: jest.SpyInstance;
+      let pushChangePasswordToQueueSpy: jest.SpyInstance;
+      let pushAddLoginToQueueSpy: jest.SpyInstance;
+      let getAllDecryptedForUrlSpy: jest.SpyInstance;
+      const mockFormattedURI = "archive.org";
+      const mockFormURI = "https://www.archive.org";
+      const expectSkippedCheckingNotification = () => {
+        expect(getAllDecryptedForUrlSpy).not.toHaveBeenCalled();
+        expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+      };
 
       beforeEach(() => {
         tab = createChromeTabMock();
@@ -295,352 +769,1482 @@ describe("NotificationBackground", () => {
           notificationBackground as any,
           "getEnableChangedPasswordPrompt",
         );
+        pushChangePasswordToQueueSpy = jest.spyOn(
+          notificationBackground as any,
+          "pushChangePasswordToQueue",
+        );
         pushAddLoginToQueueSpy = jest.spyOn(notificationBackground as any, "pushAddLoginToQueue");
-        pushChangePasswordToQueueSpy = jest.spyOn(
-          notificationBackground as any,
-          "pushChangePasswordToQueue",
-        );
         getAllDecryptedForUrlSpy = jest.spyOn(cipherService, "getAllDecryptedForUrl");
       });
 
-      it("skips attempting to add the login if the user is logged out", async () => {
-        const message: NotificationBackgroundExtensionMessage = {
-          command: "bgTriggerAddLoginNotification",
-          login: { username: "test", password: "password", url: "https://example.com" },
-        };
-        activeAccountStatusMock$.next(AuthenticationStatus.LoggedOut);
-
-        sendMockExtensionMessage(message, sender);
-        await flushPromises();
-
-        expect(getEnableAddedLoginPromptSpy).not.toHaveBeenCalled();
-        expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+      afterEach(() => {
+        getEnableAddedLoginPromptSpy.mockRestore();
+        getEnableChangedPasswordPromptSpy.mockRestore();
+        pushChangePasswordToQueueSpy.mockRestore();
+        pushAddLoginToQueueSpy.mockRestore();
+        getAllDecryptedForUrlSpy.mockRestore();
       });
 
-      it("skips attempting to add the login if the login data does not contain a valid url", async () => {
-        const message: NotificationBackgroundExtensionMessage = {
-          command: "bgTriggerAddLoginNotification",
-          login: { username: "test", password: "password", url: "" },
+      it("skips checking if a notification should trigger if no fields were filled", async () => {
+        const formEntryData: ModifyLoginCipherFormData = {
+          newPassword: "",
+          password: "",
+          uri: mockFormURI,
+          username: "",
         };
-        activeAccountStatusMock$.next(AuthenticationStatus.Locked);
 
-        sendMockExtensionMessage(message, sender);
-        await flushPromises();
+        const storedCiphersForURL = [
+          mock<CipherView>({
+            id: "cipher-id-1",
+            login: { password: "I<3VogonPoetry", username: "ADent" },
+          }),
+        ];
 
-        expect(getEnableAddedLoginPromptSpy).not.toHaveBeenCalled();
-        expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
-      });
-
-      it("skips attempting to add the login if the user with a locked vault has disabled the login notification", async () => {
-        const message: NotificationBackgroundExtensionMessage = {
-          command: "bgTriggerAddLoginNotification",
-          login: { username: "test", password: "password", url: "https://example.com" },
-        };
-        activeAccountStatusMock$.next(AuthenticationStatus.Locked);
-        getEnableAddedLoginPromptSpy.mockReturnValueOnce(false);
-
-        sendMockExtensionMessage(message, sender);
-        await flushPromises();
-
-        expect(getEnableAddedLoginPromptSpy).toHaveBeenCalled();
-        expect(getAllDecryptedForUrlSpy).not.toHaveBeenCalled();
-        expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
-        expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
-      });
-
-      it("skips attempting to add the login if the user with an unlocked vault has disabled the login notification", async () => {
-        const message: NotificationBackgroundExtensionMessage = {
-          command: "bgTriggerAddLoginNotification",
-          login: { username: "test", password: "password", url: "https://example.com" },
-        };
         activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
-        getEnableAddedLoginPromptSpy.mockReturnValueOnce(false);
-        getAllDecryptedForUrlSpy.mockResolvedValueOnce([]);
+        getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
 
-        sendMockExtensionMessage(message, sender);
-        await flushPromises();
+        await notificationBackground.triggerCipherNotification(formEntryData, tab);
 
-        expect(getEnableAddedLoginPromptSpy).toHaveBeenCalled();
-        expect(getAllDecryptedForUrlSpy).toHaveBeenCalled();
-        expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
-        expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+        expectSkippedCheckingNotification();
       });
 
-      it("skips attempting to change the password for an existing login if the user has disabled changing the password notification", async () => {
-        const message: NotificationBackgroundExtensionMessage = {
-          command: "bgTriggerAddLoginNotification",
-          login: { username: "test", password: "password", url: "https://example.com" },
+      it("skips checking if a notification should trigger if the passed url is not valid", async () => {
+        const formEntryData: ModifyLoginCipherFormData = {
+          newPassword: "Bab3lPhs5h",
+          password: "I<3VogonPoetry",
+          uri: "",
+          username: "ADent",
         };
+
+        const storedCiphersForURL = [
+          mock<CipherView>({
+            id: "cipher-id-1",
+            login: { password: "I<3VogonPoetry", username: "ADent" },
+          }),
+        ];
+
         activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
-        getEnableAddedLoginPromptSpy.mockReturnValueOnce(true);
+        getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+        await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+        expectSkippedCheckingNotification();
+      });
+
+      it("skips checking if a notification should trigger if a fido2 credential request is in progress for the tab", async () => {
+        const formEntryData: ModifyLoginCipherFormData = {
+          newPassword: "",
+          password: "",
+          uri: mockFormURI,
+          username: "ADent",
+        };
+
+        activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+        fido2Background.isCredentialRequestInProgress.mockReturnValueOnce(true);
+
+        await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+        expectSkippedCheckingNotification();
+      });
+
+      it("skips checking if a notification should trigger if the user has disabled both the new login and update password notification", async () => {
+        const formEntryData: ModifyLoginCipherFormData = {
+          newPassword: "Bab3lPhs5h",
+          password: "I<3VogonPoetry",
+          uri: mockFormURI,
+          username: "ADent",
+        };
+
+        const storedCiphersForURL = [
+          mock<CipherView>({ login: { username: "ADent", password: "I<3VogonPoetry" } }),
+        ];
+
+        activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
         getEnableChangedPasswordPromptSpy.mockReturnValueOnce(false);
-        getAllDecryptedForUrlSpy.mockResolvedValueOnce([
-          mock<CipherView>({ login: { username: "test", password: "oldPassword" } }),
-        ]);
+        getEnableAddedLoginPromptSpy.mockReturnValueOnce(false);
+        getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
 
-        sendMockExtensionMessage(message, sender);
-        await flushPromises();
+        await notificationBackground.triggerCipherNotification(formEntryData, tab);
 
-        expect(getEnableAddedLoginPromptSpy).toHaveBeenCalled();
-        expect(getAllDecryptedForUrlSpy).toHaveBeenCalled();
-        expect(getEnableChangedPasswordPromptSpy).toHaveBeenCalled();
-        expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
-        expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+        expectSkippedCheckingNotification();
       });
 
-      it("skips attempting to change the password for an existing login if the password has not changed", async () => {
-        const message: NotificationBackgroundExtensionMessage = {
-          command: "bgTriggerAddLoginNotification",
-          login: { username: "test", password: "password", url: "https://example.com" },
+      it("skips checking if a notification should trigger if the user is logged out", async () => {
+        const formEntryData: ModifyLoginCipherFormData = {
+          newPassword: "Bab3lPhs5h",
+          password: "I<3VogonPoetry",
+          uri: mockFormURI,
+          username: "ADent",
         };
-        activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
-        getEnableAddedLoginPromptSpy.mockReturnValueOnce(true);
-        getAllDecryptedForUrlSpy.mockResolvedValueOnce([
-          mock<CipherView>({ login: { username: "test", password: "password" } }),
-        ]);
 
-        sendMockExtensionMessage(message, sender);
-        await flushPromises();
+        const storedCiphersForURL = [
+          mock<CipherView>({ login: { username: "ADent", password: "I<3VogonPoetry" } }),
+        ];
 
-        expect(getEnableAddedLoginPromptSpy).toHaveBeenCalled();
-        expect(getAllDecryptedForUrlSpy).toHaveBeenCalled();
-        expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
-        expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+        activeAccountStatusMock$.next(AuthenticationStatus.LoggedOut);
+        getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+        await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+        expectSkippedCheckingNotification();
       });
 
-      it("adds the login to the queue if the user has a locked account", async () => {
-        const login = { username: "test", password: "password", url: "https://example.com" };
-        const message: NotificationBackgroundExtensionMessage = {
-          command: "bgTriggerAddLoginNotification",
-          login,
+      it("skips checking if a notification should trigger if there is no active account", async () => {
+        const formEntryData: ModifyLoginCipherFormData = {
+          newPassword: "Bab3lPhs5h",
+          password: "I<3VogonPoetry",
+          uri: mockFormURI,
+          username: "ADent",
         };
+
+        const storedCiphersForURL = [
+          mock<CipherView>({ login: { username: "ADent", password: "I<3VogonPoetry" } }),
+        ];
+
+        accountService.activeAccount$ = new BehaviorSubject(null);
+        getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+        await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+        expectSkippedCheckingNotification();
+      });
+
+      it("skips checking if a notification should trigger if the values for the `password` and `newPassword` fields match (no change)", async () => {
+        const formEntryData: ModifyLoginCipherFormData = {
+          newPassword: "Beeblebrox4Prez",
+          password: "Beeblebrox4Prez",
+          uri: mockFormURI,
+          username: "ADent",
+        };
+
+        const storedCiphersForURL = [
+          mock<CipherView>({ login: { username: "ADent", password: "I<3VogonPoetry" } }),
+        ];
+
+        getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+        await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+        expectSkippedCheckingNotification();
+      });
+
+      it("skips checking if a notification should trigger if the vault is locked and there is no value for the `newPassword` field", async () => {
+        const formEntryData: ModifyLoginCipherFormData = {
+          newPassword: "",
+          password: "Beeblebrox4Prez",
+          uri: mockFormURI,
+          username: "ADent",
+        };
+
+        const storedCiphersForURL = [
+          mock<CipherView>({ login: { username: "ADent", password: "I<3VogonPoetry" } }),
+        ];
+
         activeAccountStatusMock$.next(AuthenticationStatus.Locked);
-        getEnableAddedLoginPromptSpy.mockReturnValueOnce(true);
+        getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
 
-        sendMockExtensionMessage(message, sender);
-        await flushPromises();
+        await notificationBackground.triggerCipherNotification(formEntryData, tab);
 
-        expect(pushAddLoginToQueueSpy).toHaveBeenCalledWith("example.com", login, sender.tab, true);
+        expectSkippedCheckingNotification();
       });
 
-      it("adds the login to the queue if the user has an unlocked account and the login is new", async () => {
-        const login = {
-          username: undefined,
-          password: "password",
-          url: "https://example.com",
-        } as any;
-        const message: NotificationBackgroundExtensionMessage = {
-          command: "bgTriggerAddLoginNotification",
-          login,
-        };
-        activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
-        getEnableAddedLoginPromptSpy.mockReturnValueOnce(true);
-        getAllDecryptedForUrlSpy.mockResolvedValueOnce([
-          mock<CipherView>({ login: { username: "anotherTestUsername", password: "password" } }),
-        ]);
-
-        sendMockExtensionMessage(message, sender);
-        await flushPromises();
-
-        expect(pushAddLoginToQueueSpy).toHaveBeenCalledWith("example.com", login, sender.tab);
-      });
-
-      it("adds a change password message to the queue if the user has changed an existing cipher's password", async () => {
-        const login = { username: "tEsT", password: "password", url: "https://example.com" };
-        const message: NotificationBackgroundExtensionMessage = {
-          command: "bgTriggerAddLoginNotification",
-          login,
-        };
-        activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
-        getEnableAddedLoginPromptSpy.mockResolvedValueOnce(true);
-        getEnableChangedPasswordPromptSpy.mockResolvedValueOnce(true);
-        getAllDecryptedForUrlSpy.mockResolvedValueOnce([
-          mock<CipherView>({
-            id: "cipher-id",
-            login: { username: "test", password: "oldPassword" },
-          }),
-        ]);
-
-        sendMockExtensionMessage(message, sender);
-        await flushPromises();
-
-        expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
-          "cipher-id",
-          "example.com",
-          login.password,
-          sender.tab,
-        );
-      });
-    });
-
-    describe("bgTriggerChangedPasswordNotification message handler", () => {
-      let tab: chrome.tabs.Tab;
-      let sender: chrome.runtime.MessageSender;
-      let pushChangePasswordToQueueSpy: jest.SpyInstance;
-      let getAllDecryptedForUrlSpy: jest.SpyInstance;
-
-      beforeEach(() => {
-        tab = createChromeTabMock();
-        sender = mock<chrome.runtime.MessageSender>({ tab });
-        pushChangePasswordToQueueSpy = jest.spyOn(
-          notificationBackground as any,
-          "pushChangePasswordToQueue",
-        );
-        getAllDecryptedForUrlSpy = jest.spyOn(cipherService, "getAllDecryptedForUrl");
-      });
-
-      it("skips attempting to add the change password message to the queue if the passed url is not valid", async () => {
-        const message: NotificationBackgroundExtensionMessage = {
-          command: "bgTriggerChangedPasswordNotification",
-          data: { newPassword: "newPassword", currentPassword: "currentPassword", url: "" },
+      describe("when `username` and `password` and `newPassword` fields are filled, ", () => {
+        const formEntryData: ModifyLoginCipherFormData = {
+          newPassword: "Edro2x",
+          password: "UShallKnotPassword",
+          uri: mockFormURI,
+          username: "gandalfG",
         };
 
-        sendMockExtensionMessage(message);
-        await flushPromises();
+        it("and the user vault is locked, trigger an unlock notification", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { password: "galadriel4Eva", username: "gandalfW" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { password: "Edro2x", username: "shadowfax" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { password: "sting123", username: "BBaggins" },
+            }),
+          ];
 
-        expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          activeAccountStatusMock$.next(AuthenticationStatus.Locked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(getAllDecryptedForUrlSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+
+          expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
+            null,
+            mockFormattedURI,
+            formEntryData.newPassword,
+            tab,
+            true, // will yield an unlock prompt followed by an update password prompt
+          );
+        });
+
+        it("and cipher update candidates match `newPassword` only, trigger a new cipher notification", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { password: "galadriel4Eva", username: "gandalfW" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { password: "Edro2x", username: "shadowfax" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { password: "sting123", username: "BBaggins" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).toHaveBeenCalledWith(
+            mockFormattedURI,
+            {
+              password: formEntryData.newPassword,
+              url: formEntryData.uri,
+              username: formEntryData.username,
+            },
+            sender.tab,
+          );
+        });
+
+        it("and cipher update candidates match `newPassword` only, do not trigger a new cipher notification if the new cipher notification setting is disabled", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { password: "galadriel4Eva", username: "gandalfW" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { password: "Edro2x", username: "shadowfax" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { password: "sting123", username: "BBaggins" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+          getEnableAddedLoginPromptSpy.mockReturnValueOnce(false);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        });
+
+        it("and cipher update candidates match `password` only, trigger an update cipher notification with those candidates", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { password: "UShallKnotPassword", username: "gandalfW" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { password: "UShallKnotPassword", username: "shadowfax" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { password: "sting123", username: "BBaggins" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+          expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
+            ["cipher-id-1", "cipher-id-2"],
+            mockFormattedURI,
+            formEntryData.newPassword,
+            sender.tab,
+          );
+        });
+
+        it("and cipher update candidates match `password` only, do not trigger an update cipher notification if the update notification setting is disabled", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { password: "UShallKnotPassword", username: "gandalfW" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { password: "UShallKnotPassword", username: "shadowfax" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { password: "sting123", username: "BBaggins" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+          getEnableChangedPasswordPromptSpy.mockReturnValueOnce(false);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        });
+
+        it("and cipher update candidates match `password` only, as well as `newPassword` only, trigger a new cipher notification", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { password: "UShallKnotPassword", username: "gandalfW" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { password: "Edro2x", username: "TBombadil" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { password: "UShallKnotPassword", username: "shadowfax" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-4",
+              login: { password: "sting123", username: "BBaggins" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).toHaveBeenCalledWith(
+            mockFormattedURI,
+            {
+              password: formEntryData.newPassword,
+              url: formEntryData.uri,
+              username: formEntryData.username,
+            },
+            sender.tab,
+          );
+        });
+
+        it("and cipher update candidates match `username` only, trigger an update cipher notification with those candidates", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { password: "galadriel4Eva", username: "gandalfW" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { password: "EdroEdro", username: "gandalfG" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { password: "sting123", username: "BBaggins" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+          expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
+            ["cipher-id-2"],
+            mockFormattedURI,
+            formEntryData.newPassword,
+            sender.tab,
+          );
+        });
+
+        it("and cipher update candidates match `username` only, do not trigger an update cipher notification if the update notification setting is disabled", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { password: "galadriel4Eva", username: "gandalfW" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { password: "EdroEdro", username: "gandalfG" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { password: "sting123", username: "BBaggins" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+          getEnableChangedPasswordPromptSpy.mockReturnValueOnce(false);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        });
+
+        it("and cipher update candidates match `username` only, as well as `password` or `newPassword` only, trigger an update cipher notification with the candidates `username`", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { password: "UShallKnotPassword", username: "gandalfW" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { password: "Edro2x", username: "BBaggins" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { password: "EdroEdro", username: "gandalfG" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+          expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
+            ["cipher-id-3"],
+            mockFormattedURI,
+            formEntryData.newPassword,
+            sender.tab,
+          );
+        });
+
+        it("and cipher update candidates match `username` and `newPassword`, do not trigger an update (nothing to change)", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { password: "galadriel4Eva", username: "gandalfW" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { password: "sting123", username: "BBaggins" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { password: "Edro2x", username: "gandalfG" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        });
+
+        it("and cipher update candidates match `username` and `newPassword` as well as any other combination of `username`, `password`, and/or `newPassword`, do not trigger an update (nothing to change)", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { password: "galadriel4Eva", username: "gandalfW" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { password: "sting123", username: "BBaggins" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { password: "Edro2x", username: "gandalfG" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-4",
+              login: { password: "UShallKnotPassword", username: "gandalfG" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-5",
+              login: { password: "Edro2x", username: "FBaggins" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-6",
+              login: { password: "UShallKnotPassword", username: "TBombadil" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-7",
+              login: { password: "ShyerH1re", username: "gandalfG" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        });
+
+        it("and cipher update candidates match `username` and `password`, trigger an update cipher notification with those candidates", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { password: "UShallKnotPassword", username: "gandalfG" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { password: "galadriel4Eva", username: "gandalfW" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { password: "sting123", username: "BBaggins" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+          expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
+            ["cipher-id-1"],
+            mockFormattedURI,
+            formEntryData.newPassword,
+            sender.tab,
+          );
+        });
+
+        it("and cipher update candidates match `username` and `password`, do not trigger an update cipher notification if the update notification setting is disabled", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { password: "UShallKnotPassword", username: "gandalfG" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { password: "galadriel4Eva", username: "gandalfW" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { password: "sting123", username: "BBaggins" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+          getEnableChangedPasswordPromptSpy.mockReturnValueOnce(false);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        });
+
+        it("and cipher update candidates match `username` AND `password` as well as any OTHER combination of `username`, `password`, and/or `newPassword` (excluding `username` AND `newPassword`), trigger an update cipher notification with the candidates matching `username` AND `password`", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { password: "UShallKnotPassword", username: "TBombadil" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { password: "Edro2x", username: "shadowfax" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { password: "UShallKnotPassword", username: "gandalfG" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-4",
+              login: { password: "flyUPh00lz", username: "gandalfG" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-5",
+              login: { password: "galadriel4Eva", username: "gandalfW" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-6",
+              login: { password: "sting123", username: "BBaggins" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+          expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
+            ["cipher-id-3"],
+            mockFormattedURI,
+            formEntryData.newPassword,
+            sender.tab,
+          );
+        });
+
+        it("and no cipher update candidates match `username`, `password`, nor `newPassword`, trigger a new cipher notification", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { password: "galadriel4Eva", username: "gandalfW" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { password: "EdroEdro", username: "shadowfax" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { password: "sting123", username: "BBaggins" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).toHaveBeenCalledWith(
+            mockFormattedURI,
+            {
+              password: formEntryData.newPassword,
+              url: formEntryData.uri,
+              username: formEntryData.username,
+            },
+            sender.tab,
+          );
+        });
+
+        it("and no cipher update candidates match `username`, `password`, nor `newPassword`, do not trigger a new cipher notification if the new cipher notification setting is disabled", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { password: "galadriel4Eva", username: "gandalfW" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { password: "EdroEdro", username: "shadowfax" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { password: "sting123", username: "BBaggins" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+          getEnableAddedLoginPromptSpy.mockReturnValueOnce(false);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        });
       });
 
-      it("adds a change password message to the queue if the user does not have an unlocked account", async () => {
-        const message: NotificationBackgroundExtensionMessage = {
-          command: "bgTriggerChangedPasswordNotification",
-          data: {
-            newPassword: "newPassword",
-            currentPassword: "currentPassword",
-            url: "https://example.com",
-          },
+      describe("when `username` and `newPassword` fields are filled, ", () => {
+        const formEntryData: ModifyLoginCipherFormData = {
+          newPassword: "2ndBreakf4st",
+          password: "",
+          uri: mockFormURI,
+          username: "BBaggins",
         };
-        activeAccountStatusMock$.next(AuthenticationStatus.Locked);
 
-        sendMockExtensionMessage(message, sender);
-        await flushPromises();
+        it("and the user vault is locked, trigger an unlock notification", async () => {
+          activeAccountStatusMock$.next(AuthenticationStatus.Locked);
 
-        expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
-          null,
-          "example.com",
-          message.data?.newPassword,
-          sender.tab,
-          true,
-        );
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(getAllDecryptedForUrlSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+
+          expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
+            null,
+            mockFormattedURI,
+            formEntryData.newPassword,
+            tab,
+            true, // will yield an unlock followed by an update password notification
+          );
+        });
+
+        it("and cipher update candidates match only `newPassword`, do not trigger a notification", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { username: "Frodo", password: "oldPassword" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { username: "Pippin", password: "2ndBreakf4st" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        });
+
+        it("and cipher update candidates match only `username`, trigger an update cipher notification with those candidates", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { username: "BBaggins", password: "oldPassword" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { username: "Frodo", password: "differentPassword" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { username: "Pippin", password: "2ndBreakf4st" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+          expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
+            ["cipher-id-1"],
+            mockFormattedURI,
+            formEntryData.newPassword,
+            sender.tab,
+          );
+        });
+
+        it("and at least one cipher update candidate matches both `username` and `newPassword`, do not trigger an update (nothing to change)", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { username: "BBaggins", password: "oldPassword" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { username: "BBaggins", password: "2ndBreakf4st" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { username: "Frodo", password: "differentPassword" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        });
+
+        it("and no cipher update candidates match `username` nor `newPassword`, trigger a new cipher notification", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { username: "Frodo", password: "oldPassword" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { username: "Pippin", password: "differentPassword" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).toHaveBeenCalledWith(
+            mockFormattedURI,
+            {
+              password: formEntryData.newPassword,
+              url: formEntryData.uri,
+              username: formEntryData.username,
+            },
+            sender.tab,
+          );
+        });
+
+        it("and no cipher update candidates match `username` nor `newPassword`, do not trigger a new cipher notification if the new cipher notification setting is disabled", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { username: "Frodo", password: "oldPassword" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { username: "Pippin", password: "differentPassword" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+          getEnableAddedLoginPromptSpy.mockReturnValueOnce(false);
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        });
       });
 
-      it("skips adding a change password message to the queue if the multiple ciphers exist for the passed URL and the current password is not found within the list of ciphers", async () => {
-        const message: NotificationBackgroundExtensionMessage = {
-          command: "bgTriggerChangedPasswordNotification",
-          data: {
-            newPassword: "newPassword",
-            currentPassword: "currentPassword",
-            url: "https://example.com",
-          },
+      describe("when only `username` field is filled, ", () => {
+        const formEntryData: ModifyLoginCipherFormData = {
+          newPassword: "",
+          password: "",
+          uri: mockFormURI,
+          username: "BBaggins",
         };
-        activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
-        getAllDecryptedForUrlSpy.mockResolvedValueOnce([
-          mock<CipherView>({ login: { username: "test", password: "password" } }),
-        ]);
 
-        sendMockExtensionMessage(message, sender);
-        await flushPromises();
+        it("and the user vault is locked, do not trigger a notification", async () => {
+          activeAccountStatusMock$.next(AuthenticationStatus.Locked);
 
-        expect(getAllDecryptedForUrlSpy).toHaveBeenCalled();
-        expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expectSkippedCheckingNotification();
+        });
+
+        it("and at least one cipher update candidate matches `username`, do not trigger a notification (nothing to change)", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { username: "BBaggins", password: "password1" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { username: "Frodo", password: "password2" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        });
+
+        it("and no cipher update candidates match `username`, trigger a new cipher notification", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { username: "Frodo", password: "password1" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { username: "Pippin", password: "password2" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).toHaveBeenCalledWith(
+            mockFormattedURI,
+            {
+              password: "",
+              url: formEntryData.uri,
+              username: formEntryData.username,
+            },
+            sender.tab,
+          );
+        });
+
+        it("and no cipher update candidates match `username`, do not trigger a new cipher notification if the new cipher notification setting is disabled", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { username: "Frodo", password: "password1" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { username: "Pippin", password: "password2" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+          getEnableAddedLoginPromptSpy.mockReturnValueOnce(false);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        });
       });
 
-      it("skips adding a change password message if more than one existing cipher is found with a matching password ", async () => {
-        const message: NotificationBackgroundExtensionMessage = {
-          command: "bgTriggerChangedPasswordNotification",
-          data: {
-            newPassword: "newPassword",
-            currentPassword: "currentPassword",
-            url: "https://example.com",
-          },
+      describe("when `password` and `newPassword` fields are filled, ", () => {
+        const formEntryData: ModifyLoginCipherFormData = {
+          newPassword: "4WzrdIzN0tLa7e",
+          password: "UShallKnotPassword",
+          username: "",
+          uri: mockFormURI,
         };
-        activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
-        getAllDecryptedForUrlSpy.mockResolvedValueOnce([
-          mock<CipherView>({ login: { username: "test", password: "password" } }),
-          mock<CipherView>({ login: { username: "test2", password: "password" } }),
-        ]);
 
-        sendMockExtensionMessage(message, sender);
-        await flushPromises();
+        it("and the user vault is locked, trigger an unlock notification", async () => {
+          activeAccountStatusMock$.next(AuthenticationStatus.Locked);
 
-        expect(getAllDecryptedForUrlSpy).toHaveBeenCalled();
-        expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(getAllDecryptedForUrlSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+
+          expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
+            null,
+            mockFormattedURI,
+            formEntryData.newPassword,
+            tab,
+            true, // will yield an unlock followed by an update password notification
+          );
+        });
+
+        it("and cipher update candidates only match `newPassword`, do not trigger a notification (nothing to change)", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { username: "GaldalfG", password: "4WzrdIzN0tLa7e" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { username: "GaldalfW", password: "4WzrdIzN0tLa7e" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        });
+
+        it("and cipher update candidates only match `password`, trigger an update cipher notification with those candidates", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { username: "Frodo", password: "PutAR1ngOnIt" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { username: "Pippin", password: "UShallKnotPassword" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { username: "Merry", password: "UShallKnotPassword" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+          expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
+            ["cipher-id-2", "cipher-id-3"],
+            mockFormattedURI,
+            formEntryData.newPassword,
+            sender.tab,
+          );
+        });
+
+        it("and cipher update candidates only match `password`, do not trigger an update cipher notification if the update cipher notification setting is disabled", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { username: "Frodo", password: "PutAR1ngOnIt" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { username: "Pippin", password: "UShallKnotPassword" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { username: "Merry", password: "UShallKnotPassword" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+          getEnableChangedPasswordPromptSpy.mockReturnValueOnce(false);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        });
+
+        it("and no cipher update candidates match `password` or `newPassword`, trigger a new cipher notification", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { username: "Frodo", password: "PutAR1ngOnIt" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { username: "PTook", password: "11sies" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).toHaveBeenCalledWith(
+            mockFormattedURI,
+            {
+              password: formEntryData.newPassword,
+              url: formEntryData.uri,
+              username: formEntryData.username,
+            },
+            sender.tab,
+          );
+        });
       });
 
-      it("adds a change password message to the queue if a single cipher matches the passed current password", async () => {
-        const message: NotificationBackgroundExtensionMessage = {
-          command: "bgTriggerChangedPasswordNotification",
-          data: {
-            newPassword: "newPassword",
-            currentPassword: "currentPassword",
-            url: "https://example.com",
-          },
+      describe("when only `password` field is filled, ", () => {
+        const formEntryData: ModifyLoginCipherFormData = {
+          newPassword: "",
+          password: "UShallKnotPassword",
+          uri: mockFormURI,
+          username: "",
         };
-        activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
-        getAllDecryptedForUrlSpy.mockResolvedValueOnce([
-          mock<CipherView>({
-            id: "cipher-id",
-            login: { username: "test", password: "currentPassword" },
-          }),
-        ]);
 
-        sendMockExtensionMessage(message, sender);
-        await flushPromises();
+        it("and the user vault is locked, do not trigger an unlock notification", async () => {
+          activeAccountStatusMock$.next(AuthenticationStatus.Locked);
 
-        expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
-          "cipher-id",
-          "example.com",
-          message.data?.newPassword,
-          sender.tab,
-        );
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expectSkippedCheckingNotification();
+        });
+
+        it("and cipher update candidates only match `password`, do not trigger a notification (nothing to change)", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { username: "FBaggins", password: "UShallKnotPassword" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { username: "BBaggins", password: "UShallKnotPassword" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        });
+
+        it("and no cipher update candidates match `password`, trigger an update cipher notification with ALL cipher update candidates", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { username: "FBaggins", password: "PutAR1ngOnIt" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { username: "BBaggins", password: "MahPr3c10us" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { username: "PTook", password: "f00lOfAT00k" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+          expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
+            ["cipher-id-1", "cipher-id-2", "cipher-id-3"],
+            mockFormattedURI,
+            formEntryData.password,
+            sender.tab,
+          );
+        });
+
+        it("and no cipher update candidates match `password`, do not trigger an update cipher notification if the update cipher notification setting is disabled", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { username: "FBaggins", password: "PutAR1ngOnIt" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { username: "BBaggins", password: "MahPr3c10us" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { username: "PTook", password: "f00lOfAT00k" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+          getEnableChangedPasswordPromptSpy.mockReturnValueOnce(false);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        });
       });
 
-      it("skips adding a change password message if no current password is passed in the message and more than one cipher is found for a url", async () => {
-        const message: NotificationBackgroundExtensionMessage = {
-          command: "bgTriggerChangedPasswordNotification",
-          data: {
-            newPassword: "newPassword",
-            url: "https://example.com",
-          },
+      describe("when `username` and `password` fields are filled, ", () => {
+        const formEntryData: ModifyLoginCipherFormData = {
+          newPassword: "",
+          password: "ShyerH1re",
+          uri: mockFormURI,
+          username: "BBaggins",
         };
-        activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
-        getAllDecryptedForUrlSpy.mockResolvedValueOnce([
-          mock<CipherView>({ login: { username: "test", password: "password" } }),
-          mock<CipherView>({ login: { username: "test2", password: "password" } }),
-        ]);
 
-        sendMockExtensionMessage(message, sender);
-        await flushPromises();
+        it("and cipher update candidates only match `password`, trigger an update cipher notification with those candidates", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { username: "FBaggins", password: "ShyerH1re" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { username: "PTook", password: "ShyerH1re" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { username: "FrodoB", password: "UShallKnotPassword" },
+            }),
+          ];
 
-        expect(getAllDecryptedForUrlSpy).toHaveBeenCalled();
-        expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+          expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
+            ["cipher-id-1", "cipher-id-2"],
+            mockFormattedURI,
+            formEntryData.password,
+            sender.tab,
+          );
+        });
+
+        it("and cipher update candidates only match `password`, do not trigger an update cipher notification if the update cipher notification setting is disabled", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { username: "FBaggins", password: "ShyerH1re" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { username: "PTook", password: "ShyerH1re" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { username: "FrodoB", password: "UShallKnotPassword" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+          getEnableChangedPasswordPromptSpy.mockReturnValueOnce(false);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        });
+
+        it("and cipher update candidates only match `username`, trigger an update cipher notification with those candidates", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { username: "BBaggins", password: "W0nWr1ng" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { username: "BBaggins", password: "UShallKnotPassword" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { username: "BilboB", password: "UShallKnotPassword" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+          expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
+            ["cipher-id-1", "cipher-id-2"],
+            mockFormattedURI,
+            formEntryData.password,
+            sender.tab,
+          );
+        });
+
+        it("and cipher update candidates only match `username`, do not trigger an update cipher notification if the update cipher notification setting is disabled", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { username: "BBaggins", password: "W0nWr1ng" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { username: "BBaggins", password: "UShallKnotPassword" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { username: "BilboB", password: "UShallKnotPassword" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+          getEnableChangedPasswordPromptSpy.mockReturnValueOnce(false);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        });
+
+        it("and cipher update candidates match `username` and `password`, do not trigger a notification (nothing to change)", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { username: "BBaggins", password: "ShyerH1re" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { username: "FBaggins", password: "W0nWr1ng" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { username: "BBaggins", password: "ShyerH1re" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        });
+
+        it("and cipher update candidates match `username` AND `password` and additionally `username` OR `password`, do not trigger a notification (nothing to change)", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { username: "BBaggins", password: "UShallKnotPassword" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { username: "BBaggins", password: "ShyerH1re" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { username: "FBaggins", password: "W0nWr1ng" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-4",
+              login: { username: "TBombadil", password: "ShyerH1re" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        });
+
+        it("and no cipher update candidates match `username` or `password`, trigger a new cipher notification", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { username: "FBaggins", password: "W0nWr1ng" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { username: "BilboB", password: "PutAR1ngOnIt" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).toHaveBeenCalledWith(
+            mockFormattedURI,
+            {
+              password: formEntryData.password,
+              url: formEntryData.uri,
+              username: formEntryData.username,
+            },
+            sender.tab,
+          );
+        });
+
+        it("and no cipher update candidates match `username` or `password`, do not trigger a new cipher notification if the new cipher notification setting is disabled", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { username: "FBaggins", password: "W0nWr1ng" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { username: "BilboB", password: "PutAR1ngOnIt" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+          getEnableAddedLoginPromptSpy.mockReturnValueOnce(false);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        });
       });
 
-      it("adds a change password message to the queue if no current password is passed with the message, but a single cipher is matched for the uri", async () => {
-        const message: NotificationBackgroundExtensionMessage = {
-          command: "bgTriggerChangedPasswordNotification",
-          data: {
-            newPassword: "newPassword",
-            url: "https://example.com",
-          },
+      describe("when only `newPassword` field is filled, ", () => {
+        const formEntryData: ModifyLoginCipherFormData = {
+          newPassword: "ShyerH1re",
+          password: "",
+          uri: mockFormURI,
+          username: "",
         };
-        activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
-        getAllDecryptedForUrlSpy.mockResolvedValueOnce([
-          mock<CipherView>({
-            id: "cipher-id",
-            login: { username: "test", password: "password" },
-          }),
-        ]);
 
-        sendMockExtensionMessage(message, sender);
-        await flushPromises();
+        it("and the user vault is locked, trigger an unlock notification", async () => {
+          activeAccountStatusMock$.next(AuthenticationStatus.Locked);
 
-        expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
-          "cipher-id",
-          "example.com",
-          message.data?.newPassword,
-          sender.tab,
-        );
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(getAllDecryptedForUrlSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+
+          expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
+            null,
+            mockFormattedURI,
+            formEntryData.newPassword,
+            tab,
+            true, // will yield an unlock followed by an update password notification
+          );
+        });
+
+        it("and cipher update candidates only match `newPassword`, do not trigger a notification (nothing to change)", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { username: "FBaggins", password: "ShyerH1re" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { username: "PTook", password: "ShyerH1re" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        });
+
+        it("and no cipher update candidates match `newPassword`, trigger an update cipher notification with ALL cipher update candidates", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { username: "FBaggins", password: "W0nWr1ng" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { username: "PTook", password: "PutAR1ngOnIt" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { username: "SamwiseG", password: "P0t4toes" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+          expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
+            ["cipher-id-1", "cipher-id-2", "cipher-id-3"],
+            mockFormattedURI,
+            formEntryData.newPassword,
+            sender.tab,
+          );
+        });
+
+        it("and no cipher update candidates match `newPassword`, do not trigger an update cipher notification if the update cipher notification setting is disabled", async () => {
+          const storedCiphersForURL = [
+            mock<CipherView>({
+              id: "cipher-id-1",
+              login: { username: "FBaggins", password: "W0nWr1ng" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-2",
+              login: { username: "PTook", password: "PutAR1ngOnIt" },
+            }),
+            mock<CipherView>({
+              id: "cipher-id-3",
+              login: { username: "SamwiseG", password: "P0t4toes" },
+            }),
+          ];
+
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
+          getEnableChangedPasswordPromptSpy.mockReturnValueOnce(false);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        });
       });
     });
 
@@ -725,7 +2329,6 @@ describe("NotificationBackground", () => {
         let createWithServerSpy: jest.SpyInstance;
         let updateWithServerSpy: jest.SpyInstance;
         let folderExistsSpy: jest.SpyInstance;
-        let cipherEncryptSpy: jest.SpyInstance;
 
         beforeEach(() => {
           activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
@@ -749,7 +2352,6 @@ describe("NotificationBackground", () => {
           createWithServerSpy = jest.spyOn(cipherService, "createWithServer");
           updateWithServerSpy = jest.spyOn(cipherService, "updateWithServer");
           folderExistsSpy = jest.spyOn(notificationBackground as any, "folderExists");
-          cipherEncryptSpy = jest.spyOn(cipherService, "encrypt");
 
           accountService.activeAccount$ = activeAccountSubject;
         });
@@ -786,7 +2388,7 @@ describe("NotificationBackground", () => {
           notificationBackground["notificationQueue"] = [
             mock<AddUnlockVaultQueueMessage>({
               tab,
-              type: NotificationQueueMessageType.UnlockVault,
+              type: NotificationType.UnlockVault,
             }),
           ];
 
@@ -808,7 +2410,7 @@ describe("NotificationBackground", () => {
           };
           notificationBackground["notificationQueue"] = [
             mock<AddLoginQueueMessage>({
-              type: NotificationQueueMessageType.AddLogin,
+              type: NotificationType.AddLogin,
               tab,
               domain: "another.com",
             }),
@@ -828,11 +2430,11 @@ describe("NotificationBackground", () => {
             edit: false,
             folder: "folder-id",
           };
-          const queueMessage = mock<AddChangePasswordQueueMessage>({
-            type: NotificationQueueMessageType.ChangePassword,
+          const queueMessage = mock<AddChangePasswordNotificationQueueMessage>({
+            type: NotificationType.ChangePassword,
             tab,
             domain: "example.com",
-            newPassword: "newPassword",
+            data: { newPassword: "newPassword" },
           });
           notificationBackground["notificationQueue"] = [queueMessage];
           const cipherView = mock<CipherView>({
@@ -842,6 +2444,7 @@ describe("NotificationBackground", () => {
             reprompt: CipherRepromptType.None,
           });
           getDecryptedCipherByIdSpy.mockResolvedValueOnce(cipherView);
+          taskService.tasksEnabled$.mockImplementation(() => of(false));
 
           sendMockExtensionMessage(message, sender);
           await flushPromises();
@@ -850,7 +2453,7 @@ describe("NotificationBackground", () => {
           expect(createWithServerSpy).not.toHaveBeenCalled();
           expect(updatePasswordSpy).toHaveBeenCalledWith(
             cipherView,
-            queueMessage.newPassword,
+            queueMessage.data.newPassword,
             message.edit,
             sender.tab,
             "testId",
@@ -876,11 +2479,11 @@ describe("NotificationBackground", () => {
             edit: false,
             folder: "folder-id",
           };
-          const queueMessage = mock<AddChangePasswordQueueMessage>({
-            type: NotificationQueueMessageType.ChangePassword,
+          const queueMessage = mock<AddChangePasswordNotificationQueueMessage>({
+            type: NotificationType.ChangePassword,
             tab,
             domain: "example.com",
-            newPassword: "newPassword",
+            data: { newPassword: "newPassword" },
           });
           notificationBackground["notificationQueue"] = [queueMessage];
           const cipherView = mock<CipherView>({
@@ -890,7 +2493,7 @@ describe("NotificationBackground", () => {
             reprompt: CipherRepromptType.Password,
           });
           getDecryptedCipherByIdSpy.mockResolvedValueOnce(cipherView);
-
+          taskService.tasksEnabled$.mockImplementation(() => of(false));
           sendMockExtensionMessage(message, sender);
           await flushPromises();
 
@@ -899,7 +2502,7 @@ describe("NotificationBackground", () => {
           expect(createWithServerSpy).not.toHaveBeenCalled();
           expect(updatePasswordSpy).toHaveBeenCalledWith(
             cipherView,
-            queueMessage.newPassword,
+            queueMessage.data.newPassword,
             message.edit,
             sender.tab,
             "testId",
@@ -938,9 +2541,6 @@ describe("NotificationBackground", () => {
           taskService.pendingTasks$.mockImplementation(() =>
             of([mockSecurityTask, mockSecurityTask2]),
           );
-          jest
-            .spyOn(notificationBackground as any, "getNotificationFlag")
-            .mockResolvedValueOnce(true);
           jest.spyOn(notificationBackground as any, "getOrgData").mockResolvedValueOnce([
             {
               id: mockOrgId,
@@ -956,11 +2556,11 @@ describe("NotificationBackground", () => {
             edit: false,
             folder: "folder-id",
           };
-          const queueMessage = mock<AddChangePasswordQueueMessage>({
-            type: NotificationQueueMessageType.ChangePassword,
+          const queueMessage = mock<AddChangePasswordNotificationQueueMessage>({
+            type: NotificationType.ChangePassword,
             tab,
             domain: "example.com",
-            newPassword: "newPassword",
+            data: { newPassword: "newPassword" },
           });
           notificationBackground["notificationQueue"] = [queueMessage];
           const cipherView = mock<CipherView>({
@@ -978,7 +2578,7 @@ describe("NotificationBackground", () => {
           expect(createWithServerSpy).not.toHaveBeenCalled();
           expect(updatePasswordSpy).toHaveBeenCalledWith(
             cipherView,
-            queueMessage.newPassword,
+            queueMessage.data.newPassword,
             message.edit,
             sender.tab,
             mockCipherId,
@@ -1008,11 +2608,14 @@ describe("NotificationBackground", () => {
             folder: "folder-id",
           };
           const queueMessage = mock<AddLoginQueueMessage>({
-            type: NotificationQueueMessageType.AddLogin,
+            type: NotificationType.AddLogin,
             tab,
             domain: "example.com",
-            username: "test",
-            password: "updated-password",
+            data: {
+              username: "test",
+              password: "updated-password",
+              uri: "https://example.com",
+            },
             wasVaultLocked: true,
           });
           notificationBackground["notificationQueue"] = [queueMessage];
@@ -1026,7 +2629,7 @@ describe("NotificationBackground", () => {
 
           expect(updatePasswordSpy).toHaveBeenCalledWith(
             cipherView,
-            queueMessage.password,
+            queueMessage.data.password,
             message.edit,
             sender.tab,
             "testId",
@@ -1043,11 +2646,11 @@ describe("NotificationBackground", () => {
             edit: true,
             folder: "folder-id",
           };
-          const queueMessage = mock<AddChangePasswordQueueMessage>({
-            type: NotificationQueueMessageType.ChangePassword,
+          const queueMessage = mock<AddChangePasswordNotificationQueueMessage>({
+            type: NotificationType.ChangePassword,
             tab,
             domain: "example.com",
-            newPassword: "newPassword",
+            data: { newPassword: "newPassword" },
           });
           notificationBackground["notificationQueue"] = [queueMessage];
           const cipherView = mock<CipherView>();
@@ -1060,7 +2663,7 @@ describe("NotificationBackground", () => {
 
           expect(updatePasswordSpy).toHaveBeenCalledWith(
             cipherView,
-            queueMessage.newPassword,
+            queueMessage.data.newPassword,
             message.edit,
             sender.tab,
             "testId",
@@ -1095,12 +2698,17 @@ describe("NotificationBackground", () => {
             folder: "folder-id",
           };
           const queueMessage = mock<AddLoginQueueMessage>({
-            type: NotificationQueueMessageType.AddLogin,
+            type: NotificationType.AddLogin,
             tab,
             domain: "example.com",
-            username: "test",
-            password: "password",
+            data: {
+              username: "test",
+              password: "password",
+              uri: "https://example.com",
+            },
             wasVaultLocked: false,
+            launchTimestamp: Date.now(),
+            expires: new Date(Date.now() + 10000),
           });
           notificationBackground["notificationQueue"] = [queueMessage];
           const cipherView = mock<CipherView>({
@@ -1134,12 +2742,17 @@ describe("NotificationBackground", () => {
             folder: "folder-id",
           };
           const queueMessage = mock<AddLoginQueueMessage>({
-            type: NotificationQueueMessageType.AddLogin,
+            type: NotificationType.AddLogin,
             tab,
             domain: "example.com",
-            username: "test",
-            password: "password",
+            data: {
+              username: "test",
+              password: "password",
+              uri: "https://example.com",
+            },
             wasVaultLocked: false,
+            launchTimestamp: Date.now(),
+            expires: new Date(Date.now() + 10000),
           });
           notificationBackground["notificationQueue"] = [queueMessage];
           const cipherView = mock<CipherView>({
@@ -1150,22 +2763,15 @@ describe("NotificationBackground", () => {
           folderExistsSpy.mockResolvedValueOnce(false);
           convertAddLoginQueueMessageToCipherViewSpy.mockReturnValueOnce(cipherView);
           editItemSpy.mockResolvedValueOnce(undefined);
-          cipherEncryptSpy.mockResolvedValueOnce({
-            cipher: {
-              ...cipherView,
-              id: "testId",
-            },
-            encryptedFor: userId,
-          });
+          createWithServerSpy.mockResolvedValueOnce(cipherView);
 
           sendMockExtensionMessage(message, sender);
           await flushPromises();
 
           expect(convertAddLoginQueueMessageToCipherViewSpy).toHaveBeenCalledWith(
             queueMessage,
-            null,
+            undefined,
           );
-          expect(cipherEncryptSpy).toHaveBeenCalledWith(cipherView, "testId");
           expect(createWithServerSpy).toHaveBeenCalled();
           expect(tabSendMessageDataSpy).toHaveBeenCalledWith(
             sender.tab,
@@ -1187,12 +2793,17 @@ describe("NotificationBackground", () => {
             folder: "folder-id",
           };
           const queueMessage = mock<AddLoginQueueMessage>({
-            type: NotificationQueueMessageType.AddLogin,
+            type: NotificationType.AddLogin,
             tab,
             domain: "example.com",
-            username: "test",
-            password: "password",
+            data: {
+              username: "test",
+              password: "password",
+              uri: "https://example.com",
+            },
             wasVaultLocked: false,
+            launchTimestamp: Date.now(),
+            expires: new Date(Date.now() + 10000),
           });
           notificationBackground["notificationQueue"] = [queueMessage];
           const cipherView = mock<CipherView>({
@@ -1201,13 +2812,6 @@ describe("NotificationBackground", () => {
           folderExistsSpy.mockResolvedValueOnce(true);
           convertAddLoginQueueMessageToCipherViewSpy.mockReturnValueOnce(cipherView);
           editItemSpy.mockResolvedValueOnce(undefined);
-          cipherEncryptSpy.mockResolvedValueOnce({
-            cipher: {
-              ...cipherView,
-              id: "testId",
-            },
-            encryptedFor: userId,
-          });
           const errorMessage = "fetch error";
           createWithServerSpy.mockImplementation(() => {
             throw new Error(errorMessage);
@@ -1216,7 +2820,6 @@ describe("NotificationBackground", () => {
           sendMockExtensionMessage(message, sender);
           await flushPromises();
 
-          expect(cipherEncryptSpy).toHaveBeenCalledWith(cipherView, "testId");
           expect(createWithServerSpy).toThrow(errorMessage);
           expect(tabSendMessageSpy).not.toHaveBeenCalledWith(sender.tab, {
             command: "addedCipher",
@@ -1238,11 +2841,11 @@ describe("NotificationBackground", () => {
             edit: false,
             folder: "folder-id",
           };
-          const queueMessage = mock<AddChangePasswordQueueMessage>({
-            type: NotificationQueueMessageType.ChangePassword,
+          const queueMessage = mock<AddChangePasswordNotificationQueueMessage>({
+            type: NotificationType.ChangePassword,
             tab,
             domain: "example.com",
-            newPassword: "newPassword",
+            data: { newPassword: "newPassword" },
           });
           notificationBackground["notificationQueue"] = [queueMessage];
           const cipherView = mock<CipherView>({ reprompt: CipherRepromptType.None });
@@ -1298,7 +2901,7 @@ describe("NotificationBackground", () => {
         const sender = mock<chrome.runtime.MessageSender>({ tab });
         const message: NotificationBackgroundExtensionMessage = { command: "bgNeverSave" };
         notificationBackground["notificationQueue"] = [
-          mock<AddUnlockVaultQueueMessage>({ type: NotificationQueueMessageType.UnlockVault, tab }),
+          mock<AddUnlockVaultQueueMessage>({ type: NotificationType.UnlockVault, tab }),
         ];
 
         sendMockExtensionMessage(message, sender);
@@ -1314,7 +2917,7 @@ describe("NotificationBackground", () => {
         const sender = mock<chrome.runtime.MessageSender>({ tab: secondaryTab });
         notificationBackground["notificationQueue"] = [
           mock<AddLoginQueueMessage>({
-            type: NotificationQueueMessageType.AddLogin,
+            type: NotificationType.AddLogin,
             tab,
             domain: "another.com",
           }),
@@ -1331,12 +2934,12 @@ describe("NotificationBackground", () => {
         const sender = mock<chrome.runtime.MessageSender>({ tab });
         const message: NotificationBackgroundExtensionMessage = { command: "bgNeverSave" };
         const firstNotification = mock<AddLoginQueueMessage>({
-          type: NotificationQueueMessageType.AddLogin,
+          type: NotificationType.AddLogin,
           tab,
           domain: "example.com",
         });
         const secondNotification = mock<AddLoginQueueMessage>({
-          type: NotificationQueueMessageType.AddLogin,
+          type: NotificationType.AddLogin,
           tab: createChromeTabMock({ id: 3 }),
           domain: "another.com",
         });
@@ -1394,74 +2997,6 @@ describe("NotificationBackground", () => {
             forms: formData,
           },
         );
-      });
-    });
-
-    describe("bgUnlockPopoutOpened message handler", () => {
-      let pushUnlockVaultToQueueSpy: jest.SpyInstance;
-
-      beforeEach(() => {
-        pushUnlockVaultToQueueSpy = jest.spyOn(
-          notificationBackground as any,
-          "pushUnlockVaultToQueue",
-        );
-      });
-
-      it("skips pushing the unlock vault message to the queue if the message indicates that the notification should be skipped", async () => {
-        const tabMock = createChromeTabMock();
-        const sender = mock<chrome.runtime.MessageSender>({ tab: tabMock });
-        const message: NotificationBackgroundExtensionMessage = {
-          command: "bgUnlockPopoutOpened",
-          data: { skipNotification: true },
-        };
-
-        sendMockExtensionMessage(message, sender);
-        await flushPromises();
-
-        expect(pushUnlockVaultToQueueSpy).not.toHaveBeenCalled();
-      });
-
-      it("skips pushing the unlock vault message to the queue if the auth status is not `Locked`", async () => {
-        const tabMock = createChromeTabMock();
-        const sender = mock<chrome.runtime.MessageSender>({ tab: tabMock });
-        const message: NotificationBackgroundExtensionMessage = {
-          command: "bgUnlockPopoutOpened",
-        };
-        activeAccountStatusMock$.next(AuthenticationStatus.LoggedOut);
-
-        sendMockExtensionMessage(message, sender);
-        await flushPromises();
-
-        expect(pushUnlockVaultToQueueSpy).not.toHaveBeenCalled();
-      });
-
-      it("skips pushing the unlock vault message to the queue if the notification queue already has an item", async () => {
-        const tabMock = createChromeTabMock();
-        const sender = mock<chrome.runtime.MessageSender>({ tab: tabMock });
-        const message: NotificationBackgroundExtensionMessage = {
-          command: "bgUnlockPopoutOpened",
-        };
-        activeAccountStatusMock$.next(AuthenticationStatus.Locked);
-        notificationBackground["notificationQueue"] = [mock<AddLoginQueueMessage>()];
-
-        sendMockExtensionMessage(message, sender);
-        await flushPromises();
-
-        expect(pushUnlockVaultToQueueSpy).not.toHaveBeenCalled();
-      });
-
-      it("sends an unlock vault message to the queue if the user has a locked vault", async () => {
-        const tabMock = createChromeTabMock({ url: "https://example.com" });
-        const sender = mock<chrome.runtime.MessageSender>({ tab: tabMock });
-        const message: NotificationBackgroundExtensionMessage = {
-          command: "bgUnlockPopoutOpened",
-        };
-        activeAccountStatusMock$.next(AuthenticationStatus.Locked);
-
-        sendMockExtensionMessage(message, sender);
-        await flushPromises();
-
-        expect(pushUnlockVaultToQueueSpy).toHaveBeenCalledWith("example.com", sender.tab);
       });
     });
 
@@ -1558,6 +3093,64 @@ describe("NotificationBackground", () => {
         await flushPromises();
 
         expect(environmentServiceSpy).toHaveBeenCalled();
+      });
+    });
+
+    describe("handleUnlockPopoutClosed", () => {
+      let onRemovedListeners: Array<(tabId: number, removeInfo: chrome.tabs.OnRemovedInfo) => void>;
+      let tabsQuerySpy: jest.SpyInstance;
+
+      beforeEach(() => {
+        onRemovedListeners = [];
+        chrome.tabs.onRemoved.addListener = jest.fn((listener) => {
+          onRemovedListeners.push(listener);
+        });
+        chrome.runtime.getURL = jest.fn().mockReturnValue("chrome-extension://id/popup/index.html");
+        notificationBackground.init();
+      });
+
+      const triggerTabRemoved = async (tabId: number) => {
+        onRemovedListeners[0](tabId, mock<chrome.tabs.OnRemovedInfo>());
+        await flushPromises();
+      };
+
+      it("sends abandon message when unlock popout is closed and vault is locked", async () => {
+        activeAccountStatusMock$.next(AuthenticationStatus.Locked);
+        tabsQuerySpy = jest.spyOn(BrowserApi, "tabsQuery").mockResolvedValue([]);
+
+        await triggerTabRemoved(1);
+
+        expect(tabsQuerySpy).toHaveBeenCalled();
+        expect(messagingService.send).toHaveBeenCalledWith("abandonAutofillPendingNotifications");
+      });
+
+      it("uses tracked tabId for fast lookup when available", async () => {
+        activeAccountStatusMock$.next(AuthenticationStatus.Locked);
+        tabsQuerySpy = jest.spyOn(BrowserApi, "tabsQuery").mockResolvedValue([
+          {
+            id: 123,
+            url: "chrome-extension://id/popup/index.html?singleActionPopout=auth_unlockExtension",
+          } as chrome.tabs.Tab,
+        ]);
+
+        await triggerTabRemoved(999);
+        tabsQuerySpy.mockClear();
+        messagingService.send.mockClear();
+
+        await triggerTabRemoved(123);
+
+        expect(tabsQuerySpy).not.toHaveBeenCalled();
+        expect(messagingService.send).toHaveBeenCalledWith("abandonAutofillPendingNotifications");
+      });
+
+      it("returns early when vault is unlocked", async () => {
+        activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+        tabsQuerySpy = jest.spyOn(BrowserApi, "tabsQuery").mockResolvedValue([]);
+
+        await triggerTabRemoved(1);
+
+        expect(tabsQuerySpy).not.toHaveBeenCalled();
+        expect(messagingService.send).not.toHaveBeenCalled();
       });
     });
   });

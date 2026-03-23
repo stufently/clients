@@ -8,17 +8,19 @@ import { LogService } from "@bitwarden/common/platform/abstractions/log.service"
 import { DIALOG_DATA, DialogConfig, DialogRef, DialogService } from "@bitwarden/components";
 import { KeyService } from "@bitwarden/key-management";
 
+import { SharedModule } from "../../../shared";
+
 export type UserConfirmDialogData = {
   name: string;
   userId: string;
   publicKey: Uint8Array;
-  confirmUser: (publicKey: Uint8Array) => Promise<void>;
 };
 
+// FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
+// eslint-disable-next-line @angular-eslint/prefer-on-push-component-change-detection
 @Component({
-  selector: "app-user-confirm",
   templateUrl: "user-confirm.component.html",
-  standalone: false,
+  imports: [SharedModule],
 })
 export class UserConfirmComponent implements OnInit {
   name: string;
@@ -61,16 +63,14 @@ export class UserConfirmComponent implements OnInit {
 
   submit = async () => {
     if (this.loading) {
-      return;
+      return false;
     }
 
     if (this.formGroup.value.dontAskAgain) {
       await this.organizationManagementPreferencesService.autoConfirmFingerPrints.set(true);
     }
 
-    await this.data.confirmUser(this.publicKey);
-
-    this.dialogRef.close();
+    this.dialogRef.close(true);
   };
 
   static open(dialogService: DialogService, config: DialogConfig<UserConfirmDialogData>) {

@@ -1,5 +1,7 @@
 import { Injectable } from "@angular/core";
+import { firstValueFrom } from "rxjs";
 
+import { TokenService } from "@bitwarden/common/auth/abstractions/token.service";
 import { SymmetricCryptoKey } from "@bitwarden/common/platform/models/domain/symmetric-crypto-key";
 import { UserId } from "@bitwarden/common/types/guid";
 import { UserKey } from "@bitwarden/common/types/key";
@@ -13,6 +15,10 @@ import { DesktopBiometricsService } from "./desktop.biometrics.service";
  */
 @Injectable()
 export class RendererBiometricsService extends DesktopBiometricsService {
+  constructor(private tokenService: TokenService) {
+    super();
+  }
+
   async authenticateWithBiometrics(): Promise<boolean> {
     return await ipc.keyManagement.biometric.authenticateWithBiometrics();
   }
@@ -31,11 +37,21 @@ export class RendererBiometricsService extends DesktopBiometricsService {
   }
 
   async getBiometricsStatusForUser(id: UserId): Promise<BiometricsStatus> {
+    if ((await firstValueFrom(this.tokenService.hasAccessToken$(id))) === false) {
+      return BiometricsStatus.NotEnabledInConnectedDesktopApp;
+    }
+
     return await ipc.keyManagement.biometric.getBiometricsStatusForUser(id);
   }
 
-  async setBiometricProtectedUnlockKeyForUser(userId: UserId, value: string): Promise<void> {
-    return await ipc.keyManagement.biometric.setBiometricProtectedUnlockKeyForUser(userId, value);
+  async setBiometricProtectedUnlockKeyForUser(
+    userId: UserId,
+    value: SymmetricCryptoKey,
+  ): Promise<void> {
+    return await ipc.keyManagement.biometric.setBiometricProtectedUnlockKeyForUser(
+      userId,
+      value.toBase64(),
+    );
   }
 
   async deleteBiometricUnlockKeyForUser(userId: UserId): Promise<void> {
@@ -44,10 +60,6 @@ export class RendererBiometricsService extends DesktopBiometricsService {
 
   async setupBiometrics(): Promise<void> {
     return await ipc.keyManagement.biometric.setupBiometrics();
-  }
-
-  async setClientKeyHalfForUser(userId: UserId, value: string | null): Promise<void> {
-    return await ipc.keyManagement.biometric.setClientKeyHalf(userId, value);
   }
 
   async getShouldAutopromptNow(): Promise<boolean> {
@@ -65,5 +77,21 @@ export class RendererBiometricsService extends DesktopBiometricsService {
       BiometricsStatus.AutoSetupNeeded,
       BiometricsStatus.ManualSetupNeeded,
     ].includes(biometricStatus);
+  }
+
+  async enrollPersistent(userId: UserId, key: SymmetricCryptoKey): Promise<void> {
+    return await ipc.keyManagement.biometric.enrollPersistent(userId, key.toBase64());
+  }
+
+  async hasPersistentKey(userId: UserId): Promise<boolean> {
+    return await ipc.keyManagement.biometric.hasPersistentKey(userId);
+  }
+
+  async enableLinuxV2Biometrics(): Promise<void> {
+    return await ipc.keyManagement.biometric.enableLinuxV2Biometrics();
+  }
+
+  async isLinuxV2BiometricsEnabled(): Promise<boolean> {
+    return await ipc.keyManagement.biometric.isLinuxV2BiometricsEnabled();
   }
 }

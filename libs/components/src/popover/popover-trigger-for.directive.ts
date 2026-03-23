@@ -1,132 +1,57 @@
-// FIXME: Update this file to be type safe and remove this and next line
-// @ts-strict-ignore
-import { Overlay, OverlayConfig, OverlayRef } from "@angular/cdk/overlay";
-import { TemplatePortal } from "@angular/cdk/portal";
-import {
-  AfterViewInit,
-  Directive,
-  ElementRef,
-  HostBinding,
-  HostListener,
-  Input,
-  OnDestroy,
-  ViewContainerRef,
-} from "@angular/core";
-import { Observable, Subscription, filter, mergeWith } from "rxjs";
+import { Directive, inject } from "@angular/core";
 
-import { defaultPositions } from "./default-positions";
-import { PopoverComponent } from "./popover.component";
+import { PopoverAnchorForDirective } from "./popover-anchor-for.directive";
 
+/**
+ * Directive that creates an interactive trigger for a popover.
+ * Opens on click and sets appropriate ARIA attributes.
+ * Composes `bitPopoverAnchor` for positioning and overlay management.
+ *
+ * @example
+ * ```html
+ * <button [bitPopoverTriggerFor]="helpPopover">
+ *   <i class="bwi bwi-question-circle"></i>
+ * </button>
+ * <bit-popover #helpPopover [title]="'Help'">
+ *   Help content here
+ * </bit-popover>
+ * ```
+ */
 @Directive({
   selector: "[bitPopoverTriggerFor]",
   exportAs: "popoverTrigger",
+  hostDirectives: [
+    {
+      directive: PopoverAnchorForDirective,
+      inputs: ["bitPopoverAnchorFor: bitPopoverTriggerFor", "position", "popoverOpen"],
+      outputs: ["popoverOpenChange"],
+    },
+  ],
+  host: {
+    "[attr.aria-expanded]": "this.anchor.popoverOpen()",
+    "(click)": "togglePopover()",
+  },
 })
-export class PopoverTriggerForDirective implements OnDestroy, AfterViewInit {
-  @Input()
-  @HostBinding("attr.aria-expanded")
-  popoverOpen = false;
+export class PopoverTriggerForDirective {
+  /** The composed anchor directive that handles overlay positioning */
+  protected readonly anchor = inject(PopoverAnchorForDirective);
 
-  @Input("bitPopoverTriggerFor")
-  popover: PopoverComponent;
-
-  @Input("position")
-  position: string;
-
-  private overlayRef: OverlayRef;
-  private closedEventsSub: Subscription;
-
-  get positions() {
-    if (!this.position) {
-      return defaultPositions;
-    }
-
-    const preferredPosition = defaultPositions.find((position) => position.id === this.position);
-
-    if (preferredPosition) {
-      return [preferredPosition, ...defaultPositions];
-    }
-
-    return defaultPositions;
+  /** Exposes popoverOpen for programmatic access via `exportAs="popoverTrigger"` */
+  get popoverOpen() {
+    return this.anchor.popoverOpen;
   }
 
-  get defaultPopoverConfig(): OverlayConfig {
-    return {
-      hasBackdrop: true,
-      backdropClass: "cdk-overlay-transparent-backdrop",
-      scrollStrategy: this.overlay.scrollStrategies.reposition(),
-      positionStrategy: this.overlay
-        .position()
-        .flexibleConnectedTo(this.elementRef)
-        .withPositions(this.positions)
-        .withLockedPosition(true)
-        .withFlexibleDimensions(false)
-        .withPush(true),
-    };
-  }
-
-  constructor(
-    private elementRef: ElementRef<HTMLElement>,
-    private viewContainerRef: ViewContainerRef,
-    private overlay: Overlay,
-  ) {}
-
-  @HostListener("click")
-  togglePopover() {
-    if (this.popoverOpen) {
-      this.closePopover();
+  /** Toggles popover visibility on click */
+  protected togglePopover() {
+    if (this.anchor.popoverOpen()) {
+      this.anchor.closePopover();
     } else {
-      this.openPopover();
+      this.anchor.openPopover();
     }
   }
 
-  private openPopover() {
-    this.popoverOpen = true;
-    this.overlayRef = this.overlay.create(this.defaultPopoverConfig);
-
-    const templatePortal = new TemplatePortal(this.popover.templateRef, this.viewContainerRef);
-
-    this.overlayRef.attach(templatePortal);
-    this.closedEventsSub = this.getClosedEvents().subscribe(() => {
-      this.destroyPopover();
-    });
-  }
-
-  private getClosedEvents(): Observable<any> {
-    const detachments = this.overlayRef.detachments();
-    const escKey = this.overlayRef
-      .keydownEvents()
-      .pipe(filter((event: KeyboardEvent) => event.key === "Escape"));
-    const backdrop = this.overlayRef.backdropClick();
-    const popoverClosed = this.popover.closed;
-
-    return detachments.pipe(mergeWith(escKey, backdrop, popoverClosed));
-  }
-
-  private destroyPopover() {
-    if (this.overlayRef == null || !this.popoverOpen) {
-      return;
-    }
-
-    this.popoverOpen = false;
-    this.disposeAll();
-  }
-
-  private disposeAll() {
-    this.closedEventsSub?.unsubscribe();
-    this.overlayRef?.dispose();
-  }
-
-  ngAfterViewInit() {
-    if (this.popoverOpen) {
-      this.openPopover();
-    }
-  }
-
-  ngOnDestroy() {
-    this.disposeAll();
-  }
-
+  /** Programmatically closes the popover */
   closePopover() {
-    this.destroyPopover();
+    this.anchor.closePopover();
   }
 }

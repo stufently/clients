@@ -1,4 +1,5 @@
 import { FieldType, CipherType } from "@bitwarden/common/vault/enums";
+import { CardView } from "@bitwarden/common/vault/models/view/card.view";
 import { CipherView } from "@bitwarden/common/vault/models/view/cipher.view";
 import { FieldView } from "@bitwarden/common/vault/models/view/field.view";
 
@@ -37,19 +38,16 @@ Expiration Date:June,2020
 Notes:some text
 ",Credit-card,,0`,
     expected: Object.assign(new CipherView(), {
-      id: null,
-      organizationId: null,
-      folderId: null,
       name: "Credit-card",
       notes: "some text\n",
       type: 3,
-      card: {
+      card: Object.assign(new CardView(), {
         cardholderName: "John Doe",
         number: "1234567812345678",
         code: "123",
         expYear: "2020",
         expMonth: "6",
-      },
+      }),
       fields: [
         Object.assign(new FieldView(), {
           name: "Start Date",
@@ -71,15 +69,11 @@ Start Date:,
 Expiration Date:,
 Notes:",empty,,0`,
     expected: Object.assign(new CipherView(), {
-      id: null,
-      organizationId: null,
-      folderId: null,
       name: "empty",
-      notes: null,
       type: 3,
-      card: {
+      card: Object.assign(new CardView(), {
         expMonth: undefined,
-      },
+      }),
       fields: [
         Object.assign(new FieldView(), {
           name: "Start Date",
@@ -101,18 +95,14 @@ Start Date:,
 Expiration Date:January,
 Notes:",noyear,,0`,
     expected: Object.assign(new CipherView(), {
-      id: null,
-      organizationId: null,
-      folderId: null,
       name: "noyear",
-      notes: null,
       type: 3,
-      card: {
+      card: Object.assign(new CardView(), {
         cardholderName: "John Doe",
         number: "1234567887654321",
         code: "321",
         expMonth: "1",
-      },
+      }),
       fields: [
         Object.assign(new FieldView(), {
           name: "Type",
@@ -139,19 +129,15 @@ Start Date:,
 Expiration Date:,2020
 Notes:",nomonth,,0`,
     expected: Object.assign(new CipherView(), {
-      id: null,
-      organizationId: null,
-      folderId: null,
       name: "nomonth",
-      notes: null,
       type: 3,
-      card: {
+      card: Object.assign(new CardView(), {
         cardholderName: "John Doe",
         number: "8765432112345678",
         code: "987",
         expYear: "2020",
         expMonth: undefined,
-      },
+      }),
       fields: [
         Object.assign(new FieldView(), {
           name: "Type",
@@ -171,6 +157,7 @@ Notes:",nomonth,,0`,
 describe("Lastpass CSV Importer", () => {
   CipherData.forEach((data) => {
     it(data.title, async () => {
+      jest.useFakeTimers().setSystemTime(data.expected.creationDate);
       const importer = new LastPassCsvImporter();
       const result = await importer.parse(data.csv);
       expect(result != null).toBe(true);

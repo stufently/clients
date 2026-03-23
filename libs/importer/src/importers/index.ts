@@ -1,3 +1,4 @@
+export { ArcCsvImporter } from "./arc-csv-importer";
 export { AscendoCsvImporter } from "./ascendo-csv-importer";
 export { AvastCsvImporter, AvastJsonImporter } from "./avast";
 export { AviraCsvImporter } from "./avira-csv-importer";
@@ -42,6 +43,7 @@ export { PassmanJsonImporter } from "./passman-json-importer";
 export { PasspackCsvImporter } from "./passpack-csv-importer";
 export { PasswordAgentCsvImporter } from "./passwordagent-csv-importer";
 export { PasswordBossJsonImporter } from "./passwordboss-json-importer";
+export { PasswordDepot17XmlImporter } from "./password-depot";
 export { PasswordDragonXmlImporter } from "./passworddragon-xml-importer";
 export { PasswordSafeXmlImporter } from "./passwordsafe-xml-importer";
 export { PasswordWalletTxtImporter } from "./passwordwallet-txt-importer";

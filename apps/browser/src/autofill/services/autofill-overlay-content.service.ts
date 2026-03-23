@@ -12,6 +12,7 @@ import {
 } from "@bitwarden/common/autofill/constants";
 import { CipherType } from "@bitwarden/common/vault/enums";
 
+import { ModifyLoginCipherFormData } from "../background/abstractions/overlay-notifications.background";
 import {
   FocusedFieldData,
   NewCardCipherData,
@@ -44,11 +45,11 @@ import {
   sendExtensionMessage,
   throttle,
 } from "../utils";
+import { EventSecurity } from "../utils/event-security";
 
 import {
   AutofillOverlayContentExtensionMessageHandlers,
   AutofillOverlayContentService as AutofillOverlayContentServiceInterface,
-  InlineMenuFormFieldData,
   SubFrameDataFromWindowMessage,
 } from "./abstractions/autofill-overlay-content.service";
 import { DomElementVisibilityService } from "./abstractions/dom-element-visibility.service";
@@ -58,8 +59,8 @@ import { AutoFillConstants } from "./autofill-constants";
 
 export class AutofillOverlayContentService implements AutofillOverlayContentServiceInterface {
   pageDetailsUpdateRequired = false;
-  private showInlineMenuIdentities: boolean;
-  private showInlineMenuCards: boolean;
+  private showInlineMenuIdentities: boolean = false;
+  private showInlineMenuCards: boolean = false;
   private readonly findTabs = tabbable;
   private readonly sendExtensionMessage = sendExtensionMessage;
   private formFieldElements: Map<ElementWithOpId<FormFieldElement>, AutofillField> = new Map();
@@ -71,10 +72,10 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
   private ignoredFieldTypes: Set<string> = new Set(AutoFillConstants.ExcludedInlineMenuTypes);
   private userFilledFields: Record<string, FillableFormFieldElement> = {};
   private focusableElements: FocusableElement[] = [];
-  private mostRecentlyFocusedField: ElementWithOpId<FormFieldElement>;
-  private focusedFieldData: FocusedFieldData;
-  private closeInlineMenuOnRedirectTimeout: number | NodeJS.Timeout;
-  private focusInlineMenuListTimeout: number | NodeJS.Timeout;
+  private mostRecentlyFocusedField: ElementWithOpId<FormFieldElement> | null = null;
+  private focusedFieldData: FocusedFieldData | null = null;
+  private closeInlineMenuOnRedirectTimeout: number | NodeJS.Timeout | null = null;
+  private focusInlineMenuListTimeout: number | NodeJS.Timeout | null = null;
   private eventHandlersMemo: { [key: string]: EventListener } = {};
   private readonly extensionMessageHandlers: AutofillOverlayContentExtensionMessageHandlers = {
     addNewVaultItemFromOverlay: ({ message }) => this.addNewVaultItem(message),
@@ -83,8 +84,8 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     unsetMostRecentlyFocusedField: () => this.unsetMostRecentlyFocusedField(),
     checkIsMostRecentlyFocusedFieldWithinViewport: () =>
       this.checkIsMostRecentlyFocusedFieldWithinViewport(),
-    bgUnlockPopoutOpened: () => this.blurMostRecentlyFocusedField(true),
     bgVaultItemRepromptPopoutOpened: () => this.blurMostRecentlyFocusedField(true),
+    bgUnlockPopoutOpened: () => this.blurMostRecentlyFocusedField(true),
     redirectAutofillInlineMenuFocusOut: ({ message }) =>
       this.redirectInlineMenuFocusOut(message?.data?.direction),
     getSubFrameOffsets: ({ message }) => this.getSubFrameOffsets(message),
@@ -95,6 +96,7 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     destroyAutofillInlineMenuListeners: () => this.destroy(),
     getInlineMenuFormFieldData: ({ message }) =>
       this.handleGetInlineMenuFormFieldDataMessage(message),
+    generatedPasswordModifyLogin: () => this.sendGeneratedPasswordModifyLogin(),
   };
   private readonly loginFieldQualifiers: Record<string, CallableFunction> = {
     [AutofillFieldQualifier.username]: this.inlineMenuFieldQualificationService.isUsernameField,
@@ -224,6 +226,13 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     }
   }
 
+  refreshMenuLayerPosition = () => this.inlineMenuContentService?.refreshTopLayerPosition();
+
+  getOwnedInlineMenuTagNames = () => this.inlineMenuContentService?.getOwnedTagNames() || [];
+
+  getUnownedTopLayerItems = (includeCandidates?: boolean) =>
+    this.inlineMenuContentService?.getUnownedTopLayerItems(includeCandidates);
+
   /**
    * Clears all cached user filled fields.
    */
@@ -234,6 +243,13 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
       }
     });
   }
+
+  /**
+   * On password generation, send form field data i.e. modified login data
+   */
+  sendGeneratedPasswordModifyLogin = async () => {
+    await this.sendExtensionMessage("generatedPasswordFilled", this.getFormFieldData());
+  };
 
   /**
    * Formats any found user filled fields for a login cipher and sends a message
@@ -603,6 +619,10 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
    */
   private handleSubmitButtonInteraction = (event: PointerEvent) => {
     if (
+      /**
+       * Reject synthetic events (not originating from the user agent)
+       */
+      !EventSecurity.isEventTrusted(event) ||
       !this.submitElements.has(event.target as HTMLElement) ||
       (event.type === "keyup" &&
         !["Enter", "Space"].includes((event as unknown as KeyboardEvent).code))
@@ -637,7 +657,7 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
   /**
    * Returns the form field data used for add login and change password notifications.
    */
-  private getFormFieldData = (): InlineMenuFormFieldData => {
+  private getFormFieldData = (): ModifyLoginCipherFormData => {
     return {
       uri: globalThis.document.URL,
       username: this.userFilledFields["username"]?.value || "",
@@ -688,6 +708,13 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
    * @param event - The keyup event.
    */
   private handleFormFieldKeyupEvent = async (event: globalThis.KeyboardEvent) => {
+    /**
+     * Reject synthetic events (not originating from the user agent)
+     */
+    if (!EventSecurity.isEventTrusted(event)) {
+      return;
+    }
+
     const eventCode = event.code;
     if (eventCode === "Escape") {
       void this.sendExtensionMessage("closeAutofillInlineMenu", {
@@ -959,6 +986,8 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
       inlineMenuFillType: autofillFieldData?.inlineMenuFillType,
       showPasskeys: !!autofillFieldData?.showPasskeys,
       accountCreationFieldType: autofillFieldData?.accountCreationFieldType,
+      focusedFieldForm: autofillFieldData?.form,
+      focusedFieldOpid: autofillFieldData?.opid,
     };
 
     const allFields = this.formFieldElements;
@@ -1093,8 +1122,16 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
    * @param autofillFieldData - Autofill field data captured from the form field element.
    */
   private async setQualifiedLoginFillType(autofillFieldData: AutofillField) {
+    // Check if this is a current password field in a password change form
+    if (this.inlineMenuFieldQualificationService.isUpdateCurrentPasswordField(autofillFieldData)) {
+      autofillFieldData.inlineMenuFillType = InlineMenuFillTypes.CurrentPasswordUpdate;
+      return;
+    }
+
     autofillFieldData.inlineMenuFillType = CipherType.Login;
-    autofillFieldData.showPasskeys = autofillFieldData.autoCompleteType.includes("webauthn");
+    autofillFieldData.showPasskeys = (
+      autofillFieldData.autoCompleteType || ([] as string[])
+    ).includes("webauthn");
 
     this.qualifyAccountCreationFieldType(autofillFieldData);
   }
@@ -1334,7 +1371,7 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
    *
    * @param element - The element to get the root node active element for.
    */
-  private getRootNodeActiveElement(element: Element): Element {
+  private getRootNodeActiveElement(element: Element): Element | null {
     if (!element) {
       return null;
     }
@@ -1354,7 +1391,7 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
   ): Promise<SubFrameOffsetData | null> {
     const { subFrameUrl } = message;
 
-    const subFrameUrlVariations = this.getSubFrameUrlVariations(subFrameUrl);
+    const subFrameUrlVariations = subFrameUrl && this.getSubFrameUrlVariations(subFrameUrl);
     if (!subFrameUrlVariations) {
       return null;
     }
@@ -1469,11 +1506,16 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     frameId?: number,
   ): SubFrameOffsetData {
     const iframeRect = iframeElement.getBoundingClientRect();
+    const iframeRectHasSize = iframeRect.width > 0 && iframeRect.height > 0;
     const iframeStyles = globalThis.getComputedStyle(iframeElement);
     const paddingLeft = parseInt(iframeStyles.getPropertyValue("padding-left")) || 0;
     const paddingTop = parseInt(iframeStyles.getPropertyValue("padding-top")) || 0;
     const borderWidthLeft = parseInt(iframeStyles.getPropertyValue("border-left-width")) || 0;
     const borderWidthTop = parseInt(iframeStyles.getPropertyValue("border-top-width")) || 0;
+
+    if (!iframeRect || !iframeRectHasSize || !iframeElement.isConnected) {
+      return null;
+    }
 
     return {
       url: subFrameUrl,
@@ -1509,12 +1551,16 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
           subFrameData.frameId,
         );
 
+        if (!subFrameOffsets) {
+          return;
+        }
+
         subFrameData.top += subFrameOffsets.top;
         subFrameData.left += subFrameOffsets.left;
 
         const parentFrameId = await this.sendExtensionMessage("getCurrentTabFrameId");
         if (typeof parentFrameId !== "undefined") {
-          subFrameData.parentFrameIds.push(parentFrameId);
+          subFrameData.parentFrameIds?.push(parentFrameId);
         }
 
         break;
@@ -1619,17 +1665,19 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
       return false;
     };
     const scrollHandler = this.useEventHandlersMemo(
-      throttle(async (event) => {
+      throttle(async (event: Event) => {
+        const scrollY = globalThis.scrollY;
+        const scrollX = globalThis.scrollX;
         if (
-          currentScrollY !== globalThis.scrollY ||
-          currentScrollX !== globalThis.scrollX ||
-          eventTargetContainsFocusedField(event.target)
+          currentScrollY !== scrollY ||
+          currentScrollX !== scrollX ||
+          (event.target instanceof Element && eventTargetContainsFocusedField(event.target))
         ) {
           repositionHandler(event);
         }
 
-        currentScrollY = globalThis.scrollY;
-        currentScrollX = globalThis.scrollX;
+        currentScrollY = scrollY;
+        currentScrollX = scrollX;
       }, 50),
       AUTOFILL_OVERLAY_HANDLE_SCROLL,
     );
@@ -1640,10 +1688,6 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     });
     globalThis.addEventListener(EVENTS.RESIZE, repositionHandler);
   }
-
-  private shouldRepositionSubFrameInlineMenuOnScroll = async () => {
-    return await this.sendExtensionMessage("shouldRepositionSubFrameInlineMenuOnScroll");
-  };
 
   /**
    * Removes the listeners that facilitate repositioning
@@ -1743,8 +1787,11 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     await this.updateMostRecentlyFocusedField(this.mostRecentlyFocusedField);
 
     const focusedFieldRectsTop = this.focusedFieldData?.focusedFieldRects?.top;
-    const focusedFieldRectsBottom =
-      focusedFieldRectsTop + this.focusedFieldData?.focusedFieldRects?.height;
+    const focusedFieldRectsHeight = this.focusedFieldData?.focusedFieldRects?.height;
+    if (!focusedFieldRectsTop || !focusedFieldRectsHeight) {
+      return false;
+    }
+    const focusedFieldRectsBottom = focusedFieldRectsTop + focusedFieldRectsHeight;
     const viewportHeight = globalThis.innerHeight + globalThis.scrollY;
     return (
       !globalThis.isNaN(focusedFieldRectsTop) &&

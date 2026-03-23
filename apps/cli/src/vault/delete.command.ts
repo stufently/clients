@@ -1,3 +1,5 @@
+// FIXME: Update this file to be type safe and remove this and next line
+// @ts-strict-ignore
 import { firstValueFrom } from "rxjs";
 
 import { ApiService } from "@bitwarden/common/abstractions/api.service";
@@ -13,6 +15,8 @@ import { CipherAuthorizationService } from "@bitwarden/common/vault/services/cip
 import { Response } from "../models/response";
 import { CliUtils } from "../utils";
 
+import { CliRestrictedItemTypesService } from "./services/cli-restricted-item-types.service";
+
 export class DeleteCommand {
   constructor(
     private cipherService: CipherService,
@@ -22,6 +26,7 @@ export class DeleteCommand {
     private accountProfileService: BillingAccountProfileStateService,
     private cipherAuthorizationService: CipherAuthorizationService,
     private accountService: AccountService,
+    private cliRestrictedItemTypesService: CliRestrictedItemTypesService,
   ) {}
 
   async run(object: string, id: string, cmdOptions: Record<string, any>): Promise<Response> {
@@ -58,6 +63,12 @@ export class DeleteCommand {
 
     if (!canDeleteCipher) {
       return Response.error("You do not have permission to delete this item.");
+    }
+
+    const isCipherTypeRestricted =
+      await this.cliRestrictedItemTypesService.isCipherRestricted(cipher);
+    if (isCipherTypeRestricted) {
+      return Response.error("Deleting this item type is restricted by organizational policy.");
     }
 
     try {

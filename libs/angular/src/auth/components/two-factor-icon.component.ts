@@ -1,27 +1,42 @@
-// FIXME: Update this file to be type safe and remove this and next line
-// @ts-strict-ignore
-import { Component, Input } from "@angular/core";
+import { ChangeDetectionStrategy, Component, input } from "@angular/core";
 
-import { EmailIcon } from "../icons/email.icon";
-import { RecoveryCodeIcon } from "../icons/recovery.icon";
-import { TOTPIcon } from "../icons/totp.icon";
-import { WebAuthnIcon } from "../icons/webauthn.icon";
+import {
+  BitSvg,
+  TwoFactorAuthAuthenticatorIcon,
+  TwoFactorAuthDuoIcon,
+  TwoFactorAuthEmailIcon,
+  TwoFactorAuthWebAuthnIcon,
+  TwoFactorAuthYubicoIcon,
+} from "@bitwarden/assets/svg";
+import { TwoFactorProviderType } from "@bitwarden/common/auth/enums/two-factor-provider-type";
+import { SvgModule } from "@bitwarden/components";
 
+/**
+ * Displays an icon for a given two-factor authentication provider.
+ *
+ * @example
+ * <auth-two-factor-icon [provider]="providerType" [name]="providerName" />
+ */
 @Component({
   selector: "auth-two-factor-icon",
   templateUrl: "./two-factor-icon.component.html",
-  standalone: false,
+  imports: [SvgModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TwoFactorIconComponent {
-  @Input() provider: any;
-  @Input() name: string;
+  /** The two-factor provider whose icon should be displayed. */
+  readonly provider = input.required<TwoFactorProviderType>();
 
-  protected readonly Icons = {
-    TOTPIcon,
-    EmailIcon,
-    WebAuthnIcon,
-    RecoveryCodeIcon,
+  /** Accessible alt text for the icon, typically the provider's display name. */
+  readonly name = input<string>();
+
+  /** Maps provider types to their corresponding SVG icon assets. */
+  protected readonly IconProviderMap: Partial<Record<TwoFactorProviderType, BitSvg>> = {
+    [TwoFactorProviderType.Authenticator]: TwoFactorAuthAuthenticatorIcon,
+    [TwoFactorProviderType.Duo]: TwoFactorAuthDuoIcon,
+    [TwoFactorProviderType.Email]: TwoFactorAuthEmailIcon,
+    [TwoFactorProviderType.OrganizationDuo]: TwoFactorAuthDuoIcon,
+    [TwoFactorProviderType.WebAuthn]: TwoFactorAuthWebAuthnIcon,
+    [TwoFactorProviderType.Yubikey]: TwoFactorAuthYubicoIcon,
   };
-
-  constructor() {}
 }

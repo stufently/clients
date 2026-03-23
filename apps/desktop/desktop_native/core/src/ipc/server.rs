@@ -1,33 +1,43 @@
-use std::{error::Error, path::PathBuf};
+//! IPC server for handling multiple client connections.
 
-use futures::{SinkExt, StreamExt, TryFutureExt};
+use std::{
+    error::Error,
+    path::{Path, PathBuf},
+};
 
 use anyhow::Result;
+use futures::{SinkExt, StreamExt, TryFutureExt};
 use interprocess::local_socket::{tokio::prelude::*, GenericFilePath, ListenerOptions};
-use log::{error, info};
 use tokio::{
     io::{AsyncRead, AsyncWrite},
     sync::{broadcast, mpsc},
 };
 use tokio_util::sync::CancellationToken;
+use tracing::{error, info};
 
 use super::MESSAGE_CHANNEL_BUFFER;
 
+/// Message received from or sent to an IPC client.
 #[derive(Debug)]
 pub struct Message {
+    /// Unique identifier for the client connection.
     pub client_id: u32,
+    /// Type of message.
     pub kind: MessageType,
-    // This value should be Some for MessageType::Message and None for the rest
+    /// Message payload (Some for MessageType::Message, None otherwise).
     pub message: Option<String>,
 }
 
+/// Type of IPC message.
 #[derive(Debug)]
+#[allow(missing_docs)]
 pub enum MessageType {
     Connected,
     Disconnected,
     Message,
 }
 
+/// IPC server that listens for client connections.
 pub struct Server {
     pub paths: Vec<PathBuf>,
     cancel_token: CancellationToken,
@@ -39,14 +49,28 @@ impl Server {
     ///
     /// # Parameters
     ///
-    /// - `name`: The endpoint name to listen on. This name uniquely identifies the IPC connection and must be the same for both the server and client.
-    /// - `client_to_server_send`: This [`mpsc::Sender<Message>`] will receive all the [`Message`]'s that the clients send to this server.
+    /// - `name`: The endpoint name to listen on. This name uniquely identifies the IPC connection
+    ///   and must be the same for both the server and client.
+    /// - `client_to_server_send`: This [`mpsc::Sender<Message>`] will receive all the [`Message`]'s
+    ///   that the clients send to this server.
     pub fn start(
         paths: Vec<PathBuf>,
         client_to_server_send: mpsc::Sender<Message>,
     ) -> Result<Self, Box<dyn Error>> {
-        // This broadcast channel is used for sending messages to all connected clients, and so the sender
-        // will be stored in the server while the receiver will be cloned and passed to each client handler.
+        // If the unix socket file already exists, we get an error when trying to bind to it. So we
+        // remove it first. Any processes that were using the old socket should remain
+        // connected to it but any new connections will use the new socket.
+        if !cfg!(windows) {
+            let _ = std::fs::remove_file(path);
+        }
+
+        let name = path.as_os_str().to_fs_name::<GenericFilePath>()?;
+        let opts = ListenerOptions::new().name(name);
+        let listener = opts.create_tokio()?;
+
+        // This broadcast channel is used for sending messages to all connected clients, and so the
+        // sender will be stored in the server while the receiver will be cloned and passed
+        // to each client handler.
         let (server_to_clients_send, server_to_clients_recv) =
             broadcast::channel::<String>(MESSAGE_CHANNEL_BUFFER);
 
@@ -149,11 +173,11 @@ async fn listen_incoming(
                             client_id
                         );
                         tokio::spawn(future.map_err(|e| {
-                            error!("Error handling connection: {}", e)
+                            error!(error = %e, "Error handling connection")
                         }));
                     },
                     Err(e) => {
-                        error!("Error accepting connection: {}", e);
+                        error!(error = %e, "Error accepting connection");
                         break;
                     },
                 }
@@ -182,7 +206,7 @@ async fn handle_connection(
     loop {
         tokio::select! {
             _ = cancel_token.cancelled() => {
-                info!("Client {client_id} cancelled.");
+                info!(client_id, "Client cancelled.");
                 break;
             },
 
@@ -193,7 +217,7 @@ async fn handle_connection(
                         client_stream.send(msg.into()).await?;
                     },
                     Err(e) => {
-                        info!("Error reading message: {}", e);
+                        error!(error = %e, "Error reading message");
                         break;
                     }
                 }
@@ -205,7 +229,7 @@ async fn handle_connection(
             result = client_stream.next() => {
                 match result {
                     Some(Err(e))  => {
-                        info!("Error reading from client {client_id}: {e}");
+                        error!(client_id, error = %e, "Error reading from client");
 
                         client_to_server_send.send(Message {
                             client_id,
@@ -215,7 +239,7 @@ async fn handle_connection(
                         break;
                     },
                     None => {
-                        info!("Client {client_id} disconnected.");
+                        info!(client_id, "Client disconnected.");
 
                         client_to_server_send.send(Message {
                             client_id,

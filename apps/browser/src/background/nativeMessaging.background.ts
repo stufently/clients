@@ -1,21 +1,18 @@
 import { firstValueFrom } from "rxjs";
 
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
-import { AuthService } from "@bitwarden/common/auth/abstractions/auth.service";
 import { CryptoFunctionService } from "@bitwarden/common/key-management/crypto/abstractions/crypto-function.service";
 import { EncryptService } from "@bitwarden/common/key-management/crypto/abstractions/encrypt.service";
+import { EncString } from "@bitwarden/common/key-management/crypto/models/enc-string";
 import { AppIdService } from "@bitwarden/common/platform/abstractions/app-id.service";
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 import { MessagingService } from "@bitwarden/common/platform/abstractions/messaging.service";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
 import { Utils } from "@bitwarden/common/platform/misc/utils";
-import { EncString } from "@bitwarden/common/platform/models/domain/enc-string";
 import { SymmetricCryptoKey } from "@bitwarden/common/platform/models/domain/symmetric-crypto-key";
 import { KeyService, BiometricStateService } from "@bitwarden/key-management";
 
 import { BrowserApi } from "../platform/browser/browser-api";
-
-import RuntimeBackground from "./runtime.background";
 
 const MessageValidTimeout = 10 * 1000;
 const MessageNoResponseTimeout = 60 * 1000;
@@ -85,12 +82,10 @@ export class NativeMessagingBackground {
     private keyService: KeyService,
     private encryptService: EncryptService,
     private cryptoFunctionService: CryptoFunctionService,
-    private runtimeBackground: RuntimeBackground,
     private messagingService: MessagingService,
     private appIdService: AppIdService,
     private platformUtilsService: PlatformUtilsService,
     private logService: LogService,
-    private authService: AuthService,
     private biometricStateService: BiometricStateService,
     private accountService: AccountService,
   ) {
@@ -105,14 +100,23 @@ export class NativeMessagingBackground {
   }
 
   async connect() {
+    if (!(await BrowserApi.permissionsGranted(["nativeMessaging"]))) {
+      this.logService.warning(
+        "[Native Messaging IPC] Native messaging permission is missing for biometrics",
+      );
+      return;
+    }
+    if (this.connected || this.connecting) {
+      return;
+    }
+
     this.logService.info("[Native Messaging IPC] Connecting to Bitwarden Desktop app...");
     const appId = await this.appIdService.getAppId();
     this.appId = appId;
     await this.biometricStateService.setFingerprintValidated(false);
 
     return new Promise<void>((resolve, reject) => {
-      const port = BrowserApi.connectNative("com.8bit.bitwarden");
-      this.port = port;
+      this.port = BrowserApi.connectNative("com.8bit.bitwarden");
 
       this.connecting = true;
 
@@ -137,7 +141,7 @@ export class NativeMessagingBackground {
         connectedCallback();
       }
 
-      port.onMessage.addListener(async (messageRaw: unknown) => {
+      this.port.onMessage.addListener(async (messageRaw: unknown) => {
         const message = messageRaw as ReceiveMessageOuter;
         switch (message.command) {
           case "connected":
@@ -148,8 +152,7 @@ export class NativeMessagingBackground {
             if (this.connecting) {
               reject(new Error("startDesktop"));
             }
-            this.connected = false;
-            port.disconnect();
+            this.disconnect();
             // reject all
             for (const callback of this.callbacks.values()) {
               callback.rejecter("disconnected");
@@ -197,8 +200,7 @@ export class NativeMessagingBackground {
               "[Native Messaging IPC] Secure channel encountered an error; disconnecting and wiping keys...",
             );
 
-            this.secureChannel = undefined;
-            this.connected = false;
+            this.disconnect();
 
             if (message.messageId != null) {
               if (this.callbacks.has(message.messageId)) {
@@ -262,6 +264,7 @@ export class NativeMessagingBackground {
 
         this.secureChannel = undefined;
         this.connected = false;
+        this.connecting = false;
 
         this.logService.error("NativeMessaging port disconnected because of error: " + error);
 
@@ -350,8 +353,7 @@ export class NativeMessagingBackground {
         "[Native Messaging IPC] Disconnected from Bitwarden Desktop app because of the native port disconnecting.",
       );
 
-      this.secureChannel = undefined;
-      this.connected = false;
+      this.disconnect();
 
       if (messageId != null && this.callbacks.has(messageId)) {
         this.callbacks.get(messageId)!.rejecter("invalidateEncryption");
@@ -435,5 +437,13 @@ export class NativeMessagingBackground {
     this.messagingService.send("showNativeMessagingFingerprintDialog", {
       fingerprint: fingerprint,
     });
+  }
+
+  private disconnect() {
+    // Clear state immediately in case the disconnect callback fails.
+    this.secureChannel = undefined;
+    this.connected = false;
+    this.connecting = false;
+    this.port?.disconnect();
   }
 }

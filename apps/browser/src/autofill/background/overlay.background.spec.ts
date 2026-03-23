@@ -1,6 +1,7 @@
 import { mock, MockProxy, mockReset } from "jest-mock-extended";
 import { BehaviorSubject, of } from "rxjs";
 
+import { PolicyService } from "@bitwarden/common/admin-console/abstractions/policy/policy.service.abstraction";
 import { AuthService } from "@bitwarden/common/auth/abstractions/auth.service";
 import { AuthenticationStatus } from "@bitwarden/common/auth/enums/authentication-status";
 import {
@@ -49,7 +50,6 @@ import {
   MAX_SUB_FRAME_DEPTH,
   RedirectFocusDirection,
 } from "../enums/autofill-overlay.enum";
-import { InlineMenuFormFieldData } from "../services/abstractions/autofill-overlay-content.service";
 import { AutofillService } from "../services/abstractions/autofill.service";
 import { InlineMenuFieldQualificationService } from "../services/inline-menu-field-qualification.service";
 import {
@@ -71,6 +71,7 @@ import {
   triggerWebRequestOnCompletedEvent,
 } from "../spec/testing-utils";
 
+import { ModifyLoginCipherFormData } from "./abstractions/overlay-notifications.background";
 import {
   FocusedFieldData,
   InlineMenuPosition,
@@ -105,6 +106,7 @@ describe("OverlayBackground", () => {
   let platformUtilsService: MockProxy<BrowserPlatformUtilsService>;
   let enablePasskeysMock$: BehaviorSubject<boolean>;
   let vaultSettingsServiceMock: MockProxy<VaultSettingsService>;
+  const policyService = mock<PolicyService>();
   let fido2ActiveRequestManager: Fido2ActiveRequestManager;
   let selectedThemeMock$: BehaviorSubject<ThemeType>;
   let inlineMenuFieldQualificationService: InlineMenuFieldQualificationService;
@@ -156,7 +158,11 @@ describe("OverlayBackground", () => {
     fakeStateProvider = new FakeStateProvider(accountService);
     showFaviconsMock$ = new BehaviorSubject(true);
     neverDomainsMock$ = new BehaviorSubject({});
-    domainSettingsService = new DefaultDomainSettingsService(fakeStateProvider, configService);
+    domainSettingsService = new DefaultDomainSettingsService(
+      fakeStateProvider,
+      policyService,
+      accountService,
+    );
     domainSettingsService.showFavicons$ = showFaviconsMock$;
     domainSettingsService.neverDomains$ = neverDomainsMock$;
     logService = mock<LogService>();
@@ -2076,7 +2082,7 @@ describe("OverlayBackground", () => {
         const tab = createChromeTabMock({ id: 2 });
         const sender = mock<chrome.runtime.MessageSender>({ tab, frameId: 100 });
         let focusedFieldData: FocusedFieldData;
-        let formData: InlineMenuFormFieldData;
+        let formData: ModifyLoginCipherFormData;
 
         beforeEach(async () => {
           await initOverlayElementPorts();
@@ -2839,7 +2845,7 @@ describe("OverlayBackground", () => {
         sendResponse,
       );
 
-      expect(returnValue).toBe(null);
+      expect(returnValue).toBeUndefined();
       expect(sendResponse).not.toHaveBeenCalled();
     });
   });
@@ -3149,7 +3155,9 @@ describe("OverlayBackground", () => {
     const portKey = "inlineMenuListPort";
 
     beforeEach(async () => {
-      sender = mock<chrome.runtime.MessageSender>({ tab: { id: 1 } });
+      sender = mock<chrome.runtime.MessageSender>({
+        tab: createChromeTabMock({ id: 1, url: "https://example.com" }),
+      });
       portKeyForTabSpy[sender.tab.id] = portKey;
       activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
       await initOverlayElementPorts();
@@ -3280,6 +3288,9 @@ describe("OverlayBackground", () => {
           pageDetails: [pageDetailsForTab],
           fillNewPassword: true,
           allowTotpAutofill: true,
+          focusedFieldForm: undefined,
+          focusedFieldOpid: undefined,
+          inlineMenuFillType: undefined,
         });
         expect(overlayBackground["inlineMenuCiphers"].entries()).toStrictEqual(
           new Map([
@@ -3291,8 +3302,8 @@ describe("OverlayBackground", () => {
       });
 
       it("copies the cipher's totp code to the clipboard after filling", async () => {
-        const cipher1 = mock<CipherView>({ id: "inline-menu-cipher-1" });
-        overlayBackground["inlineMenuCiphers"] = new Map([["inline-menu-cipher-1", cipher1]]);
+        const cipher2 = mock<CipherView>({ id: "inline-menu-cipher-2" });
+        overlayBackground["inlineMenuCiphers"] = new Map([["inline-menu-cipher-2", cipher2]]);
         overlayBackground["pageDetailsForTab"][sender.tab.id] = new Map([
           [sender.frameId, { frameId: sender.frameId, tab: sender.tab, details: pageDetails }],
         ]);
@@ -3362,6 +3373,7 @@ describe("OverlayBackground", () => {
 
           it("aborts all active FIDO2 requests if the subsequent request after the authentication is invalid", async () => {
             jest.spyOn(fido2ActiveRequestManager, "removeActiveRequest");
+            getTabSpy.mockResolvedValue(sender.tab);
 
             sendPortMessage(listMessageConnectorSpy, {
               command: "fillAutofillInlineMenuCipher",
@@ -3371,10 +3383,11 @@ describe("OverlayBackground", () => {
             });
             await flushPromises();
             triggerWebRequestOnCompletedEvent(
-              mock<chrome.webRequest.WebResponseCacheDetails>({
+              mock<chrome.webRequest.OnCompletedDetails>({
                 statusCode: 401,
               }),
             );
+            await flushPromises();
 
             expect(fido2ActiveRequestManager.removeActiveRequest).toHaveBeenCalled();
           });
@@ -3389,8 +3402,9 @@ describe("OverlayBackground", () => {
               usePasskey: true,
               portKey,
             });
+            await flushPromises();
             triggerWebRequestOnCompletedEvent(
-              mock<chrome.webRequest.WebResponseCacheDetails>({
+              mock<chrome.webRequest.OnCompletedDetails>({
                 statusCode: 200,
               }),
             );
@@ -3432,6 +3446,8 @@ describe("OverlayBackground", () => {
         const pageDetails = createAutofillPageDetailsMock({
           fields: [currentPasswordField, newPasswordField, confirmNewPasswordField],
         });
+        const cipher2 = mock<CipherView>({ id: "inline-menu-cipher-2" });
+        overlayBackground["inlineMenuCiphers"] = new Map([["inline-menu-cipher-2", cipher2]]);
         overlayBackground["pageDetailsForTab"][sender.tab.id] = new Map([
           [sender.frameId, { frameId: sender.frameId, tab: sender.tab, details: pageDetails }],
         ]);
@@ -3651,6 +3667,18 @@ describe("OverlayBackground", () => {
         });
       });
 
+      it("sends a message to the tab to store modify login change when a password is generated", async () => {
+        jest.useFakeTimers();
+
+        sendPortMessage(listMessageConnectorSpy, { command: "fillGeneratedPassword", portKey });
+
+        await flushPromises();
+        jest.advanceTimersByTime(400);
+        await flushPromises();
+
+        expect(tabsSendMessageSpy.mock.lastCall[1].command).toBe("generatedPasswordModifyLogin");
+      });
+
       it("filters the page details to only include the new password fields before filling", async () => {
         sendPortMessage(listMessageConnectorSpy, { command: "fillGeneratedPassword", portKey });
         await flushPromises();
@@ -3661,32 +3689,10 @@ describe("OverlayBackground", () => {
           pageDetails: [overlayBackground["pageDetailsForTab"][sender.tab.id].get(sender.frameId)],
           fillNewPassword: true,
           allowTotpAutofill: false,
+          focusedFieldForm: undefined,
+          focusedFieldOpid: undefined,
+          inlineMenuFillType: InlineMenuFillTypes.PasswordGeneration,
         });
-      });
-
-      it("opens the inline menu for fields that fill a generated password", async () => {
-        jest.useFakeTimers();
-        const formData = {
-          uri: "https://example.com",
-          username: "username",
-          password: "password",
-          newPassword: "newPassword",
-        };
-        tabsSendMessageSpy.mockImplementation((_tab, message) => {
-          if (message.command === "getInlineMenuFormFieldData") {
-            return Promise.resolve(formData);
-          }
-
-          return Promise.resolve();
-        });
-        const openInlineMenuSpy = jest.spyOn(overlayBackground as any, "openInlineMenu");
-
-        sendPortMessage(listMessageConnectorSpy, { command: "fillGeneratedPassword", portKey });
-        await flushPromises();
-        jest.advanceTimersByTime(400);
-        await flushPromises();
-
-        expect(openInlineMenuSpy).toHaveBeenCalled();
       });
     });
   });
@@ -3779,7 +3785,11 @@ describe("OverlayBackground", () => {
         inlineMenuFillType: CipherType.Login,
         accountCreationFieldType: InlineMenuAccountCreationFieldType.Password,
       });
-      sendMockExtensionMessage({ command: "updateFocusedFieldData", focusedFieldData });
+      const sender = mock<chrome.runtime.MessageSender>({
+        tab: createChromeTabMock({ id: 1 }),
+        frameId: 0,
+      });
+      sendMockExtensionMessage({ command: "updateFocusedFieldData", focusedFieldData }, sender);
 
       await initOverlayElementPorts();
       await flushPromises();

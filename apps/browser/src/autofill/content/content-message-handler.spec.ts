@@ -3,6 +3,7 @@ import { mock } from "jest-mock-extended";
 import { VaultMessages } from "@bitwarden/common/vault/enums/vault-messages.enum";
 
 import { postWindowMessage, sendMockExtensionMessage } from "../spec/testing-utils";
+import { EventSecurity } from "../utils/event-security";
 
 describe("ContentMessageHandler", () => {
   const sendMessageSpy = jest.spyOn(chrome.runtime, "sendMessage");
@@ -19,6 +20,7 @@ describe("ContentMessageHandler", () => {
   );
 
   beforeEach(() => {
+    jest.spyOn(EventSecurity, "isEventTrusted").mockReturnValue(true);
     // FIXME: Remove when updating file. Eslint update
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     require("./content-message-handler");
@@ -56,7 +58,11 @@ describe("ContentMessageHandler", () => {
     });
 
     it("sends an authResult message", () => {
-      postWindowMessage({ command: "authResult", lastpass: true, code: "code", state: "state" });
+      postWindowMessage(
+        { command: "authResult", lastpass: true, code: "code", state: "state" },
+        "https://localhost/",
+        window,
+      );
 
       expect(sendMessageSpy).toHaveBeenCalledWith({
         command: "authResult",
@@ -68,7 +74,11 @@ describe("ContentMessageHandler", () => {
     });
 
     it("sends a webAuthnResult message", () => {
-      postWindowMessage({ command: "webAuthnResult", data: "data", remember: true });
+      postWindowMessage(
+        { command: "webAuthnResult", data: "data", remember: true },
+        "https://localhost/",
+        window,
+      );
 
       expect(sendMessageSpy).toHaveBeenCalledWith({
         command: "webAuthnResult",
@@ -82,7 +92,7 @@ describe("ContentMessageHandler", () => {
       const mockCode = "mockCode";
       const command = "duoResult";
 
-      postWindowMessage({ command: command, code: mockCode });
+      postWindowMessage({ command: command, code: mockCode }, "https://localhost/", window);
 
       expect(sendMessageSpy).toHaveBeenCalledWith({
         command: command,
@@ -100,10 +110,19 @@ describe("ContentMessageHandler", () => {
     });
 
     it("forwards the message to the extension background if it is present in the forwardCommands list", () => {
-      sendMockExtensionMessage({ command: "bgUnlockPopoutOpened" });
+      const forwardCommands = [
+        "addToLockedVaultPendingNotifications",
+        "unlockCompleted",
+        "addedCipher",
+      ];
 
-      expect(sendMessageSpy).toHaveBeenCalledTimes(1);
-      expect(sendMessageSpy).toHaveBeenCalledWith({ command: "bgUnlockPopoutOpened" });
+      forwardCommands.forEach((command) => {
+        sendMockExtensionMessage({ command });
+
+        expect(sendMessageSpy).toHaveBeenCalledWith({ command });
+      });
+
+      expect(sendMessageSpy).toHaveBeenCalledTimes(forwardCommands.length);
     });
   });
 

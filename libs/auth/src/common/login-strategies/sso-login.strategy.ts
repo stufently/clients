@@ -125,9 +125,13 @@ export class SsoLoginStrategy extends LoginStrategy {
       // The presence of a masterKeyEncryptedUserKey indicates that the user has already been provisioned in Key Connector.
       const newSsoUser = tokenResponse.key == null;
       if (newSsoUser) {
-        await this.keyConnectorService.convertNewSsoUserToKeyConnector(
-          tokenResponse,
-          this.cache.value.orgId,
+        // Store Key Connector domain confirmation data in state instead of AuthResult
+        await this.keyConnectorService.setNewSsoUserKeyConnectorConversionData(
+          {
+            kdfConfig: tokenResponse.kdfConfig,
+            keyConnectorUrl: this.getKeyConnectorUrl(tokenResponse),
+            organizationId: this.cache.value.orgId,
+          },
           userId,
         );
       } else {
@@ -153,22 +157,12 @@ export class SsoLoginStrategy extends LoginStrategy {
       // In order for us to set the master key from Key Connector, we need to have a Key Connector URL
       // and the user must not have a master password.
       return userHasKeyConnectorUrl && !userHasMasterPassword;
-    } else {
-      // In pre-TDE versions of the server, the userDecryptionOptions will not be present.
-      // In this case, we can determine if the user has a master password and has a Key Connector URL by
-      // just checking the keyConnectorUrl property. This is because the server short-circuits on the response
-      // and will not pass back the URL in the response if the user has a master password.
-      // TODO: remove compatibility check after 2023.10 release (https://bitwarden.atlassian.net/browse/PM-3537)
-      return tokenResponse.keyConnectorUrl != null;
     }
   }
 
   private getKeyConnectorUrl(tokenResponse: IdentityTokenResponse): string {
-    // TODO: remove tokenResponse.keyConnectorUrl reference after 2023.10 release (https://bitwarden.atlassian.net/browse/PM-3537)
     const userDecryptionOptions = tokenResponse?.userDecryptionOptions;
-    return (
-      tokenResponse.keyConnectorUrl ?? userDecryptionOptions?.keyConnectorOption?.keyConnectorUrl
-    );
+    return userDecryptionOptions?.keyConnectorOption?.keyConnectorUrl;
   }
 
   // TODO: future passkey login strategy will need to support setting user key (decrypting via TDE or admin approval request)
@@ -245,25 +239,13 @@ export class SsoLoginStrategy extends LoginStrategy {
     }
 
     if (adminAuthReqResponse?.requestApproved) {
-      // if masterPasswordHash has a value, we will always receive authReqResponse.key
-      // as authRequestPublicKey(masterKey) + authRequestPublicKey(masterPasswordHash)
-      if (adminAuthReqResponse.masterPasswordHash) {
-        await this.authRequestService.setKeysAfterDecryptingSharedMasterKeyAndHash(
-          adminAuthReqResponse,
-          adminAuthReqStorable.privateKey,
-          userId,
-        );
-      } else {
-        // if masterPasswordHash is null, we will always receive authReqResponse.key
-        // as authRequestPublicKey(userKey)
-        await this.authRequestService.setUserKeyAfterDecryptingSharedUserKey(
-          adminAuthReqResponse,
-          adminAuthReqStorable.privateKey,
-          userId,
-        );
-      }
+      await this.authRequestService.setUserKeyAfterDecryptingSharedUserKey(
+        adminAuthReqResponse,
+        adminAuthReqStorable.privateKey,
+        userId,
+      );
 
-      if (await this.keyService.hasUserKey()) {
+      if (await this.keyService.hasUserKey(userId)) {
         // Now that we have a decrypted user key in memory, we can check if we
         // need to establish trust on the current device
         await this.deviceTrustService.trustDeviceIfRequired(userId);
@@ -327,10 +309,12 @@ export class SsoLoginStrategy extends LoginStrategy {
   private async trySetUserKeyWithMasterKey(userId: UserId): Promise<void> {
     const masterKey = await firstValueFrom(this.masterPasswordService.masterKey$(userId));
 
-    // There is a scenario in which the master key is not set here. That will occur if the user
-    // has a master password and is using Key Connector. In that case, we cannot set the master key
+    // There are two scenarios in which the master key is not set here:
+    // 1. If the user has a master password and is using Key Connector. In that case, we cannot set the master key
     // because the user hasn't entered their master password yet.
-    // Instead, we'll return here and let the migration to Key Connector handle setting the master key.
+    // 2. For new users with Key Connector, we will not have a master key yet, since Key Connector domain
+    // has to be confirmed first.
+    // In both cases, we'll return here and let the migration to Key Connector handle setting the master key.
     if (!masterKey) {
       return;
     }
@@ -339,15 +323,13 @@ export class SsoLoginStrategy extends LoginStrategy {
     await this.keyService.setUserKey(userKey, userId);
   }
 
-  protected override async setPrivateKey(
+  protected override async setAccountCryptographicState(
     tokenResponse: IdentityTokenResponse,
     userId: UserId,
   ): Promise<void> {
-    const newSsoUser = tokenResponse.key == null;
-
-    if (!newSsoUser) {
-      await this.keyService.setPrivateKey(
-        tokenResponse.privateKey ?? (await this.createKeyPairForOldAccount(userId)),
+    if (tokenResponse.accountKeysResponseModel) {
+      await this.accountCryptographicStateService.setAccountCryptographicState(
+        tokenResponse.accountKeysResponseModel.toWrappedAccountCryptographicState(),
         userId,
       );
     }
@@ -382,17 +364,45 @@ export class SsoLoginStrategy extends LoginStrategy {
 
     // Check for TDE-related conditions
     const userDecryptionOptions = await firstValueFrom(
-      this.userDecryptionOptionsService.userDecryptionOptions$,
+      this.userDecryptionOptionsService.userDecryptionOptionsById$(userId),
     );
 
     if (!userDecryptionOptions) {
       return false;
     }
 
-    // Check for TDE offboarding - user is being offboarded from TDE and needs to set a password
+    // Check for TDE offboarding - user is being offboarded from TDE and needs to set a password on a trusted device
     if (userDecryptionOptions.trustedDeviceOption?.isTdeOffboarding) {
       await this.masterPasswordService.setForceSetPasswordReason(
         ForceSetPasswordReason.TdeOffboarding,
+        userId,
+      );
+      return true;
+    }
+
+    // If a TDE org user in an offboarding state logs in on an untrusted device, then they will receive their existing userKeyEncryptedPrivateKey from the server, but
+    // TDE would not have been able to decrypt their user key b/c we don't send down TDE as a valid decryption option, so the user key will be unavilable here for TDE org users on untrusted devices.
+    // - UserDecryptionOptions.trustedDeviceOption is undefined -- device isn't trusted.
+    // - UserDecryptionOptions.hasMasterPassword is false -- user doesn't have a master password.
+    // - UserDecryptionOptions.UsesKeyConnector is undefined. -- they aren't using key connector
+    // - UserKey is not set after successful login -- because automatic decryption is not available
+    // - userKeyEncryptedPrivateKey is set after successful login -- this is the key differentiator between a TDE org user logging into an untrusted device and MP encryption JIT provisioned user logging in for the first time.
+    //     Why is that the case?  Because we set the userKeyEncryptedPrivateKey when we create the userKey, and this is serving as a proxy to tell us that the userKey has been created already (when enrolling in TDE).
+    const hasUserKeyEncryptedPrivateKey = await firstValueFrom(
+      this.keyService.userEncryptedPrivateKey$(userId),
+    );
+    const hasUserKey = await this.keyService.hasUserKey(userId);
+
+    // TODO: PM-23491 we should explore consolidating this logic into a flag on the server. It could be set when an org is switched from TDE to MP encryption for each org user.
+    if (
+      !userDecryptionOptions.trustedDeviceOption &&
+      !userDecryptionOptions.hasMasterPassword &&
+      !userDecryptionOptions.keyConnectorOption?.keyConnectorUrl &&
+      hasUserKeyEncryptedPrivateKey &&
+      !hasUserKey
+    ) {
+      await this.masterPasswordService.setForceSetPasswordReason(
+        ForceSetPasswordReason.TdeOffboardingUntrustedDevice,
         userId,
       );
       return true;

@@ -2,7 +2,7 @@ import { CommonModule } from "@angular/common";
 import { Component, OnDestroy, OnInit } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { IsActiveMatchOptions, Router, RouterModule } from "@angular/router";
-import { Observable, filter, firstValueFrom, map, merge, race, take, timer } from "rxjs";
+import { Observable, firstValueFrom, map } from "rxjs";
 
 import { JslibModule } from "@bitwarden/angular/jslib.module";
 import {
@@ -36,10 +36,10 @@ import { Utils } from "@bitwarden/common/platform/misc/utils";
 import { UserId } from "@bitwarden/common/types/guid";
 // This import has been flagged as unallowed for this class. It may be involved in a circular dependency loop.
 // eslint-disable-next-line no-restricted-imports
-import { ButtonModule, LinkModule, ToastService } from "@bitwarden/components";
+import { ButtonModule, LinkModule, IconModule, ToastService } from "@bitwarden/components";
 import { PasswordGenerationServiceAbstraction } from "@bitwarden/generator-legacy";
 
-import { AuthRequestApiService } from "../../common/abstractions/auth-request-api.service";
+import { AuthRequestApiServiceAbstraction } from "../../common/abstractions/auth-request-api.service";
 import { LoginViaAuthRequestCacheService } from "../../common/services/auth-request/default-login-via-auth-request-cache.service";
 
 // FIXME: update to use a const object instead of a typescript enum
@@ -56,9 +56,11 @@ const matchOptions: IsActiveMatchOptions = {
   matrixParams: "ignored",
 };
 
+// FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
+// eslint-disable-next-line @angular-eslint/prefer-on-push-component-change-detection
 @Component({
   templateUrl: "./login-via-auth-request.component.html",
-  imports: [ButtonModule, CommonModule, JslibModule, LinkModule, RouterModule],
+  imports: [ButtonModule, CommonModule, JslibModule, LinkModule, RouterModule, IconModule],
   providers: [{ provide: LoginViaAuthRequestCacheService }],
 })
 export class LoginViaAuthRequestComponent implements OnInit, OnDestroy {
@@ -85,7 +87,7 @@ export class LoginViaAuthRequestComponent implements OnInit, OnDestroy {
     private accountService: AccountService,
     private anonymousHubService: AnonymousHubService,
     private appIdService: AppIdService,
-    private authRequestApiService: AuthRequestApiService,
+    private authRequestApiService: AuthRequestApiServiceAbstraction,
     private authRequestService: AuthRequestServiceAbstraction,
     private authService: AuthService,
     private cryptoFunctionService: CryptoFunctionService,
@@ -185,17 +187,15 @@ export class LoginViaAuthRequestComponent implements OnInit, OnDestroy {
       this.accountService.activeAccount$.pipe(map((a) => a?.email));
     const loginEmail$: Observable<string | null> = this.loginEmailService.loginEmail$;
 
-    // Use merge as we want to get the first value from either observable.
-    const firstEmail$ = merge(loginEmail$, activeAccountEmail$).pipe(
-      filter((e): e is string => !!e), // convert null/undefined to false and filter out so we narrow type to string
-      take(1), // complete after first value
-    );
+    let loginEmail: string | undefined = (await firstValueFrom(loginEmail$)) ?? undefined;
 
-    const emailRetrievalTimeout$ = timer(2500).pipe(map(() => undefined as undefined));
+    if (!loginEmail) {
+      loginEmail = (await firstValueFrom(activeAccountEmail$)) ?? undefined;
+    }
 
     // Wait for either the first email or the timeout to occur so we can proceed
     // neither above observable will complete, so we have to add a timeout
-    this.email = await firstValueFrom(race(firstEmail$, emailRetrievalTimeout$));
+    this.email = loginEmail;
 
     if (!this.email) {
       await this.handleMissingEmail();
@@ -605,10 +605,10 @@ export class LoginViaAuthRequestComponent implements OnInit, OnDestroy {
       if (authRequestResponse.requestApproved) {
         const userHasAuthenticatedViaSSO = this.authStatus === AuthenticationStatus.Locked;
         if (userHasAuthenticatedViaSSO) {
-          // [Standard Flow 3-4] Handle authenticated SSO TD user flows
+          // [Standard Flow 4] Handle authenticated SSO TD user flows
           return await this.handleAuthenticatedFlows(authRequestResponse);
         } else {
-          // [Standard Flow 1-2] Handle unauthenticated user flows
+          // [Standard Flow 2] Handle unauthenticated user flows
           return await this.handleUnauthenticatedFlows(authRequestResponse, requestId);
         }
       }
@@ -629,7 +629,7 @@ export class LoginViaAuthRequestComponent implements OnInit, OnDestroy {
   }
 
   private async handleAuthenticatedFlows(authRequestResponse: AuthRequestResponse) {
-    // [Standard Flow 3-4] Handle authenticated SSO TD user flows
+    // [Standard Flow 4] Handle authenticated SSO TD user flows
     const userId = (await firstValueFrom(this.accountService.activeAccount$))?.id;
     if (!userId) {
       this.logService.error(
@@ -654,7 +654,7 @@ export class LoginViaAuthRequestComponent implements OnInit, OnDestroy {
     authRequestResponse: AuthRequestResponse,
     requestId: string,
   ) {
-    // [Standard Flow 1-2] Handle unauthenticated user flows
+    // [Standard Flow 2] Handle unauthenticated user flows
     const authRequestLoginCredentials = await this.buildAuthRequestLoginCredentials(
       requestId,
       authRequestResponse,
@@ -676,30 +676,15 @@ export class LoginViaAuthRequestComponent implements OnInit, OnDestroy {
 
   private async decryptViaApprovedAuthRequest(
     authRequestResponse: AuthRequestResponse,
-    privateKey: ArrayBuffer,
+    privateKey: Uint8Array,
     userId: UserId,
   ): Promise<void> {
-    /**
-     * [Flow Type Detection]
-     * We determine the type of `key` based on the presence or absence of `masterPasswordHash`:
-     *  - If `masterPasswordHash` exists: Standard Flow 1 or 3 (device has masterKey)
-     *  - If no `masterPasswordHash`: Standard Flow 2, 4, or Admin Flow (device sends userKey)
-     */
-    if (authRequestResponse.masterPasswordHash) {
-      // [Standard Flow 1 or 3] Device has masterKey
-      await this.authRequestService.setKeysAfterDecryptingSharedMasterKeyAndHash(
-        authRequestResponse,
-        privateKey,
-        userId,
-      );
-    } else {
-      // [Standard Flow 2, 4, or Admin Flow] Device sends userKey
-      await this.authRequestService.setUserKeyAfterDecryptingSharedUserKey(
-        authRequestResponse,
-        privateKey,
-        userId,
-      );
-    }
+    // [Standard Flow 2, 4, or Admin Flow] Device sends userKey
+    await this.authRequestService.setUserKeyAfterDecryptingSharedUserKey(
+      authRequestResponse,
+      privateKey,
+      userId,
+    );
 
     // [Admin Flow Cleanup] Clear one-time use admin auth request
     // clear the admin auth request from state so it cannot be used again (it's a one time use)
@@ -758,43 +743,13 @@ export class LoginViaAuthRequestComponent implements OnInit, OnDestroy {
 
     /**
      * See verifyAndHandleApprovedAuthReq() for flow details.
-     *
-     * We determine the type of `key` based on the presence or absence of `masterPasswordHash`:
-     *  - If `masterPasswordHash` has a value, we receive the `key` as an authRequestPublicKey(masterKey) [plus we have authRequestPublicKey(masterPasswordHash)]
-     *  - If `masterPasswordHash` does not have a value, we receive the `key` as an authRequestPublicKey(userKey)
      */
-    if (authRequestResponse.masterPasswordHash) {
-      // ...in Standard Auth Request Flow 1
-      const { masterKey, masterKeyHash } =
-        await this.authRequestService.decryptPubKeyEncryptedMasterKeyAndHash(
-          authRequestResponse.key,
-          authRequestResponse.masterPasswordHash,
-          this.authRequestKeyPair.privateKey,
-        );
-
-      return new AuthRequestLoginCredentials(
-        this.email,
-        this.accessCode,
-        requestId,
-        null, // no userKey
-        masterKey,
-        masterKeyHash,
-      );
-    } else {
-      // ...in Standard Auth Request Flow 2
-      const userKey = await this.authRequestService.decryptPubKeyEncryptedUserKey(
-        authRequestResponse.key,
-        this.authRequestKeyPair.privateKey,
-      );
-      return new AuthRequestLoginCredentials(
-        this.email,
-        this.accessCode,
-        requestId,
-        userKey,
-        null, // no masterKey
-        null, // no masterKeyHash
-      );
-    }
+    // ...in Standard Auth Request Flow 2
+    const userKey = await this.authRequestService.decryptPubKeyEncryptedUserKey(
+      authRequestResponse.key,
+      this.authRequestKeyPair.privateKey,
+    );
+    return new AuthRequestLoginCredentials(this.email, this.accessCode, requestId, userKey);
   }
 
   private async clearExistingAdminAuthRequestAndStartNewRequest(userId: UserId) {
@@ -822,7 +777,7 @@ export class LoginViaAuthRequestComponent implements OnInit, OnDestroy {
   }
 
   private async handleSuccessfulLoginNavigation(userId: UserId) {
-    await this.loginSuccessHandlerService.run(userId);
+    await this.loginSuccessHandlerService.run(userId, null);
     await this.router.navigate(["vault"]);
   }
 }

@@ -1,7 +1,7 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
 import { Injectable } from "@angular/core";
-import { firstValueFrom } from "rxjs";
+import { firstValueFrom, map, switchMap } from "rxjs";
 
 import {
   OrganizationUserApiService,
@@ -10,11 +10,20 @@ import {
 } from "@bitwarden/admin-console/common";
 import { OrganizationApiServiceAbstraction } from "@bitwarden/common/admin-console/abstractions/organization/organization-api.service.abstraction";
 import { OrganizationService } from "@bitwarden/common/admin-console/abstractions/organization/organization.service.abstraction";
+import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
+import { getUserId } from "@bitwarden/common/auth/services/account.service";
+import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
 import { EncryptService } from "@bitwarden/common/key-management/crypto/abstractions/encrypt.service";
+import {
+  EncryptedString,
+  EncString,
+} from "@bitwarden/common/key-management/crypto/models/enc-string";
+import { MasterPasswordServiceAbstraction } from "@bitwarden/common/key-management/master-password/abstractions/master-password.service.abstraction";
+import { MasterPasswordSalt } from "@bitwarden/common/key-management/master-password/types/master-password.types";
+import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { Utils } from "@bitwarden/common/platform/misc/utils";
-import { EncryptedString, EncString } from "@bitwarden/common/platform/models/domain/enc-string";
-import { UserId } from "@bitwarden/common/types/guid";
+import { OrganizationId, UserId } from "@bitwarden/common/types/guid";
 import { UserKey } from "@bitwarden/common/types/key";
 import {
   Argon2KdfConfig,
@@ -30,13 +39,10 @@ import { OrganizationUserResetPasswordEntry } from "./organization-user-reset-pa
 @Injectable({
   providedIn: "root",
 })
-export class OrganizationUserResetPasswordService
-  implements
-    UserKeyRotationKeyRecoveryProvider<
-      OrganizationUserResetPasswordWithIdRequest,
-      OrganizationUserResetPasswordEntry
-    >
-{
+export class OrganizationUserResetPasswordService implements UserKeyRotationKeyRecoveryProvider<
+  OrganizationUserResetPasswordWithIdRequest,
+  OrganizationUserResetPasswordEntry
+> {
   constructor(
     private keyService: KeyService,
     private encryptService: EncryptService,
@@ -44,6 +50,9 @@ export class OrganizationUserResetPasswordService
     private organizationUserApiService: OrganizationUserApiService,
     private organizationApiService: OrganizationApiServiceAbstraction,
     private i18nService: I18nService,
+    private accountService: AccountService,
+    private masterPasswordService: MasterPasswordServiceAbstraction,
+    private configService: ConfigService,
   ) {}
 
   /**
@@ -72,7 +81,7 @@ export class OrganizationUserResetPasswordService
 
     if (
       !trustedPublicKeys.some(
-        (key) => Utils.fromBufferToHex(key) === Utils.fromBufferToHex(publicKey),
+        (key) => Utils.fromArrayToHex(key) === Utils.fromArrayToHex(publicKey),
       )
     ) {
       throw new Error("Untrusted public key");
@@ -96,7 +105,7 @@ export class OrganizationUserResetPasswordService
     newMasterPassword: string,
     email: string,
     orgUserId: string,
-    orgId: string,
+    orgId: OrganizationId,
   ): Promise<void> {
     const response = await this.organizationUserApiService.getOrganizationUserResetPasswordDetails(
       orgId,
@@ -108,7 +117,14 @@ export class OrganizationUserResetPasswordService
     }
 
     // Decrypt Organization's encrypted Private Key with org key
-    const orgSymKey = await this.keyService.getOrgKey(orgId);
+    const orgSymKey = await firstValueFrom(
+      this.accountService.activeAccount$.pipe(
+        getUserId,
+        switchMap((userId) => this.keyService.orgKeys$(userId)),
+        map((orgKeys) => orgKeys[orgId as OrganizationId] ?? null),
+      ),
+    );
+
     if (orgSymKey == null) {
       throw new Error("No org key found");
     }
@@ -129,6 +145,50 @@ export class OrganizationUserResetPasswordService
       response.kdf === KdfType.PBKDF2_SHA256
         ? new PBKDF2KdfConfig(response.kdfIterations)
         : new Argon2KdfConfig(response.kdfIterations, response.kdfMemory, response.kdfParallelism);
+
+    const newApisWithInputPasswordFlagEnabled = await this.configService.getFeatureFlag(
+      FeatureFlag.PM27086_UpdateAuthenticationApisForInputPassword,
+    );
+
+    if (newApisWithInputPasswordFlagEnabled) {
+      // Determine salt. In the Account Recovery flow, an org admin is resetting a member's
+      // master password. The target user's UserId is not available in this context (only
+      // orgUserId, an organization-scoped identifier), so salt is always derived from the
+      // target user's email via emailToSalt().
+      //
+      // If/when we shift to using random entropy for the salt, this would need to be replaced.
+      const salt: MasterPasswordSalt = this.masterPasswordService.emailToSalt(email);
+
+      // Create authentication and unlock data
+      const authenticationData =
+        await this.masterPasswordService.makeMasterPasswordAuthenticationData(
+          newMasterPassword,
+          kdfConfig,
+          salt,
+        );
+
+      const unlockData = await this.masterPasswordService.makeMasterPasswordUnlockData(
+        newMasterPassword,
+        kdfConfig,
+        salt,
+        existingUserKey,
+      );
+
+      // Create request
+      const request = OrganizationUserResetPasswordRequest.newConstructor(
+        authenticationData,
+        unlockData,
+      );
+
+      // Change user's password
+      await this.organizationUserApiService.putOrganizationUserResetPassword(
+        orgId,
+        orgUserId,
+        request,
+      );
+
+      return; // EARLY RETURN for flagged code
+    }
 
     // Create new master key and hash new password
     const newMasterKey = await this.keyService.makeMasterKey(

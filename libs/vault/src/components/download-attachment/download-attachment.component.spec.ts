@@ -5,6 +5,7 @@ import { BehaviorSubject } from "rxjs";
 
 import { ApiService } from "@bitwarden/common/abstractions/api.service";
 import { EncryptService } from "@bitwarden/common/key-management/crypto/abstractions/encrypt.service";
+import { DECRYPT_ERROR } from "@bitwarden/common/key-management/crypto/models/enc-string";
 import { ErrorResponse } from "@bitwarden/common/models/response/error.response";
 import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
 import { FileDownloadService } from "@bitwarden/common/platform/abstractions/file-download/file-download.service";
@@ -35,12 +36,11 @@ describe("DownloadAttachmentComponent", () => {
     .mockResolvedValue({ url: "https://www.downloadattachement.com" });
   const download = jest.fn();
 
-  const attachment = {
-    id: "222-3333-4444",
-    url: "https://www.attachment.com",
-    fileName: "attachment-filename",
-    size: "1234",
-  } as AttachmentView;
+  const attachment = new AttachmentView();
+  attachment.id = "222-3333-4444";
+  attachment.url = "https://www.attachment.com";
+  attachment.fileName = "attachment-filename";
+  attachment.size = "1234";
 
   const cipherView = {
     id: "5555-444-3333",
@@ -99,15 +99,15 @@ describe("DownloadAttachmentComponent", () => {
   beforeEach(() => {
     fixture = TestBed.createComponent(DownloadAttachmentComponent);
     component = fixture.componentInstance;
-    component.attachment = attachment;
-    component.cipher = cipherView;
+    fixture.componentRef.setInput("attachment", attachment);
+    fixture.componentRef.setInput("cipher", cipherView);
     fixture.detectChanges();
   });
 
   it("renders delete button", () => {
     const deleteButton = fixture.debugElement.query(By.css("button"));
 
-    expect(deleteButton.attributes["title"]).toBe("downloadAttachmentName");
+    expect(deleteButton.attributes["aria-label"]).toBe("downloadAttachmentLabel");
   });
 
   describe("download attachment", () => {
@@ -119,6 +119,19 @@ describe("DownloadAttachmentComponent", () => {
       // Request is not defined in the Jest runtime
       // eslint-disable-next-line no-global-assign
       Request = MockRequest as any;
+    });
+
+    it("hides download button when the attachment has decryption failure", () => {
+      const decryptFailureAttachment = new AttachmentView();
+      decryptFailureAttachment.id = attachment.id;
+      decryptFailureAttachment.url = attachment.url;
+      decryptFailureAttachment.size = attachment.size;
+      decryptFailureAttachment.fileName = DECRYPT_ERROR;
+
+      fixture.componentRef.setInput("attachment", decryptFailureAttachment);
+      fixture.detectChanges();
+
+      expect(fixture.debugElement.query(By.css("button"))).toBeNull();
     });
 
     it("uses the attachment url when available when getAttachmentData returns a 404", async () => {
@@ -148,7 +161,6 @@ describe("DownloadAttachmentComponent", () => {
 
         expect(showToast).toHaveBeenCalledWith({
           message: "errorOccurred",
-          title: null,
           variant: "error",
         });
       });
@@ -164,7 +176,6 @@ describe("DownloadAttachmentComponent", () => {
 
         expect(showToast).toHaveBeenCalledWith({
           message: "errorOccurred",
-          title: null,
           variant: "error",
         });
       });

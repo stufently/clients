@@ -1,6 +1,6 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
-import { Observable, Subject, firstValueFrom } from "rxjs";
+import { Observable, Subject, defer, firstValueFrom, map } from "rxjs";
 import { Jsonify } from "type-fest";
 
 import { ApiService } from "@bitwarden/common/abstractions/api.service";
@@ -8,22 +8,24 @@ import { AccountService } from "@bitwarden/common/auth/abstractions/account.serv
 import { AdminAuthRequestStorable } from "@bitwarden/common/auth/models/domain/admin-auth-req-storable";
 import { PasswordlessAuthRequest } from "@bitwarden/common/auth/models/request/passwordless-auth.request";
 import { AuthRequestResponse } from "@bitwarden/common/auth/models/response/auth-request.response";
+import { getUserId } from "@bitwarden/common/auth/services/account.service";
 import { EncryptService } from "@bitwarden/common/key-management/crypto/abstractions/encrypt.service";
+import { EncString } from "@bitwarden/common/key-management/crypto/models/enc-string";
 import { InternalMasterPasswordServiceAbstraction } from "@bitwarden/common/key-management/master-password/abstractions/master-password.service.abstraction";
+import { ListResponse } from "@bitwarden/common/models/response/list.response";
 import { AuthRequestPushNotification } from "@bitwarden/common/models/response/notification.response";
 import { AppIdService } from "@bitwarden/common/platform/abstractions/app-id.service";
 import { Utils } from "@bitwarden/common/platform/misc/utils";
-import { EncString } from "@bitwarden/common/platform/models/domain/enc-string";
-import { SymmetricCryptoKey } from "@bitwarden/common/platform/models/domain/symmetric-crypto-key";
 import {
   AUTH_REQUEST_DISK_LOCAL,
   StateProvider,
   UserKeyDefinition,
 } from "@bitwarden/common/platform/state";
 import { UserId } from "@bitwarden/common/types/guid";
-import { MasterKey, UserKey } from "@bitwarden/common/types/key";
+import { UserKey } from "@bitwarden/common/types/key";
 import { KeyService } from "@bitwarden/key-management";
 
+import { AuthRequestApiServiceAbstraction } from "../../abstractions/auth-request-api.service";
 import { AuthRequestServiceAbstraction } from "../../abstractions/auth-request.service.abstraction";
 
 /**
@@ -49,12 +51,13 @@ export class AuthRequestService implements AuthRequestServiceAbstraction {
 
   constructor(
     private appIdService: AppIdService,
-    private accountService: AccountService,
     private masterPasswordService: InternalMasterPasswordServiceAbstraction,
     private keyService: KeyService,
     private encryptService: EncryptService,
     private apiService: ApiService,
     private stateProvider: StateProvider,
+    private authRequestApiService: AuthRequestApiServiceAbstraction,
+    private accountService: AccountService,
   ) {
     this.authRequestPushNotification$ = this.authRequestPushNotificationSubject.asObservable();
     this.adminLoginApproved$ = this.adminLoginApprovedSubject.asObservable();
@@ -91,19 +94,51 @@ export class AuthRequestService implements AuthRequestServiceAbstraction {
     await this.stateProvider.setUserState(ADMIN_AUTH_REQUEST_KEY, null, userId);
   }
 
+  /**
+   * @description Gets the list of all standard (not admin approval) pending AuthRequests.
+   */
+  getPendingAuthRequests$(): Observable<Array<AuthRequestResponse>> {
+    return defer(() => this.authRequestApiService.getPendingAuthRequests()).pipe(
+      map((authRequestResponses: ListResponse<AuthRequestResponse>) => {
+        return authRequestResponses.data.map((authRequestResponse: AuthRequestResponse) => {
+          return new AuthRequestResponse(authRequestResponse);
+        });
+      }),
+    );
+  }
+
+  getLatestPendingAuthRequest$(): Observable<AuthRequestResponse | null> {
+    return this.getPendingAuthRequests$().pipe(
+      map((authRequests: Array<AuthRequestResponse>) => {
+        if (authRequests.length === 0) {
+          return null;
+        }
+        return authRequests.sort((a, b) => {
+          const dateA = new Date(a.creationDate).getTime();
+          const dateB = new Date(b.creationDate).getTime();
+          return dateB - dateA; // Sort in descending order
+        })[0];
+      }),
+    );
+  }
+
   async approveOrDenyAuthRequest(
     approve: boolean,
     authRequest: AuthRequestResponse,
   ): Promise<AuthRequestResponse> {
+    const activeUserId = await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
+
     if (!authRequest.id) {
       throw new Error("Auth request has no id");
     }
     if (!authRequest.publicKey) {
       throw new Error("Auth request has no public key");
     }
+    if (activeUserId == null) {
+      throw new Error("User ID is required");
+    }
     const pubKey = Utils.fromB64ToArray(authRequest.publicKey);
-
-    const keyToEncrypt = await this.keyService.getUserKey();
+    const keyToEncrypt = await firstValueFrom(this.keyService.userKey$(activeUserId));
     const encryptedKey = await this.encryptService.encapsulateKeyUnsigned(keyToEncrypt, pubKey);
 
     const response = new PasswordlessAuthRequest(
@@ -127,27 +162,6 @@ export class AuthRequestService implements AuthRequestServiceAbstraction {
     await this.keyService.setUserKey(userKey, userId);
   }
 
-  async setKeysAfterDecryptingSharedMasterKeyAndHash(
-    authReqResponse: AuthRequestResponse,
-    authReqPrivateKey: Uint8Array,
-    userId: UserId,
-  ) {
-    const { masterKey, masterKeyHash } = await this.decryptPubKeyEncryptedMasterKeyAndHash(
-      authReqResponse.key,
-      authReqResponse.masterPasswordHash,
-      authReqPrivateKey,
-    );
-
-    // Decrypt and set user key in state
-    const userKey = await this.masterPasswordService.decryptUserKeyWithMasterKey(masterKey, userId);
-
-    // Set masterKey + masterKeyHash in state after decryption (in case decryption fails)
-    await this.masterPasswordService.setMasterKey(masterKey, userId);
-    await this.masterPasswordService.setMasterKeyHash(masterKeyHash, userId);
-
-    await this.keyService.setUserKey(userKey, userId);
-  }
-
   // Decryption helpers
   async decryptPubKeyEncryptedUserKey(
     pubKeyEncryptedUserKey: string,
@@ -159,30 +173,6 @@ export class AuthRequestService implements AuthRequestServiceAbstraction {
     );
 
     return decryptedUserKey as UserKey;
-  }
-
-  async decryptPubKeyEncryptedMasterKeyAndHash(
-    pubKeyEncryptedMasterKey: string,
-    pubKeyEncryptedMasterKeyHash: string,
-    privateKey: Uint8Array,
-  ): Promise<{ masterKey: MasterKey; masterKeyHash: string }> {
-    const decryptedMasterKeyArrayBuffer = await this.encryptService.rsaDecrypt(
-      new EncString(pubKeyEncryptedMasterKey),
-      privateKey,
-    );
-
-    const decryptedMasterKeyHashArrayBuffer = await this.encryptService.rsaDecrypt(
-      new EncString(pubKeyEncryptedMasterKeyHash),
-      privateKey,
-    );
-
-    const masterKey = new SymmetricCryptoKey(decryptedMasterKeyArrayBuffer) as MasterKey;
-    const masterKeyHash = Utils.fromBufferToUtf8(decryptedMasterKeyHashArrayBuffer);
-
-    return {
-      masterKey,
-      masterKeyHash,
-    };
   }
 
   sendAuthRequestPushNotification(notification: AuthRequestPushNotification): void {

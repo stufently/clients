@@ -7,20 +7,10 @@ import {
   POPUP_STYLE_DISK,
 } from "@bitwarden/common/platform/state";
 
-import BrowserPopupUtils from "../browser-popup-utils";
-
-/**
- *
- * Value represents width in pixels
- */
-export const PopupWidthOptions = Object.freeze({
-  default: 380,
-  wide: 480,
-  "extra-wide": 600,
-});
-
-type PopupWidthOptions = typeof PopupWidthOptions;
-export type PopupWidthOption = keyof PopupWidthOptions;
+import BrowserPopupUtils, {
+  PopupWidthOption,
+  PopupWidthOptions,
+} from "../../browser/browser-popup-utils";
 
 const POPUP_WIDTH_KEY_DEF = new KeyDefinition<PopupWidthOption>(POPUP_STYLE_DISK, "popup-width", {
   deserializer: (s) => s,
@@ -47,7 +37,7 @@ export class PopupSizeService {
   /** Begin listening for state changes */
   async init() {
     this.width$.subscribe((width: PopupWidthOption) => {
-      PopupSizeService.setStyle(width);
+      void PopupSizeService.setStyle(width);
       localStorage.setItem(PopupSizeService.LocalStorageKey, width);
     });
   }
@@ -87,13 +77,14 @@ export class PopupSizeService {
     }
   }
 
-  private static setStyle(width: PopupWidthOption) {
-    if (!BrowserPopupUtils.inPopup(window)) {
+  private static async setStyle(width: PopupWidthOption) {
+    const isInTab = await BrowserPopupUtils.isInTab();
+    if (!BrowserPopupUtils.inPopup(window) || isInTab) {
       return;
     }
     const pxWidth = PopupWidthOptions[width] ?? PopupWidthOptions.default;
 
-    document.body.style.minWidth = `${pxWidth}px`;
+    document.body.style.width = `${pxWidth}px`;
   }
 
   /**
@@ -101,6 +92,6 @@ export class PopupSizeService {
    **/
   static initBodyWidthFromLocalStorage() {
     const storedValue = localStorage.getItem(PopupSizeService.LocalStorageKey);
-    this.setStyle(storedValue as any);
+    void this.setStyle(storedValue as any);
   }
 }
