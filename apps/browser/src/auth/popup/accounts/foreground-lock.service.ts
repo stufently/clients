@@ -46,8 +46,6 @@ export class ForegroundLockService implements LockService {
     await finishMessage;
   }
 
-  async runPlatformOnLockActions(): Promise<void> {
-    console.log("ForegroundLockService: runPlatformOnLockActions called, but no platform-specific lock actions to run in foreground context.");
-  }
+  async runPlatformOnLockActions(): Promise<void> {}
   async registerOnLockAction(action: (userId: UserId) => Promise<void>): Promise<void> {}
 }
