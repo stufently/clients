@@ -9,6 +9,7 @@ const DEFAULT_SHORTCUT = "Control+Alt+S";
 
 export class QuickSearchMain {
   private blurHandler: (() => void) | null = null;
+  private mainWindowFocusHandler: (() => void) | null = null;
 
   constructor(
     private logService: LogService,
@@ -39,6 +40,8 @@ export class QuickSearchMain {
   }
 
   private async triggerOpen() {
+    this.cleanupWindowListeners();
+
     await this.windowMain.openQuickSearch();
 
     const qsWin = this.windowMain.quickSearchWin;
@@ -48,21 +51,36 @@ export class QuickSearchMain {
 
     qsWin.webContents.send(QUICK_SEARCH_IPC_CHANNELS.OPEN);
 
-    this.blurHandler = () => {
-      this.blurHandler = null;
+    const handleClose = () => {
+      this.cleanupWindowListeners();
       this.windowMain.closeQuickSearch();
       this.windowMain.quickSearchWin?.webContents.send(QUICK_SEARCH_IPC_CHANNELS.BLUR_CLOSE);
     };
+
+    this.blurHandler = handleClose;
     qsWin.once("blur", this.blurHandler);
+
+    if (this.windowMain.win) {
+      this.mainWindowFocusHandler = handleClose;
+      this.windowMain.win.once("focus", this.mainWindowFocusHandler);
+    }
+  }
+
+  private cleanupWindowListeners() {
+    const qsWin = this.windowMain.quickSearchWin;
+    if (this.blurHandler) {
+      qsWin?.off("blur", this.blurHandler);
+      this.blurHandler = null;
+    }
+    if (this.mainWindowFocusHandler) {
+      this.windowMain.win?.off("focus", this.mainWindowFocusHandler);
+      this.mainWindowFocusHandler = null;
+    }
   }
 
   private registerIpcListeners() {
     ipcMain.on(QUICK_SEARCH_IPC_CHANNELS.CLOSE, () => {
-      const qsWin = this.windowMain.quickSearchWin;
-      if (this.blurHandler && qsWin) {
-        qsWin.off("blur", this.blurHandler);
-        this.blurHandler = null;
-      }
+      this.cleanupWindowListeners();
       this.windowMain.closeQuickSearch();
     });
   }
