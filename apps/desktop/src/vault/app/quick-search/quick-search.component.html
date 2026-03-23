@@ -5,32 +5,17 @@
 >
   <!-- Search header -->
   <div
-    class="tw-flex tw-items-center tw-gap-4 tw-px-5 tw-py-4"
+    #searchHeader
+    class="tw-px-4 tw-py-3"
     [class.tw-border-b]="!isMac"
     [class.tw-border-secondary-300]="!isMac"
     [class.tw-bg-background-alt]="!isMac"
   >
-    <i class="bwi bwi-search tw-text-2xl tw-text-muted" aria-hidden="true"></i>
-    <input
-      #searchInput
-      type="text"
-      class="tw-flex-1 tw-bg-transparent tw-text-xl tw-text-main tw-outline-none placeholder:tw-text-muted"
-      [placeholder]="'searchVault' | i18n"
+    <bit-search
       [formControl]="searchControl"
+      [placeholder]="'searchVault' | i18n"
       autocomplete="off"
-      autocorrect="off"
-      autocapitalize="off"
-      spellcheck="false"
     />
-    @if (!isMac) {
-      <button
-        bitIconButton="bwi-close"
-        size="small"
-        type="button"
-        [attr.aria-label]="'close' | i18n"
-        (click)="close()"
-      ></button>
-    }
   </div>
 
   <!-- Results list -->

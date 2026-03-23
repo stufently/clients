@@ -36,7 +36,7 @@ import {
   CipherViewLike,
   CipherViewLikeUtils,
 } from "@bitwarden/common/vault/utils/cipher-view-like-utils";
-import { BitIconButtonComponent, ButtonModule } from "@bitwarden/components";
+import { BitIconButtonComponent, ButtonModule, SearchModule } from "@bitwarden/components";
 import { I18nPipe } from "@bitwarden/ui-common";
 import { CopyCipherFieldDirective, CopyCipherFieldService } from "@bitwarden/vault";
 
@@ -61,11 +61,12 @@ import { CopyCipherFieldDirective, CopyCipherFieldService } from "@bitwarden/vau
     CopyCipherFieldDirective,
     BitIconButtonComponent,
     ButtonModule,
+    SearchModule,
     I18nPipe,
   ],
 })
 export class QuickSearchComponent implements OnInit {
-  private readonly searchInputRef = viewChild<ElementRef<HTMLInputElement>>("searchInput");
+  private readonly searchHeaderRef = viewChild<ElementRef<HTMLElement>>("searchHeader");
 
   private readonly accountService = inject(AccountService);
   private readonly cipherService = inject(CipherService);
@@ -134,8 +135,11 @@ export class QuickSearchComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.selectedIndex.set(0));
 
-    // Auto-focus the search input
-    setTimeout(() => this.searchInputRef()?.nativeElement?.focus(), 50);
+    // Auto-focus the search input inside bit-search
+    setTimeout(() => {
+      const input = this.searchHeaderRef()?.nativeElement?.querySelector<HTMLInputElement>("input");
+      input?.focus();
+    }, 50);
   }
 
   protected getSubtitle(cipher: CipherViewLike): string {
