@@ -107,6 +107,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
   requireEnableTray = false;
   showDuckDuckGoIntegrationOption = false;
   showEnableAutotype = false;
+  showSharedUnlock = false;
   autotypeShortcut: string;
   showOpenAtLoginOption = false;
   isWindows: boolean;
@@ -278,6 +279,13 @@ export class SettingsComponent implements OnInit, OnDestroy {
           this.showEnableAutotype = enabled;
         });
     }
+
+    this.configService
+      .getFeatureFlag$(FeatureFlag.SharedUnlockSession)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((enabled) => {
+        this.showSharedUnlock = enabled;
+      });
 
     this.userHasMasterPassword = await this.userVerificationService.hasMasterPassword();
 

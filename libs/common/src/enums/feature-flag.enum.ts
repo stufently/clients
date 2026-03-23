@@ -182,7 +182,7 @@ export const DefaultFeatureFlagValue = {
   [FeatureFlag.PM19148_InnovationArchive]: FALSE,
 
   /* Innovation Sprint */
-  [FeatureFlag.SharedUnlockSession]: FALSE,
+  [FeatureFlag.SharedUnlockSession]: true,
 
   /* Desktop */
   [FeatureFlag.DesktopUiMigrationMilestone3]: FALSE,

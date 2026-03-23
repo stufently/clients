@@ -21,7 +21,7 @@
           <h2 bitTypography="h6">{{ "unlockMethods" | i18n }}</h2>
         </bit-section-header>
         <bit-card>
-          <bit-form-control [disableMargin]="!((pinEnabled$ | async) || this.form.value.pin)">
+          <bit-form-control [disableMargin]="!((pinEnabled$ | async) || this.form.value.pin) && !(sharedUnlockEnabled$ | async)">
             <input bitCheckbox id="biometric" type="checkbox" formControlName="biometric" />
             <bit-label for="biometric" class="tw-whitespace-normal">
               {{ "unlockWithBiometrics" | i18n }}
@@ -32,7 +32,7 @@
           </bit-form-control>
           <bit-form-control
             class="tw-pl-5"
-            [disableMargin]="!((pinEnabled$ | async) || this.form.value.pin)"
+            [disableMargin]="!((pinEnabled$ | async) || this.form.value.pin) && !(sharedUnlockEnabled$ | async)"
             *ngIf="this.form.value.biometric"
           >
             <input
@@ -46,7 +46,7 @@
             </bit-label>
           </bit-form-control>
           <bit-form-control
-            [disableMargin]="!(this.form.value.pin && showMasterPasswordOnClientRestartOption)"
+            [disableMargin]="!(this.form.value.pin && showMasterPasswordOnClientRestartOption) && !(sharedUnlockEnabled$ | async)"
             *ngIf="(pinEnabled$ | async) || this.form.value.pin"
           >
             <input bitCheckbox id="pin" type="checkbox" formControlName="pin" />
@@ -56,7 +56,7 @@
           </bit-form-control>
           <bit-form-control
             class="tw-pl-5"
-            disableMargin
+            [disableMargin]="!(sharedUnlockEnabled$ | async)"
             *ngIf="this.form.value.pin && showMasterPasswordOnClientRestartOption"
           >
             <input
@@ -69,28 +69,30 @@
               {{ "lockWithMasterPassOnRestart1" | i18n }}
             </bit-label>
           </bit-form-control>
-          <bit-form-control>
-            <input
-              bitCheckbox
-              id="allowIntegrateWithWebApp"
-              type="checkbox"
-              formControlName="allowIntegrateWithWebApp"
-            />
-            <bit-label for="allowIntegrateWithWebApp" class="tw-whitespace-normal">
-              {{ "unlockTogetherWithWebApp" | i18n }}
-            </bit-label>
-          </bit-form-control>
-          <bit-form-control disableMargin>
-            <input
-              bitCheckbox
-              id="allowIntegrateWithDesktopApp"
-              type="checkbox"
-              formControlName="allowIntegrateWithDesktopApp"
-            />
-            <bit-label for="allowIntegrateWithDesktopApp" class="tw-whitespace-normal">
-              {{ "unlockTogetherWithDesktopApp" | i18n }}
-            </bit-label>
-          </bit-form-control>
+          <ng-container *ngIf="sharedUnlockEnabled$ | async">
+            <bit-form-control>
+              <input
+                bitCheckbox
+                id="allowIntegrateWithWebApp"
+                type="checkbox"
+                formControlName="allowIntegrateWithWebApp"
+              />
+              <bit-label for="allowIntegrateWithWebApp" class="tw-whitespace-normal">
+                {{ "unlockTogetherWithWebApp" | i18n }}
+              </bit-label>
+            </bit-form-control>
+            <bit-form-control disableMargin>
+              <input
+                bitCheckbox
+                id="allowIntegrateWithDesktopApp"
+                type="checkbox"
+                formControlName="allowIntegrateWithDesktopApp"
+              />
+              <bit-label for="allowIntegrateWithDesktopApp" class="tw-whitespace-normal">
+                {{ "unlockTogetherWithDesktopApp" | i18n }}
+              </bit-label>
+            </bit-form-control>
+          </ng-container>
         </bit-card>
       </bit-section>
 
