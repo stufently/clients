@@ -21,6 +21,13 @@ export class NativeMessagingMain {
   private _messages$ = new Subject<ipc.IpcMessage>();
   readonly messages$ = this._messages$.asObservable();
 
+  /**
+   * Optional callback that returns true if the listener should be kept alive
+   * even when a specific integration is being disabled. This prevents one
+   * integration from stopping the listener while another still needs it.
+   */
+  shouldKeepListening?: () => Promise<boolean>;
+
   constructor(
     private logService: LogService,
     private windowMain: WindowMain,
@@ -40,7 +47,7 @@ export class NativeMessagingMain {
             return e;
           }
         } else {
-          this.stop();
+          await this.stopIfUnused();
           try {
             await this.removeManifests();
           } catch (e) {
@@ -64,7 +71,7 @@ export class NativeMessagingMain {
             return e;
           }
         } else {
-          this.stop();
+          await this.stopIfUnused();
           try {
             await this.removeDdgManifests();
           } catch (e) {
@@ -81,7 +88,7 @@ export class NativeMessagingMain {
     if (this.ipcServer) {
       this.ipcServer.stop();
     }
-
+    this.logService.info("Starting native messaging server");
     this.ipcServer = await ipc.NativeIpcServer.listen("bw", (error, msg) => {
       switch (msg.kind) {
         case ipc.IpcMessageType.Connected: {
@@ -126,6 +133,13 @@ export class NativeMessagingMain {
 
   stop() {
     this.ipcServer?.stop();
+  }
+
+  private async stopIfUnused() {
+    if (this.shouldKeepListening && (await this.shouldKeepListening())) {
+      return;
+    }
+    this.stop();
   }
 
   send(message: object) {

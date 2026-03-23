@@ -721,7 +721,7 @@ export class BrowserApi {
     if (BrowserApi.isWebExtensionsApi) {
       return browser.permissions.request(permission);
     }
-    return new Promise((resolve) => {
+    return new Promise<boolean>((resolve) => {
       chrome.permissions.request(permission, resolve);
     });
   }

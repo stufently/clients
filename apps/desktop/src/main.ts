@@ -5,13 +5,17 @@ import "core-js/proposals/explicit-resource-management";
 import * as path from "path";
 
 import { app } from "electron";
-import { Subject, firstValueFrom } from "rxjs";
+import { Subject, concatMap, firstValueFrom, skip } from "rxjs";
 
 import { SsoUrlService } from "@bitwarden/auth/common";
 import { AccountServiceImplementation } from "@bitwarden/common/auth/services/account.service";
 import { DefaultActiveUserAccessor } from "@bitwarden/common/auth/services/default-active-user.accessor";
 import { ClientType } from "@bitwarden/common/enums";
 import { EncryptServiceImplementation } from "@bitwarden/common/key-management/crypto/services/encrypt.service.implementation";
+import {
+  SharedUnlockSettingsService,
+  DefaultSharedUnlockSettingsService,
+} from "@bitwarden/common/key-management/shared-unlock";
 import { RegionConfig } from "@bitwarden/common/platform/abstractions/environment.service";
 import { SdkLoadService } from "@bitwarden/common/platform/abstractions/sdk/sdk-load.service";
 import { IpcService, IpcSessionRepository } from "@bitwarden/common/platform/ipc";
@@ -89,6 +93,7 @@ export class Main {
   clipboardMain: ClipboardMain;
   nativeAutofillMain: NativeAutofillMain;
   desktopAutofillSettingsService: DesktopAutofillSettingsService;
+  sharedUnlockSettingsService: SharedUnlockSettingsService;
   versionMain: VersionMain;
   sshAgentService: MainSshAgentService;
   sdkLoadService: SdkLoadService;
@@ -275,6 +280,9 @@ export class Main {
       this.logService,
     );
 
+    this.desktopAutofillSettingsService = new DesktopAutofillSettingsService(stateProvider);
+    this.sharedUnlockSettingsService = new DefaultSharedUnlockSettingsService(stateProvider);
+
     this.nativeMessagingMain = new NativeMessagingMain(
       this.logService,
       this.windowMain,
@@ -282,6 +290,15 @@ export class Main {
       app.getPath("exe"),
       app.getAppPath(),
     );
+    // TODO: Rewrite this to use an observable pattern instead of a callback, to avoid potential issues with multiple listeners and to better handle async operations
+    this.nativeMessagingMain.shouldKeepListening = async () => {
+      const [browserIntegration, ddg, sharedUnlock] = await Promise.all([
+        firstValueFrom(this.desktopSettingsService.browserIntegrationEnabled$),
+        firstValueFrom(this.desktopAutofillSettingsService.enableDuckDuckGoBrowserIntegration$),
+        firstValueFrom(this.sharedUnlockSettingsService.allowIntegrateWithBrowserExtension$),
+      ]);
+      return browserIntegration || ddg || sharedUnlock;
+    };
 
     this.ipcService = new IpcMainService(
       this.logService,
@@ -290,8 +307,6 @@ export class Main {
       this.windowMain,
       new IpcSessionRepository(stateProvider),
     );
-
-    this.desktopAutofillSettingsService = new DesktopAutofillSettingsService(stateProvider);
 
     this.clipboardMain = new ClipboardMain();
     this.clipboardMain.init();
@@ -351,14 +366,16 @@ export class Main {
         this.powerMonitorMain.init();
         await this.updaterMain.init();
 
-        const [browserIntegrationEnabled, ddgIntegrationEnabled] = await Promise.all([
-          firstValueFrom(this.desktopSettingsService.browserIntegrationEnabled$),
-          firstValueFrom(this.desktopAutofillSettingsService.enableDuckDuckGoBrowserIntegration$),
-        ]);
+        const [browserIntegrationEnabled, ddgIntegrationEnabled, sharedUnlockEnabled] =
+          await Promise.all([
+            firstValueFrom(this.desktopSettingsService.browserIntegrationEnabled$),
+            firstValueFrom(this.desktopAutofillSettingsService.enableDuckDuckGoBrowserIntegration$),
+            firstValueFrom(this.sharedUnlockSettingsService.allowIntegrateWithBrowserExtension$),
+          ]);
 
-        if (browserIntegrationEnabled || ddgIntegrationEnabled) {
+        if (browserIntegrationEnabled || ddgIntegrationEnabled || sharedUnlockEnabled) {
           // Re-register the native messaging host integrations on startup, in case they are not present
-          if (browserIntegrationEnabled) {
+          if (browserIntegrationEnabled || sharedUnlockEnabled) {
             this.nativeMessagingMain
               .generateManifests()
               .catch((err) => this.logService.error("Error while generating manifests", err));
@@ -375,6 +392,23 @@ export class Main {
               this.logService.error("Error while starting native message listener", err),
             );
         }
+
+        // Start native messaging when shared unlock is enabled at runtime
+        this.sharedUnlockSettingsService.allowIntegrateWithBrowserExtension$
+          .pipe(
+            skip(1),
+            concatMap(async (enabled) => {
+              if (enabled) {
+                try {
+                  await this.nativeMessagingMain.generateManifests();
+                  await this.nativeMessagingMain.listen();
+                } catch (err) {
+                  this.logService.error("Error starting native messaging for shared unlock", err);
+                }
+              }
+            }),
+          )
+          .subscribe();
 
         app.removeAsDefaultProtocolClient("bitwarden");
         if (process.env.NODE_ENV === "development" && process.platform === "win32") {

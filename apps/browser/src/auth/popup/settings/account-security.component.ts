@@ -165,9 +165,7 @@ export class AccountSecurityComponent implements OnInit, OnDestroy {
   ) {
     // Check if user phishing detection available
     this.phishingDetectionAvailable$ = this.phishingDetectionSettingsService.available$;
-    this.sharedUnlockEnabled$ = this.configService.getFeatureFlag$(
-      FeatureFlag.SharedUnlockSession,
-    );
+    this.sharedUnlockEnabled$ = this.configService.getFeatureFlag$(FeatureFlag.SharedUnlockSession);
   }
 
   async ngOnInit() {
@@ -524,24 +522,26 @@ export class AccountSecurityComponent implements OnInit, OnDestroy {
   async updateDesktopIntegration(enabled: boolean) {
     const userId = await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
     if (enabled) {
-      let granted;
-      try {
-        granted = await BrowserApi.requestPermission({ permissions: ["nativeMessaging"] });
-      } catch (e) {
-        // eslint-disable-next-line
-        console.error(e);
+      let granted = await BrowserApi.permissionsGranted(["nativeMessaging"]);
+      if (!granted) {
+        try {
+          granted = await BrowserApi.requestPermission({ permissions: ["nativeMessaging"] });
+        } catch (e) {
+          // eslint-disable-next-line
+          console.error(e);
 
-        if (this.platformUtilsService.isFirefox() && BrowserPopupUtils.inSidebar(window)) {
-          await this.dialogService.openSimpleDialog({
-            title: { key: "nativeMessaginPermissionSidebarTitle" },
-            content: { key: "nativeMessaginPermissionSidebarDesc" },
-            acceptButtonText: { key: "ok" },
-            cancelButtonText: null,
-            type: "info",
-          });
+          if (this.platformUtilsService.isFirefox() && BrowserPopupUtils.inSidebar(window)) {
+            await this.dialogService.openSimpleDialog({
+              title: { key: "nativeMessaginPermissionSidebarTitle" },
+              content: { key: "nativeMessaginPermissionSidebarDesc" },
+              acceptButtonText: { key: "ok" },
+              cancelButtonText: null,
+              type: "info",
+            });
 
-          this.form.controls.allowIntegrateWithDesktopApp.setValue(false, { emitEvent: false });
-          return;
+            this.form.controls.allowIntegrateWithDesktopApp.setValue(false, { emitEvent: false });
+            return;
+          }
         }
       }
 
