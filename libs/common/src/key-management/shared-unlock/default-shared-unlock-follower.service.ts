@@ -57,7 +57,6 @@ export class DefaultSharedUnlockFollowerService implements SharedUnlockFollowerS
       for (const accountId of accountIds) {
         const accountUserKey = await this.keyService.getUserKey(accountId);
         const previousUserKey = previousUserKeys.get(accountId) ?? null;
-        console.log(`Checking user key for account ${accountId}. Previous key: ${previousUserKey}, current key: ${accountUserKey}`);
 
         if (previousUserKey == null && accountUserKey != null) {
           await follower.handle_device_event(

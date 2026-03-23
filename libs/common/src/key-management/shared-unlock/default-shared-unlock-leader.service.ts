@@ -35,7 +35,6 @@ export class DefaultSharedUnlockLeaderService implements SharedUnlockLeaderServi
     const leader = await SharedUnlockLeader.try_new(this.ipcService.client, unlockManagementDriver);
     leader.start();
     this.lockService.registerOnLockAction(async (userId) => {
-      console.log("Lock event detected, notifying followers...");
       await leader.handle_device_event(
         {
           ManualLock: {
