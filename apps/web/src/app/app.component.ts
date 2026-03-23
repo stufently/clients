@@ -125,11 +125,8 @@ export class AppComponent implements OnDestroy, OnInit {
             break;
           }
           case "locked":
-            console.log("Received locked event, reloading process...");
             this.router.navigate(["/"]);
-            console.log("Process reload initiated.");
             await this.processReloadService.startProcessReload();
-            console.log("Process reloaded.");
             break;
           case "lockedUrl":
             break;
