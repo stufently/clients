@@ -73,7 +73,6 @@ type CipherAttachmentForm = FormGroup<{
     CardComponent,
     DeleteAttachmentComponent,
     DownloadAttachmentComponent,
-    ProgressModule,
   ],
 })
 export class CipherAttachmentsComponent {
