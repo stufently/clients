@@ -1393,7 +1393,10 @@ export class ApiService implements ApiServiceAbstraction {
       };
       xhr.onload = () => resolve(new Response(xhr.response, { status: xhr.status }));
       xhr.onerror = () => reject(new Error("Network error during upload"));
-      void request.arrayBuffer().then((body) => xhr.send(body));
+      void request
+        .arrayBuffer()
+        .then((body) => xhr.send(body))
+        .catch(reject);
     });
   }
 
