@@ -14,7 +14,7 @@ const ALLOW_INTEGRATE_WITH_WEB_APP = new UserKeyDefinition<boolean>(
   "allowIntegrateWithWebApp",
   {
     deserializer: (b) => b,
-    clearOn: [],
+    clearOn: ["logout"],
   },
 );
 
@@ -23,7 +23,7 @@ const ALLOW_INTEGRATE_WITH_DESKTOP_APP = new UserKeyDefinition<boolean>(
   "allowIntegrateWithDesktopApp",
   {
     deserializer: (b) => b,
-    clearOn: [],
+    clearOn: ["logout"],
   },
 );
 
@@ -32,7 +32,7 @@ const ALLOW_INTEGRATE_WITH_BROWSER_EXTENSION = new UserKeyDefinition<boolean>(
   "allowIntegrateWithBrowserExtension",
   {
     deserializer: (b) => b,
-    clearOn: [],
+    clearOn: ["logout"],
   },
 );
 
