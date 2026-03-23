@@ -76,6 +76,6 @@ export class DefaultSharedUnlockLeaderService implements SharedUnlockLeaderServi
           previousUserKeys.delete(trackedUserId);
         }
       }
-    }, 1_000);
+    }, 100);
   }
 }

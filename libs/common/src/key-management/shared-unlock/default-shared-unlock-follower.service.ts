@@ -77,6 +77,6 @@ export class DefaultSharedUnlockFollowerService implements SharedUnlockFollowerS
           previousUserKeys.delete(trackedUserId);
         }
       }
-    }, 1_000);
+    }, 100);
   }
 }
