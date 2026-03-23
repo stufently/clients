@@ -48,4 +48,17 @@ export class OrganizationIntegrationsState implements IntegrationStateService {
       this.setIntegrations(updatedIntegrations);
     }
   }
+
+  isIntegrationUniqueForTypeAndOrganization(
+    excludeIntegrationName: string,
+    integrationType: string,
+    organizationId: string,
+  ): boolean {
+    const hasIntegrationOfType = this._integrations()
+      .filter((i) => i.name !== excludeIntegrationName)
+      .some((integration) => integration.type === integrationType);
+    const isSameOrganization = this.organization()?.id === organizationId;
+
+    return hasIntegrationOfType && isSameOrganization;
+  }
 }
