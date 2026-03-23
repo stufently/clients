@@ -16,6 +16,12 @@ export class QuickSearchService implements OnDestroy {
         void this.router.navigate(["/quick-search"]);
       });
     });
+
+    ipc.vault.onQuickSearchClose(() => {
+      this.ngZone.run(() => {
+        void this.router.navigate(["/vault"]);
+      });
+    });
   }
 
   ngOnDestroy() {

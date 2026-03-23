@@ -58,6 +58,7 @@ export function applyQuickSearchStyles(window: BrowserWindow) {
 
   if (isMac()) {
     window.setVibrancy("under-window");
+    window.setHasShadow(true);
   }
 
   if (window.isFullScreen()) {

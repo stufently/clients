@@ -8,6 +8,8 @@ import { QUICK_SEARCH_IPC_CHANNELS } from "../../vault/models/ipc-channels";
 const DEFAULT_SHORTCUT = "Control+Alt+S";
 
 export class QuickSearchMain {
+  private blurHandler: (() => void) | null = null;
+
   constructor(
     private logService: LogService,
     private windowMain: WindowMain,
@@ -43,10 +45,21 @@ export class QuickSearchMain {
 
     this.windowMain.openQuickSearch();
     this.windowMain.win.webContents.send(QUICK_SEARCH_IPC_CHANNELS.OPEN);
+
+    this.blurHandler = () => {
+      this.blurHandler = null;
+      this.windowMain.closeQuickSearch();
+      this.windowMain.win?.webContents.send(QUICK_SEARCH_IPC_CHANNELS.BLUR_CLOSE);
+    };
+    this.windowMain.win.once("blur", this.blurHandler);
   }
 
   private registerIpcListeners() {
     ipcMain.on(QUICK_SEARCH_IPC_CHANNELS.CLOSE, () => {
+      if (this.blurHandler && this.windowMain.win) {
+        this.windowMain.win.off("blur", this.blurHandler);
+        this.blurHandler = null;
+      }
       this.windowMain.closeQuickSearch();
     });
   }
