@@ -1358,16 +1358,7 @@ export class ApiService implements ApiServiceAbstraction {
       request.headers.set("Cache-Control", "no-store");
       request.headers.set("Pragma", "no-cache");
     }
-    request.headers.set("Bitwarden-Client-Name", this.platformUtilsService.getClientType());
-    request.headers.set(
-      "Bitwarden-Client-Version",
-      await this.platformUtilsService.getApplicationVersionNumber(),
-    );
-
-    const packageType = await this.platformUtilsService.packageType();
-    if (packageType != null) {
-      request.headers.set("Bitwarden-Package-Type", packageType);
-    }
+    await this.applyPlatformHeaders(request.headers);
 
     const pipeline = buildFetchPipeline(this.middlewares, (req) => this.nativeFetch(req));
     return pipeline(request);
@@ -1400,14 +1391,24 @@ export class ApiService implements ApiServiceAbstraction {
     });
   }
 
+  private async applyPlatformHeaders(headers: Headers): Promise<void> {
+    headers.set("Bitwarden-Client-Name", this.platformUtilsService.getClientType());
+    headers.set(
+      "Bitwarden-Client-Version",
+      await this.platformUtilsService.getApplicationVersionNumber(),
+    );
+    const packageType = await this.platformUtilsService.packageType();
+    if (packageType != null) {
+      headers.set("Bitwarden-Package-Type", packageType);
+    }
+  }
+
   protected async buildRequestHeaders(): Promise<Headers> {
     const userId = await this.getActiveUser();
     const accessToken = await this.getActiveBearerToken(userId);
     const headers = new Headers({
       "Device-Type": this.deviceType,
       Authorization: "Bearer " + accessToken,
-      "Bitwarden-Client-Name": this.platformUtilsService.getClientType(),
-      "Bitwarden-Client-Version": await this.platformUtilsService.getApplicationVersionNumber(),
     });
     if (this.customUserAgent != null) {
       headers.set("User-Agent", this.customUserAgent);
@@ -1415,10 +1416,7 @@ export class ApiService implements ApiServiceAbstraction {
     if (flagEnabled("prereleaseBuild")) {
       headers.set("Is-Prerelease", "1");
     }
-    const packageType = await this.platformUtilsService.packageType();
-    if (packageType != null) {
-      headers.set("Bitwarden-Package-Type", packageType);
-    }
+    await this.applyPlatformHeaders(headers);
     return headers;
   }
 
