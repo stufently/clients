@@ -309,6 +309,9 @@ export class WindowMain {
     this.session = session.fromPartition("persist:bitwarden", { cache: false });
 
     // Create the browser window.
+    // transparent: true is required on macOS to enable vibrancy effects for the quick search overlay.
+    // The web content provides its own backgrounds during normal use; transparency only shows through
+    // when the Angular component explicitly sets its background to transparent (quick search on macOS).
     this.win = new BrowserWindow({
       width: this.windowStates[mainWindowSizeKey].width,
       height: this.windowStates[mainWindowSizeKey].height,
@@ -320,7 +323,8 @@ export class WindowMain {
       icon: isLinux() ? path.join(__dirname, "/images/icon.png") : undefined,
       titleBarStyle: isMac() ? "hiddenInset" : undefined,
       show: false,
-      backgroundColor: await this.getBackgroundColor(),
+      transparent: isMac() ? true : undefined,
+      backgroundColor: isMac() ? undefined : await this.getBackgroundColor(),
       alwaysOnTop: this.enableAlwaysOnTop,
       webPreferences: {
         preload: path.join(__dirname, "preload.js"),

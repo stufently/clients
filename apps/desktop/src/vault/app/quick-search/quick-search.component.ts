@@ -13,11 +13,20 @@ import {
 import { takeUntilDestroyed, toSignal } from "@angular/core/rxjs-interop";
 import { FormControl, ReactiveFormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
-import { combineLatest, debounceTime, distinctUntilChanged, map, startWith, switchMap } from "rxjs";
+import {
+  combineLatest,
+  debounceTime,
+  distinctUntilChanged,
+  firstValueFrom,
+  map,
+  startWith,
+  switchMap,
+} from "rxjs";
 
 import { IconComponent } from "@bitwarden/angular/vault/components/icon.component";
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { getUserId } from "@bitwarden/common/auth/services/account.service";
+import { DeviceType } from "@bitwarden/common/enums";
 import { Utils } from "@bitwarden/common/platform/misc/utils";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
 import { SearchService } from "@bitwarden/common/vault/abstractions/search.service";
@@ -29,7 +38,7 @@ import {
 } from "@bitwarden/common/vault/utils/cipher-view-like-utils";
 import { BitIconButtonComponent, ButtonModule } from "@bitwarden/components";
 import { I18nPipe } from "@bitwarden/ui-common";
-import { CopyCipherFieldDirective } from "@bitwarden/vault";
+import { CopyCipherFieldDirective, CopyCipherFieldService } from "@bitwarden/vault";
 
 @Component({
   selector: "app-quick-search",
@@ -51,8 +60,11 @@ export class QuickSearchComponent implements OnInit {
   private readonly accountService = inject(AccountService);
   private readonly cipherService = inject(CipherService);
   private readonly searchService = inject(SearchService);
+  private readonly copyCipherFieldService = inject(CopyCipherFieldService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+
+  protected readonly isMac = ipc.platform.deviceType === DeviceType.MacOsDesktop;
 
   protected readonly searchControl = new FormControl("", { nonNullable: true });
   protected readonly selectedIndex = signal(0);
@@ -140,6 +152,8 @@ export class QuickSearchComponent implements OnInit {
 
   protected onKeydown(event: KeyboardEvent) {
     const ciphers = this.filteredCiphers();
+    const selected = ciphers[this.selectedIndex()];
+
     switch (event.key) {
       case "Escape":
         this.close();
@@ -152,7 +166,43 @@ export class QuickSearchComponent implements OnInit {
         event.preventDefault();
         this.selectedIndex.update((i) => Math.max(i - 1, 0));
         break;
+      case "Enter":
+        if (selected && this.hasPassword(selected)) {
+          event.preventDefault();
+          void this.copyPassword(selected);
+        }
+        break;
+      case "c":
+        if ((this.isMac ? event.metaKey : event.ctrlKey) && selected) {
+          if (this.hasUsername(selected)) {
+            event.preventDefault();
+            void this.copyUsername(selected);
+          }
+        }
+        break;
     }
+  }
+
+  protected async copyPassword(cipher: CipherViewLike) {
+    const value = await this.getCipherFieldValue(cipher, "password");
+    await this.copyCipherFieldService.copy(value, "password", cipher);
+  }
+
+  protected async copyUsername(cipher: CipherViewLike) {
+    const value = await this.getCipherFieldValue(cipher, "username");
+    await this.copyCipherFieldService.copy(value, "username", cipher);
+  }
+
+  private async getCipherFieldValue(cipher: CipherViewLike, field: "password" | "username") {
+    if (!CipherViewLikeUtils.isCipherListView(cipher)) {
+      return "";
+    }
+    const userId = await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
+    const encryptedCipher = await this.cipherService.get(String(cipher.id), userId);
+    const decrypted = await this.cipherService.decrypt(encryptedCipher, userId);
+    return field === "password"
+      ? (decrypted.login?.password ?? "")
+      : (decrypted.login?.username ?? "");
   }
 
   close() {

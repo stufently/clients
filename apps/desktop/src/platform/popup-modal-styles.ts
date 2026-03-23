@@ -1,5 +1,7 @@
 import { BrowserWindow } from "electron";
 
+import { isMac } from "../utils";
+
 import { WindowState } from "./models/domain/window-state";
 
 // change as needed, however limited by mainwindow minimum size
@@ -54,6 +56,10 @@ export function applyQuickSearchStyles(window: BrowserWindow) {
   window.setResizable(false);
   window.setAlwaysOnTop(true);
 
+  if (isMac()) {
+    window.setVibrancy("hud");
+  }
+
   if (window.isFullScreen()) {
     window.setFullScreen(false);
     window.once("leave-full-screen", () => {
@@ -67,6 +73,10 @@ export function applyQuickSearchStyles(window: BrowserWindow) {
 
 export function applyMainWindowStyles(window: BrowserWindow, existingWindowState: WindowState) {
   window.setMinimumSize(popupWidth, popupHeight);
+
+  if (isMac()) {
+    window.setVibrancy(null);
+  }
 
   // need to guard against null/undefined values
 

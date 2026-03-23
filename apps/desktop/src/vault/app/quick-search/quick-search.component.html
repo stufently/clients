@@ -1,13 +1,21 @@
-<div class="tw-flex tw-h-screen tw-flex-col tw-bg-background" (keydown)="onKeydown($event)">
+<div
+  class="tw-flex tw-h-screen tw-flex-col"
+  [class.tw-bg-background]="!isMac"
+  (keydown)="onKeydown($event)"
+>
   <!-- Search header -->
   <div
-    class="tw-flex tw-items-center tw-gap-3 tw-border-b tw-border-secondary-300 tw-bg-background-alt tw-px-4 tw-py-3"
+    class="tw-flex tw-items-center tw-gap-3 tw-border-b tw-px-4 tw-py-3.5"
+    [class.tw-border-secondary-300]="!isMac"
+    [class.tw-bg-background-alt]="!isMac"
+    [class.tw-border-white]="isMac"
+    [class.tw-border-opacity-10]="isMac"
   >
     <i class="bwi bwi-search tw-text-xl tw-text-muted" aria-hidden="true"></i>
     <input
       #searchInput
       type="text"
-      class="tw-flex-1 tw-bg-transparent tw-text-base tw-text-main tw-outline-none placeholder:tw-text-muted"
+      class="tw-flex-1 tw-bg-transparent tw-text-lg tw-text-main tw-outline-none placeholder:tw-text-muted"
       [placeholder]="'searchVault' | i18n"
       [formControl]="searchControl"
       autocomplete="off"
@@ -15,21 +23,30 @@
       autocapitalize="off"
       spellcheck="false"
     />
-    <button
-      bitIconButton="bwi-close"
-      size="small"
-      type="button"
-      [attr.aria-label]="'close' | i18n"
-      (click)="close()"
-    ></button>
+    @if (!isMac) {
+      <button
+        bitIconButton="bwi-close"
+        size="small"
+        type="button"
+        [attr.aria-label]="'close' | i18n"
+        (click)="close()"
+      ></button>
+    }
   </div>
 
   <!-- Results list -->
   <div class="tw-flex-1 tw-overflow-y-auto">
     @for (cipher of filteredCiphers(); track cipher.id; let i = $index) {
       <div
-        class="tw-flex tw-cursor-pointer tw-items-center tw-gap-3 tw-border-b tw-border-secondary-100 tw-px-4 tw-py-2.5 tw-transition-colors hover:tw-bg-secondary-50"
-        [class.tw-bg-primary-50]="i === selectedIndex()"
+        class="tw-group tw-flex tw-cursor-pointer tw-items-center tw-gap-3 tw-px-4 tw-py-2.5 tw-transition-colors hover:tw-bg-secondary-50"
+        [class.tw-border-b]="!isMac"
+        [class.tw-border-secondary-100]="!isMac"
+        [class.tw-bg-primary-50]="!isMac && i === selectedIndex()"
+        [class.tw-rounded-lg]="isMac"
+        [class.tw-mx-2]="isMac"
+        [class.tw-my-0.5]="isMac"
+        [class.tw-bg-white]="isMac && i === selectedIndex()"
+        [class.tw-bg-opacity-20]="isMac && i === selectedIndex()"
         (mouseenter)="setSelectedIndex(i)"
         (click)="setSelectedIndex(i)"
         role="option"
@@ -52,40 +69,82 @@
           }
         </div>
 
-        <!-- Action buttons -->
-        <div class="tw-flex tw-shrink-0 tw-items-center tw-gap-0.5">
-          @if (hasPassword(cipher)) {
-            <button
-              bitIconButton="bwi-key"
-              size="small"
-              type="button"
-              appCopyField="password"
-              [cipher]="cipher"
-              [attr.aria-label]="'copyPassword' | i18n"
-              (click)="$event.stopPropagation()"
-            ></button>
-          }
-          @if (hasUsername(cipher)) {
-            <button
-              bitIconButton="bwi-person"
-              size="small"
-              type="button"
-              appCopyField="username"
-              [cipher]="cipher"
-              [attr.aria-label]="'copyUsername' | i18n"
-              (click)="$event.stopPropagation()"
-            ></button>
-          }
-          @if (canLaunch(cipher)) {
-            <button
-              bitIconButton="bwi-external-link"
-              size="small"
-              type="button"
-              [attr.aria-label]="'launch' | i18n"
-              (click)="$event.stopPropagation(); launch(cipher)"
-            ></button>
-          }
-        </div>
+        <!-- Action buttons (macOS: labeled chips; other: icon buttons) -->
+        @if (isMac) {
+          <div
+            class="tw-flex tw-shrink-0 tw-items-center tw-gap-1.5 tw-opacity-0 tw-transition-opacity group-hover:tw-opacity-100"
+          >
+            @if (hasPassword(cipher)) {
+              <button
+                type="button"
+                appCopyField="password"
+                [cipher]="cipher"
+                [attr.aria-label]="'copyPassword' | i18n"
+                class="tw-flex tw-items-center tw-gap-1 tw-rounded-md tw-bg-white tw-bg-opacity-20 tw-px-2.5 tw-py-1 tw-text-xs tw-font-medium tw-text-main tw-backdrop-blur-sm tw-transition-colors hover:tw-bg-opacity-30"
+                (click)="$event.stopPropagation()"
+              >
+                {{ "copyPassword" | i18n }}
+                <kbd class="tw-text-muted tw-opacity-70">↵</kbd>
+              </button>
+            }
+            @if (hasUsername(cipher)) {
+              <button
+                type="button"
+                appCopyField="username"
+                [cipher]="cipher"
+                [attr.aria-label]="'copyUsername' | i18n"
+                class="tw-flex tw-items-center tw-gap-1 tw-rounded-md tw-bg-white tw-bg-opacity-20 tw-px-2.5 tw-py-1 tw-text-xs tw-font-medium tw-text-main tw-backdrop-blur-sm tw-transition-colors hover:tw-bg-opacity-30"
+                (click)="$event.stopPropagation()"
+              >
+                {{ "copyUsername" | i18n }}
+                <kbd class="tw-text-muted tw-opacity-70">⌘C</kbd>
+              </button>
+            }
+            @if (canLaunch(cipher)) {
+              <button
+                bitIconButton="bwi-external-link"
+                size="small"
+                type="button"
+                [attr.aria-label]="'launch' | i18n"
+                (click)="$event.stopPropagation(); launch(cipher)"
+              ></button>
+            }
+          </div>
+        } @else {
+          <div class="tw-flex tw-shrink-0 tw-items-center tw-gap-0.5">
+            @if (hasPassword(cipher)) {
+              <button
+                bitIconButton="bwi-key"
+                size="small"
+                type="button"
+                appCopyField="password"
+                [cipher]="cipher"
+                [attr.aria-label]="'copyPassword' | i18n"
+                (click)="$event.stopPropagation()"
+              ></button>
+            }
+            @if (hasUsername(cipher)) {
+              <button
+                bitIconButton="bwi-person"
+                size="small"
+                type="button"
+                appCopyField="username"
+                [cipher]="cipher"
+                [attr.aria-label]="'copyUsername' | i18n"
+                (click)="$event.stopPropagation()"
+              ></button>
+            }
+            @if (canLaunch(cipher)) {
+              <button
+                bitIconButton="bwi-external-link"
+                size="small"
+                type="button"
+                [attr.aria-label]="'launch' | i18n"
+                (click)="$event.stopPropagation(); launch(cipher)"
+              ></button>
+            }
+          </div>
+        }
       </div>
     }
 
@@ -107,7 +166,11 @@
 
   <!-- Footer hint -->
   <div
-    class="tw-flex tw-items-center tw-justify-end tw-gap-4 tw-border-t tw-border-secondary-300 tw-bg-background-alt tw-px-4 tw-py-2 tw-text-xs tw-text-muted"
+    class="tw-flex tw-items-center tw-justify-end tw-gap-4 tw-border-t tw-px-4 tw-py-2 tw-text-xs tw-text-muted"
+    [class.tw-border-secondary-300]="!isMac"
+    [class.tw-bg-background-alt]="!isMac"
+    [class.tw-border-white]="isMac"
+    [class.tw-border-opacity-10]="isMac"
   >
     <span>
       <kbd
@@ -115,6 +178,20 @@
         >↑↓</kbd
       >
       {{ "navigate" | i18n }}
+    </span>
+    <span>
+      <kbd
+        class="tw-rounded tw-border tw-border-secondary-300 tw-bg-secondary-100 tw-px-1 tw-py-0.5 tw-font-mono"
+        >↵</kbd
+      >
+      {{ "copyPassword" | i18n }}
+    </span>
+    <span>
+      <kbd
+        class="tw-rounded tw-border tw-border-secondary-300 tw-bg-secondary-100 tw-px-1 tw-py-0.5 tw-font-mono"
+        >{{ isMac ? "⌘C" : "Ctrl+C" }}</kbd
+      >
+      {{ "copyUsername" | i18n }}
     </span>
     <span>
       <kbd
