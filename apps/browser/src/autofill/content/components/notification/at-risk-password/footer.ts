@@ -29,6 +29,7 @@ export function AtRiskNotificationFooter({
       dataTestId: "change-password-button",
       theme,
       fullWidth: false,
+      title: i18n.changePassword,
     })}
   </div>`;
 }

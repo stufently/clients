@@ -30,8 +30,13 @@ type NotificationTaskInfo = {
 };
 
 /**
- * @todo Use generics to make this type specific to notification types, see Standard_NotificationQueueMessage.
+ * Init data projected into the notification bar iframe when a queued notification is ready to
+ * display.
+ *
+ * `type` is the primary discriminant: it determines which notification component renders in `bar.ts`.
  */
+// FIXME: Use type guards to specialize this type into subtypes keyed on `type`; once
+// all patterns are known, replace type guards with a discriminated union.
 type NotificationBarIframeInitData = {
   ciphers?: NotificationCipherData[];
   folders?: FolderView[];
@@ -42,8 +47,13 @@ type NotificationBarIframeInitData = {
   organizations?: OrgView[];
   removeIndividualVault?: boolean;
   theme?: Theme;
+  /** The notification discriminant. Determines which component renders. */
   type?: NotificationType;
-  params?: AtRiskPasswordNotificationParams | any;
+  /**
+   * Type-erased payload for the notification.
+   * Use type guards like `isAtRiskPasswordNotification` to read this field.
+   */
+  params?: AtRiskPasswordNotificationParams | unknown;
 };
 
 type NotificationBarWindowMessage = {
@@ -64,9 +74,19 @@ type NotificationBarWindowMessageHandlers = {
   saveCipherAttemptCompleted: ({ message }: { message: NotificationBarWindowMessage }) => void;
 };
 
+/**
+ * Type-specific payload for at-risk-password notifications.
+ *
+ * `organizationName` is always present — it is resolved from the organization record before the
+ * notification is queued.
+ *
+ * `passwordChangeUri` is genuinely optional. It is present only when the organization's identity
+ * provider advertises a `.well-known/change-password` endpoint. When absent, the notification
+ * body instructs the user to navigate to the site manually rather than offering a direct link.
+ */
 type AtRiskPasswordNotificationParams = {
   passwordChangeUri?: string;
-  organizationName?: string;
+  organizationName: string;
 };
 
 export {

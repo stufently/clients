@@ -20,6 +20,7 @@ import {
   NotificationType,
   NotificationTypes,
 } from "./abstractions/notification-bar";
+import { isAtRiskPasswordNotification } from "./utils";
 
 let notificationBarIframeInitData: NotificationBarIframeInitData = {};
 let windowMessageOrigin: string;
@@ -227,15 +228,15 @@ async function initNotificationBar(message: NotificationBarWindowMessage) {
   }
 
   // Handle AtRiskPasswordNotification render
-  if (notificationBarIframeInitData.type === NotificationTypes.AtRiskPassword) {
+  if (isAtRiskPasswordNotification(notificationBarIframeInitData)) {
     return render(
       AtRiskNotification({
         ...notificationBarIframeInitData,
-        type: notificationBarIframeInitData.type as NotificationType,
+        type: notificationBarIframeInitData.type,
         theme: resolvedTheme,
         i18n,
         notificationTestId,
-        params: initData.params,
+        params: notificationBarIframeInitData.params,
         handleCloseNotification,
       }),
       document.body,

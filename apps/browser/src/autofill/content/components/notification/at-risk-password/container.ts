@@ -3,7 +3,10 @@ import { html, nothing } from "lit";
 
 import { Theme, ThemeTypes } from "@bitwarden/common/platform/enums";
 
-import { NotificationBarIframeInitData } from "../../../../notification/abstractions/notification-bar";
+import {
+  AtRiskPasswordNotificationParams,
+  NotificationBarIframeInitData,
+} from "../../../../notification/abstractions/notification-bar";
 import { I18n } from "../../common-types";
 import { themes, spacing } from "../../constants/styles";
 import {
@@ -16,9 +19,9 @@ import { AtRiskNotificationFooter } from "./footer";
 
 export type AtRiskNotificationProps = NotificationBarIframeInitData & {
   handleCloseNotification: (e: Event) => void;
-} & {
   i18n: I18n;
   notificationTestId: string;
+  params: AtRiskPasswordNotificationParams;
 };
 
 export function AtRiskNotification({
@@ -50,7 +53,7 @@ export function AtRiskNotification({
         ? AtRiskNotificationFooter({
             i18n,
             theme,
-            passwordChangeUri: params?.passwordChangeUri,
+            passwordChangeUri,
           })
         : nothing}
     </div>

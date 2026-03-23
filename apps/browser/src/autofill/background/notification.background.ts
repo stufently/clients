@@ -456,6 +456,15 @@ export default class NotificationBackground {
     }
   }
 
+  /**
+   * Sends a queued notification message to the notification bar iframe in the given tab.
+   *
+   * This method merges type-specific data elements into the message body. System fields
+   * always take precedence over type-specific data when there is a conflict.
+   *
+   * @param tab - The tab hosting the notification bar iframe.
+   * @param notificationQueueMessage - The queued notification message to transmit.
+   */
   private async sendNotificationQueueMessage(
     tab: chrome.tabs.Tab,
     notificationQueueMessage: NotificationQueueMessageItem,
@@ -464,7 +473,8 @@ export default class NotificationBackground {
       type: notificationType,
       wasVaultLocked: isVaultLocked,
       launchTimestamp,
-      ...params
+      data,
+      ...rest
     } = notificationQueueMessage;
 
     const typeData: NotificationTypeData = {
@@ -482,7 +492,10 @@ export default class NotificationBackground {
     await BrowserApi.tabSendMessageData(tab, "openNotificationBar", {
       type: notificationType,
       typeData,
-      params,
+      // `data` carries the type-specific payload from the queue message, with an arbitrary shape.
+      // `rest` carries metadata resolved by the autofill subsystem. `rest` spreads last so these
+      // trusted system fields always win on key collision.
+      params: { ...data, ...rest },
     });
   }
 
