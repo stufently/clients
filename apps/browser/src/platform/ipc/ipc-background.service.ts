@@ -55,14 +55,18 @@ export class IpcBackgroundService extends IpcService {
           }
 
           if (message.destination === "DesktopMain" || message.destination === "DesktopRenderer") {
-            this.nativeMessagingPort?.postMessage({
-              type: "bitwarden-ipc-message",
-              message: {
-                destination: message.destination,
-                payload: [...message.payload],
-                topic: message.topic,
-              },
-            } satisfies IpcMessage);
+            try {
+              this.nativeMessagingPort?.postMessage({
+                type: "bitwarden-ipc-message",
+                message: {
+                  destination: message.destination,
+                  payload: [...message.payload],
+                  topic: message.topic,
+                },
+              } satisfies IpcMessage);
+            } catch (e) {
+              this.logService.error("[IPC] Failed to send message via native messaging", e);
+            }
             return;
           }
 
