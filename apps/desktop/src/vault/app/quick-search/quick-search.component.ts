@@ -164,7 +164,7 @@ export class QuickSearchComponent implements OnInit {
 
   protected launch(cipher: CipherViewLike) {
     const uri = CipherViewLikeUtils.getLaunchUri(cipher);
-    if (uri && Utils.isValidUrl(uri)) {
+    if (uri && Utils.getUrl(uri) != null) {
       this.close();
       window.open(uri, "_blank");
     }
