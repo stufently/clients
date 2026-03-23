@@ -25,7 +25,9 @@
         class="tw-flex tw-cursor-pointer tw-items-center tw-gap-3 tw-px-4 tw-py-3 tw-transition-colors"
         [class.tw-border-b]="!isMac"
         [class.tw-border-secondary-100]="!isMac"
-        [class.tw-bg-primary-600]="i === selectedIndex()"
+        [class.tw-ring-2]="i === selectedIndex()"
+        [class.tw-ring-primary-600]="i === selectedIndex()"
+        [class.tw-bg-primary-50]="i === selectedIndex()"
         [class.hover:tw-bg-secondary-50]="i !== selectedIndex()"
         [class.tw-rounded-lg]="isMac"
         [class.tw-mx-2]="isMac"
@@ -42,20 +44,11 @@
 
         <!-- Cipher info -->
         <div class="tw-min-w-0 tw-flex-1">
-          <div
-            class="tw-truncate tw-font-semibold"
-            [class.tw-text-base]="true"
-            [class.tw-text-white]="i === selectedIndex()"
-            [class.tw-text-main]="i !== selectedIndex()"
-          >
+          <div class="tw-truncate tw-font-semibold tw-text-base tw-text-main">
             {{ cipher.name }}
           </div>
           @if (getSubtitle(cipher)) {
-            <div
-              class="tw-truncate tw-text-xs"
-              [class.tw-text-primary-100]="i === selectedIndex()"
-              [class.tw-text-muted]="i !== selectedIndex()"
-            >
+            <div class="tw-truncate tw-text-xs tw-text-muted">
               {{ getSubtitle(cipher) }}
             </div>
           }
@@ -73,11 +66,11 @@
                     appCopyField="password"
                     [cipher]="cipher"
                     [attr.aria-label]="'copyPassword' | i18n"
-                    class="tw-flex tw-items-center tw-gap-1 tw-rounded-md tw-bg-white tw-bg-opacity-20 tw-px-2.5 tw-py-1 tw-text-xs tw-font-medium tw-text-white tw-backdrop-blur-sm tw-transition-colors hover:tw-bg-opacity-30"
+                    class="tw-flex tw-items-center tw-gap-1 tw-rounded-md tw-bg-primary-100 tw-px-2.5 tw-py-1 tw-text-xs tw-font-medium tw-text-primary-700 tw-transition-colors hover:tw-bg-primary-200"
                     (click)="$event.stopPropagation()"
                   >
                     {{ "copyPassword" | i18n }}
-                    <kbd class="tw-text-primary-100 tw-opacity-80">↵</kbd>
+                    <kbd class="tw-text-primary-500">↵</kbd>
                   </button>
                 }
                 @if (hasUsername(cipher)) {
@@ -86,11 +79,11 @@
                     appCopyField="username"
                     [cipher]="cipher"
                     [attr.aria-label]="'copyUsername' | i18n"
-                    class="tw-flex tw-items-center tw-gap-1 tw-rounded-md tw-bg-white tw-bg-opacity-20 tw-px-2.5 tw-py-1 tw-text-xs tw-font-medium tw-text-white tw-backdrop-blur-sm tw-transition-colors hover:tw-bg-opacity-30"
+                    class="tw-flex tw-items-center tw-gap-1 tw-rounded-md tw-bg-primary-100 tw-px-2.5 tw-py-1 tw-text-xs tw-font-medium tw-text-primary-700 tw-transition-colors hover:tw-bg-primary-200"
                     (click)="$event.stopPropagation()"
                   >
                     {{ "copyUsername" | i18n }}
-                    <kbd class="tw-text-primary-100 tw-opacity-80">⌘C</kbd>
+                    <kbd class="tw-text-primary-500">⌘C</kbd>
                   </button>
                 }
                 @if (canLaunch(cipher)) {
@@ -145,13 +138,13 @@
           @if (i < 9) {
             <kbd
               class="tw-min-w-[2rem] tw-rounded tw-px-1.5 tw-py-0.5 tw-text-center tw-text-xs tw-font-mono"
-              [class.tw-border]="i !== selectedIndex()"
+              [class.tw-border]="true"
               [class.tw-border-secondary-300]="i !== selectedIndex()"
+              [class.tw-border-primary-300]="i === selectedIndex()"
               [class.tw-bg-secondary-100]="i !== selectedIndex()"
               [class.tw-text-muted]="i !== selectedIndex()"
-              [class.tw-bg-white]="i === selectedIndex()"
-              [class.tw-bg-opacity-20]="i === selectedIndex()"
-              [class.tw-text-primary-100]="i === selectedIndex()"
+              [class.tw-bg-primary-50]="i === selectedIndex()"
+              [class.tw-text-primary-600]="i === selectedIndex()"
               >{{ isMac ? "⌘" : "^" }}{{ i + 1 }}</kbd
             >
           }
