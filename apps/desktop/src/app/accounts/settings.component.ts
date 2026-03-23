@@ -151,11 +151,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
     startToTray: false,
     openAtLogin: false,
     alwaysShowDock: false,
-    enableBrowserIntegration: false,
-    enableBrowserIntegrationFingerprint: this.formBuilder.control<boolean>({
-      value: false,
-      disabled: true,
-    }),
     enableHardwareAcceleration: true,
     enableSshAgent: false,
     sshAgentPromptBehavior: SshAgentPromptType.Always,
@@ -322,12 +317,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
       allowIntegrateWithBrowserExtension: await firstValueFrom(
         this.sharedUnlockSettingsService.allowIntegrateWithBrowserExtension$,
       ),
-      enableBrowserIntegration: await firstValueFrom(
-        this.desktopSettingsService.browserIntegrationEnabled$,
-      ),
-      enableBrowserIntegrationFingerprint: await firstValueFrom(
-        this.desktopSettingsService.browserIntegrationFingerprintEnabled$,
-      ),
       enableDuckDuckGoBrowserIntegration: await firstValueFrom(
         this.desktopAutofillSettingsService.enableDuckDuckGoBrowserIntegration$,
       ),
@@ -347,10 +336,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
       locale: await firstValueFrom(this.i18nService.userSetLocale$),
     };
     this.form.setValue(initialValues, { emitEvent: false });
-
-    if (this.form.value.enableBrowserIntegration) {
-      this.form.controls.enableBrowserIntegrationFingerprint.enable();
-    }
 
     // Non-form values
     this.showMinToTray = this.platformUtilsService.getDevice() !== DeviceType.LinuxDesktop;
@@ -396,16 +381,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
         takeUntil(this.destroy$),
       )
       .subscribe();
-
-    this.form.controls.enableBrowserIntegration.valueChanges
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((enabled) => {
-        if (enabled) {
-          this.form.controls.enableBrowserIntegrationFingerprint.enable();
-        } else {
-          this.form.controls.enableBrowserIntegrationFingerprint.disable();
-        }
-      });
 
     this.supportsBiometric = await this.biometricsService.canEnableBiometricUnlock();
     this.timerId = setInterval(async () => {
@@ -659,64 +634,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
     );
   }
 
-  async saveBrowserIntegration() {
-    const skipSupportedPlatformCheck =
-      ipc.platform.allowBrowserintegrationOverride || ipc.platform.isDev;
-
-    if (!skipSupportedPlatformCheck) {
-      if (ipc.platform.isWindowsStore) {
-        await this.dialogService.openSimpleDialog({
-          title: { key: "browserIntegrationUnsupportedTitle" },
-          content: { key: "browserIntegrationWindowsStoreDesc" },
-          acceptButtonText: { key: "ok" },
-          cancelButtonText: null,
-          type: "warning",
-        });
-
-        this.form.controls.enableBrowserIntegration.setValue(false);
-        return;
-      }
-
-      if (ipc.platform.isSnapStore || ipc.platform.isFlatpak) {
-        await this.dialogService.openSimpleDialog({
-          title: { key: "browserIntegrationUnsupportedTitle" },
-          content: { key: "browserIntegrationLinuxDesc" },
-          acceptButtonText: { key: "ok" },
-          cancelButtonText: null,
-          type: "warning",
-        });
-
-        this.form.controls.enableBrowserIntegration.setValue(false);
-        return;
-      }
-    }
-
-    await this.desktopSettingsService.setBrowserIntegrationEnabled(
-      this.form.value.enableBrowserIntegration,
-    );
-
-    const errorResult = await this.nativeMessagingManifestService.generate(
-      this.form.value.enableBrowserIntegration,
-    );
-    if (errorResult !== null) {
-      this.logService.error("Error in browser integration: " + errorResult);
-      await this.dialogService.openSimpleDialog({
-        title: { key: "browserIntegrationErrorTitle" },
-        content: { key: "browserIntegrationErrorDesc" },
-        acceptButtonText: { key: "ok" },
-        cancelButtonText: null,
-        type: "danger",
-      });
-    }
-
-    if (!this.form.value.enableBrowserIntegration) {
-      this.form.controls.enableBrowserIntegrationFingerprint.setValue(false);
-      // FIXME: Verify that this floating promise is intentional. If it is, add an explanatory comment and ensure there is proper error handling.
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      this.saveBrowserIntegrationFingerprint();
-    }
-  }
-
   async saveDdgBrowserIntegration() {
     await this.desktopAutofillSettingsService.setEnableDuckDuckGoBrowserIntegration(
       this.form.value.enableDuckDuckGoBrowserIntegration,
@@ -727,22 +644,12 @@ export class SettingsComponent implements OnInit, OnDestroy {
       this.form.value.enableDuckDuckGoBrowserIntegration,
     );
 
-    if (!this.form.value.enableBrowserIntegration) {
-      await this.stateService.setDuckDuckGoSharedKey(null);
-    }
-
     const errorResult = await this.nativeMessagingManifestService.generateDuckDuckGo(
       this.form.value.enableDuckDuckGoBrowserIntegration,
     );
     if (errorResult !== null) {
       this.logService.error("Error in DDG browser integration: " + errorResult);
     }
-  }
-
-  async saveBrowserIntegrationFingerprint() {
-    await this.desktopSettingsService.setBrowserIntegrationFingerprintEnabled(
-      this.form.value.enableBrowserIntegrationFingerprint,
-    );
   }
 
   async saveHardwareAcceleration() {
