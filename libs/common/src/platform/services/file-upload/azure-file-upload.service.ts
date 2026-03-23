@@ -43,7 +43,7 @@ export class AzureFileUploadService {
     });
 
     const blobResponse =
-      Utils.isBrowser && options.onProgress
+      Utils.isBrowser && options?.onProgress
         ? await this.apiService.nativeXMLHttpRequest(request, options.onProgress)
         : await this.apiService.nativeFetch(request);
 
