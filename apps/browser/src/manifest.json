@@ -57,26 +57,10 @@
     "webNavigation",
     "webRequest",
     "webRequestBlocking",
+    "nativeMessaging",
     "notifications"
   ],
-  "__safari__permissions": [
-    "<all_urls>",
-    "*://*/*",
-    "alarms",
-    "clipboardRead",
-    "clipboardWrite",
-    "contextMenus",
-    "idle",
-    "nativeMessaging",
-    "storage",
-    "tabs",
-    "unlimitedStorage",
-    "webNavigation",
-    "webRequest",
-    "webRequestBlocking"
-  ],
-  "optional_permissions": ["nativeMessaging", "privacy"],
-  "__firefox__optional_permissions": ["nativeMessaging"],
+  "optional_permissions": ["privacy"],
   "__safari__optional_permissions": null,
   "content_security_policy": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
   "sandbox": {
