@@ -9,7 +9,7 @@ const popupWidth = 600;
 const popupHeight = 600;
 
 const quickSearchWidth = 640;
-const quickSearchHeight = 480;
+const quickSearchHeight = 520;
 
 type Position = { x: number; y: number };
 

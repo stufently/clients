@@ -189,4 +189,42 @@
       </div>
     }
   </div>
+
+  <!-- Footer shortcut hints -->
+  <div
+    class="tw-flex tw-items-center tw-gap-4 tw-border-t tw-px-4 tw-py-2.5 tw-text-xs tw-text-muted"
+    [class.tw-border-secondary-300]="!isMac"
+    [class.tw-bg-background-alt]="!isMac"
+    [class.tw-border-white]="isMac"
+    [class.tw-border-opacity-10]="isMac"
+  >
+    <span class="tw-flex tw-items-center tw-gap-1.5">
+      <kbd
+        class="tw-rounded tw-border tw-border-secondary-300 tw-bg-secondary-100 tw-px-1.5 tw-py-0.5 tw-font-mono tw-text-xs"
+        >↑↓</kbd
+      >
+      {{ "navigate" | i18n }}
+    </span>
+    <span class="tw-flex tw-items-center tw-gap-1.5">
+      <kbd
+        class="tw-rounded tw-border tw-border-secondary-300 tw-bg-secondary-100 tw-px-1.5 tw-py-0.5 tw-font-mono tw-text-xs"
+        >↵</kbd
+      >
+      {{ "copyPassword" | i18n }}
+    </span>
+    <span class="tw-flex tw-items-center tw-gap-1.5">
+      <kbd
+        class="tw-rounded tw-border tw-border-secondary-300 tw-bg-secondary-100 tw-px-1.5 tw-py-0.5 tw-font-mono tw-text-xs"
+        >{{ isMac ? "⌘C" : "Ctrl+C" }}</kbd
+      >
+      {{ "copyUsername" | i18n }}
+    </span>
+    <span class="tw-flex tw-items-center tw-gap-1.5">
+      <kbd
+        class="tw-rounded tw-border tw-border-secondary-300 tw-bg-secondary-100 tw-px-1.5 tw-py-0.5 tw-font-mono tw-text-xs"
+        >Esc</kbd
+      >
+      {{ "close" | i18n }}
+    </span>
+  </div>
 </div>
