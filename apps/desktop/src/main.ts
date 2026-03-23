@@ -14,6 +14,7 @@ import { ClientType } from "@bitwarden/common/enums";
 import { EncryptServiceImplementation } from "@bitwarden/common/key-management/crypto/services/encrypt.service.implementation";
 import { RegionConfig } from "@bitwarden/common/platform/abstractions/environment.service";
 import { SdkLoadService } from "@bitwarden/common/platform/abstractions/sdk/sdk-load.service";
+import { IpcService, IpcSessionRepository } from "@bitwarden/common/platform/ipc";
 import { Message, MessageSender } from "@bitwarden/common/platform/messaging";
 // eslint-disable-next-line no-restricted-imports -- For dependency creation
 import { SubjectMessageSender } from "@bitwarden/common/platform/messaging/internal";
@@ -56,6 +57,7 @@ import { DesktopSettingsService } from "./platform/services/desktop-settings.ser
 import { ElectronLogMainService } from "./platform/services/electron-log.main.service";
 import { EphemeralValueStorageService } from "./platform/services/ephemeral-value-storage.main.service";
 import { I18nMainService } from "./platform/services/i18n.main.service";
+import { IpcMainService } from "./platform/services/ipc.main.service";
 import { SSOLocalhostCallbackService } from "./platform/services/sso-localhost-callback.service";
 import { ElectronMainMessagingService } from "./services/electron-main-messaging.service";
 import { MainSdkLoadService } from "./services/main-sdk-load-service";
@@ -91,6 +93,7 @@ export class Main {
   sshAgentService: MainSshAgentService;
   sdkLoadService: SdkLoadService;
   mainDesktopAutotypeService: MainDesktopAutotypeService;
+  ipcService: IpcService;
 
   constructor() {
     // Set paths for portable builds
@@ -280,6 +283,14 @@ export class Main {
       app.getAppPath(),
     );
 
+    this.ipcService = new IpcMainService(
+      this.logService,
+      app,
+      this.nativeMessagingMain,
+      this.windowMain,
+      new IpcSessionRepository(stateProvider),
+    );
+
     this.desktopAutofillSettingsService = new DesktopAutofillSettingsService(stateProvider);
 
     this.clipboardMain = new ClipboardMain();
@@ -391,6 +402,7 @@ export class Main {
         });
 
         await this.sdkLoadService.loadAndInit();
+        await this.ipcService.init();
       },
       (e: any) => {
         this.logService.error("Error while running migrations:", e);

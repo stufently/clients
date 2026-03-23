@@ -1,7 +1,12 @@
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
 import { SdkLoadService } from "@bitwarden/common/platform/abstractions/sdk/sdk-load.service";
-import { IpcMessage, isIpcMessage, IpcService } from "@bitwarden/common/platform/ipc";
+import {
+  IpcMessage,
+  isIpcMessage,
+  IpcService,
+  isForwardedIpcMessage,
+} from "@bitwarden/common/platform/ipc";
 import {
   IpcCommunicationBackend,
   IncomingMessage,
@@ -15,6 +20,7 @@ import { BrowserApi } from "../browser/browser-api";
 
 export class IpcBackgroundService extends IpcService {
   private communicationBackend?: IpcCommunicationBackend;
+  private nativeMessagingPort?: browser.runtime.Port | chrome.runtime.Port;
 
   constructor(
     private platformUtilsService: PlatformUtilsService,
@@ -26,10 +32,12 @@ export class IpcBackgroundService extends IpcService {
 
   override async init() {
     try {
+      this.connectNativeMessaging();
+
       // This function uses classes and functions defined in the SDK, so we need to wait for the SDK to load.
       await SdkLoadService.Ready;
       this.communicationBackend = new IpcCommunicationBackend({
-        async send(message: OutgoingMessage): Promise<void> {
+        send: async (message: OutgoingMessage): Promise<void> => {
           if (typeof message.destination === "object" && message.destination.Web != undefined) {
             await BrowserApi.tabSendMessage(
               { id: message.destination.Web.id } as chrome.tabs.Tab,
@@ -43,6 +51,18 @@ export class IpcBackgroundService extends IpcService {
               } satisfies IpcMessage,
               { frameId: 0 },
             );
+            return;
+          }
+
+          if (message.destination === "DesktopMain" || message.destination === "DesktopRenderer") {
+            this.nativeMessagingPort?.postMessage({
+              type: "bitwarden-ipc-message",
+              message: {
+                destination: message.destination,
+                payload: [...message.payload],
+                topic: message.topic,
+              },
+            } satisfies IpcMessage);
             return;
           }
 
@@ -72,6 +92,21 @@ export class IpcBackgroundService extends IpcService {
         );
       });
 
+      this.nativeMessagingPort?.onMessage.addListener((ipcMessage) => {
+        if (!isIpcMessage(ipcMessage) && !isForwardedIpcMessage(ipcMessage)) {
+          return;
+        }
+
+        this.communicationBackend?.receive(
+          new IncomingMessage(
+            new Uint8Array(ipcMessage.message.payload),
+            ipcMessage.message.destination,
+            isForwardedIpcMessage(ipcMessage) ? ipcMessage.originalSource : "DesktopMain",
+            ipcMessage.message.topic,
+          ),
+        );
+      });
+
       await super.initWithClient(
         IpcClient.newWithClientManagedSessions(this.communicationBackend, this.sessionRepository),
       );
@@ -81,6 +116,17 @@ export class IpcBackgroundService extends IpcService {
       });
     } catch (e) {
       this.logService.error("[IPC] Initialization failed", e);
+    }
+  }
+
+  private connectNativeMessaging() {
+    try {
+      // TODO: This needs to handle the full complexity of native messaging connections,
+      // including permissions, errors and disconnections.
+      const port = BrowserApi.connectNative("com.8bit.bitwarden");
+      this.nativeMessagingPort = port;
+    } catch (e) {
+      this.logService.error("[IPC] Native messaging connection failed", e);
     }
   }
 }
