@@ -159,6 +159,11 @@ import { ElectronKeyService } from "../../key-management/electron-key.service";
 import { DesktopLockComponentService } from "../../key-management/lock/services/desktop-lock-component.service";
 import { DesktopSessionTimeoutTypeService } from "../../key-management/session-timeout/services/desktop-session-timeout-type.service";
 import { flagEnabled } from "../../platform/flags";
+import {
+  SharedUnlockSettingsService,
+  DefaultSharedUnlockSettingsService,
+} from "@bitwarden/common/key-management/shared-unlock";
+
 import { DesktopSettingsService } from "../../platform/services/desktop-settings.service";
 import { ElectronLogRendererService } from "../../platform/services/electron-log.renderer.service";
 import {
@@ -369,6 +374,11 @@ const safeProviders: SafeProvider[] = [
   }),
   safeProvider({
     provide: DesktopSettingsService,
+    deps: [StateProvider],
+  }),
+  safeProvider({
+    provide: SharedUnlockSettingsService,
+    useClass: DefaultSharedUnlockSettingsService,
     deps: [StateProvider],
   }),
   safeProvider({

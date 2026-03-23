@@ -31,6 +31,7 @@ import { UserVerificationService } from "@bitwarden/common/auth/abstractions/use
 import { getUserId } from "@bitwarden/common/auth/services/account.service";
 import { PhishingDetectionSettingsServiceAbstraction } from "@bitwarden/common/dirt/services/abstractions/phishing-detection-settings.service.abstraction";
 import { PinServiceAbstraction } from "@bitwarden/common/key-management/pin/pin.service.abstraction";
+import { SharedUnlockSettingsService } from "@bitwarden/common/key-management/shared-unlock";
 import { VaultTimeoutSettingsService } from "@bitwarden/common/key-management/vault-timeout";
 import { EnvironmentService } from "@bitwarden/common/platform/abstractions/environment.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
@@ -117,6 +118,8 @@ export class AccountSecurityComponent implements OnInit, OnDestroy {
     biometric: false,
     enableAutoBiometricsPrompt: true,
     enablePhishingDetection: true,
+    allowIntegrateWithWebApp: false,
+    allowIntegrateWithDesktopApp: false,
   });
 
   protected showAccountSecurityNudge$: Observable<boolean> =
@@ -154,6 +157,7 @@ export class AccountSecurityComponent implements OnInit, OnDestroy {
     private validationService: ValidationService,
     private logService: LogService,
     private phishingDetectionSettingsService: PhishingDetectionSettingsServiceAbstraction,
+    private sharedUnlockSettingsService: SharedUnlockSettingsService,
   ) {
     // Check if user phishing detection available
     this.phishingDetectionAvailable$ = this.phishingDetectionSettingsService.available$;
@@ -185,6 +189,12 @@ export class AccountSecurityComponent implements OnInit, OnDestroy {
         this.biometricStateService.promptAutomatically$,
       ),
       enablePhishingDetection: await firstValueFrom(this.phishingDetectionSettingsService.enabled$),
+      allowIntegrateWithWebApp: await firstValueFrom(
+        this.sharedUnlockSettingsService.allowIntegrateWithWebApp$,
+      ),
+      allowIntegrateWithDesktopApp: await firstValueFrom(
+        this.sharedUnlockSettingsService.allowIntegrateWithDesktopApp$,
+      ),
     };
     this.form.patchValue(initialValues, { emitEvent: false });
     this.loading.set(false);
@@ -289,6 +299,26 @@ export class AccountSecurityComponent implements OnInit, OnDestroy {
         concatMap(async (enabled) => {
           const userId = await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
           await this.phishingDetectionSettingsService.setEnabled(userId, enabled);
+        }),
+        takeUntil(this.destroy$),
+      )
+      .subscribe();
+
+    this.form.controls.allowIntegrateWithWebApp.valueChanges
+      .pipe(
+        concatMap(async (enabled) => {
+          const userId = await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
+          await this.sharedUnlockSettingsService.setAllowIntegrateWithWebApp(enabled, userId);
+        }),
+        takeUntil(this.destroy$),
+      )
+      .subscribe();
+
+    this.form.controls.allowIntegrateWithDesktopApp.valueChanges
+      .pipe(
+        distinctUntilChanged(),
+        concatMap(async (enabled) => {
+          await this.updateDesktopIntegration(enabled);
         }),
         takeUntil(this.destroy$),
       )
@@ -482,6 +512,49 @@ export class AccountSecurityComponent implements OnInit, OnDestroy {
 
     await Promise.all([waitForUserDialogPromise(), biometricsPromise()]);
     return setupResult;
+  }
+
+  async updateDesktopIntegration(enabled: boolean) {
+    const userId = await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
+    if (enabled) {
+      let granted;
+      try {
+        granted = await BrowserApi.requestPermission({ permissions: ["nativeMessaging"] });
+      } catch (e) {
+        // eslint-disable-next-line
+        console.error(e);
+
+        if (this.platformUtilsService.isFirefox() && BrowserPopupUtils.inSidebar(window)) {
+          await this.dialogService.openSimpleDialog({
+            title: { key: "nativeMessaginPermissionSidebarTitle" },
+            content: { key: "nativeMessaginPermissionSidebarDesc" },
+            acceptButtonText: { key: "ok" },
+            cancelButtonText: null,
+            type: "info",
+          });
+
+          this.form.controls.allowIntegrateWithDesktopApp.setValue(false, { emitEvent: false });
+          return;
+        }
+      }
+
+      if (!granted) {
+        await this.dialogService.openSimpleDialog({
+          title: { key: "nativeMessaginPermissionErrorTitle" },
+          content: { key: "nativeMessaginPermissionErrorDesc" },
+          acceptButtonText: { key: "ok" },
+          cancelButtonText: null,
+          type: "danger",
+        });
+
+        this.form.controls.allowIntegrateWithDesktopApp.setValue(false, { emitEvent: false });
+        return;
+      }
+
+      await this.sharedUnlockSettingsService.setAllowIntegrateWithDesktopApp(true, userId);
+    } else {
+      await this.sharedUnlockSettingsService.setAllowIntegrateWithDesktopApp(false, userId);
+    }
   }
 
   async updateAutoBiometricsPrompt() {

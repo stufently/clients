@@ -110,6 +110,36 @@
         </bit-card>
       </bit-section>
 
+      <bit-section>
+        <bit-section-header>
+          <h2 bitTypography="h6">{{ "sharedUnlock" | i18n }}</h2>
+        </bit-section-header>
+        <bit-card>
+          <bit-form-control>
+            <input
+              bitCheckbox
+              id="allowIntegrateWithWebApp"
+              type="checkbox"
+              formControlName="allowIntegrateWithWebApp"
+            />
+            <bit-label for="allowIntegrateWithWebApp" class="tw-whitespace-normal">
+              {{ "allowIntegrateWithWebApp" | i18n }}
+            </bit-label>
+          </bit-form-control>
+          <bit-form-control disableMargin>
+            <input
+              bitCheckbox
+              id="allowIntegrateWithDesktopApp"
+              type="checkbox"
+              formControlName="allowIntegrateWithDesktopApp"
+            />
+            <bit-label for="allowIntegrateWithDesktopApp" class="tw-whitespace-normal">
+              {{ "allowIntegrateWithDesktopApp" | i18n }}
+            </bit-label>
+          </bit-form-control>
+        </bit-card>
+      </bit-section>
+
       <bit-section disableMargin>
         <bit-section-header>
           <h2 bitTypography="h6">{{ "otherOptions" | i18n }}</h2>

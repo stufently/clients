@@ -6190,5 +6190,14 @@
   },
   "userVerificationFailed": {
     "message": "User verification failed."
+  },
+  "sharedUnlock": {
+    "message": "Shared unlock"
+  },
+  "allowIntegrateWithWebApp": {
+    "message": "Allow integrating with the web app"
+  },
+  "allowIntegrateWithDesktopApp": {
+    "message": "Allow integrating with the desktop app"
   }
 }

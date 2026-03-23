@@ -198,7 +198,11 @@ import {
   PasswordStrengthService,
   PasswordStrengthServiceAbstraction,
 } from "@bitwarden/common/tools/password-strength";
-import { SharedUnlockLeaderService } from "@bitwarden/common/key-management/shared-unlock";
+import {
+  SharedUnlockLeaderService,
+  SharedUnlockSettingsService,
+  DefaultSharedUnlockSettingsService,
+} from "@bitwarden/common/key-management/shared-unlock";
 import { DefaultSharedUnlockLeaderService } from "@bitwarden/common/key-management/shared-unlock/default-shared-unlock-leader.service";
 import { createSystemServiceProvider } from "@bitwarden/common/tools/providers";
 import { SendApiService } from "@bitwarden/common/tools/send/services/send-api.service";
@@ -496,6 +500,7 @@ export default class MainBackground {
   ipcContentScriptManagerService: IpcContentScriptManagerService;
   ipcService: IpcService;
   sharedUnlockLeaderService: SharedUnlockLeaderService;
+  sharedUnlockSettingsService: SharedUnlockSettingsService;
 
   badgeService: BadgeService;
   authStatusBadgeUpdaterService: AuthStatusBadgeUpdaterService;
@@ -1569,6 +1574,7 @@ export default class MainBackground {
       this.platformUtilsService,
       this.vaultTimeoutSettingsService,
     );
+    this.sharedUnlockSettingsService = new DefaultSharedUnlockSettingsService(this.stateProvider);
 
     this.endUserNotificationService = new DefaultEndUserNotificationService(
       this.stateProvider,

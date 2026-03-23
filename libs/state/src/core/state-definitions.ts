@@ -119,6 +119,7 @@ export const CONFIG_DISK = new StateDefinition("config", "disk", {
   web: "disk-local",
 });
 export const DESKTOP_SETTINGS_DISK = new StateDefinition("desktopSettings", "disk");
+export const SHARED_UNLOCK_SETTINGS_DISK = new StateDefinition("sharedUnlockSettings", "disk");
 export const ENVIRONMENT_DISK = new StateDefinition("environment", "disk");
 export const ENVIRONMENT_MEMORY = new StateDefinition("environment", "memory");
 export const IPC_MEMORY = new StateDefinition("interProcessCommunication", "memory");
