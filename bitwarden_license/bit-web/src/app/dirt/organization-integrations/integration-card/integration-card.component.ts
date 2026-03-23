@@ -160,6 +160,7 @@ export class IntegrationCardComponent implements AfterViewInit, OnDestroy {
       const organizationIntegrationTypeName = this.getOrganizationIntegrationTypeName(
         this.integrationSettings().integrationType,
       );
+
       this.toastService.showToast({
         variant: "error",
         title: "",
@@ -460,7 +461,7 @@ export class IntegrationCardComponent implements AfterViewInit, OnDestroy {
   }
 
   private getOrganizationIntegrationTypeName(
-    integrationType: OrganizationIntegrationType | undefined,
+    integrationType: OrganizationIntegrationType | null | undefined,
   ): string {
     const entry = Object.entries(OrganizationIntegrationType).find(
       ([, value]) => value === integrationType,

@@ -134,7 +134,7 @@ export class OrganizationIntegrationService {
         return {
           mustBeOwner: false,
           success: false,
-          organizationIntegrationResult: null,
+          organizationIntegrationResult: undefined,
           anotherIntegrationWithSameTypeExists: true,
         };
       }
