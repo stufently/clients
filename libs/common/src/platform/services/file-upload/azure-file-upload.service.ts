@@ -57,63 +57,58 @@ export class AzureFileUploadService {
     renewalCallback: () => Promise<string>,
     options?: UploadOptions,
   ) {
-    // eslint-disable-next-line
-    try {
-      url = await this.renewUrlIfNecessary(url, renewalCallback);
-      const blockUrl = Utils.getUrl(url);
-      const blockId = this.encodedBlockId(0); // Only one block supported since max block size exceeds max file size
-      blockUrl.searchParams.append("comp", "block");
-      blockUrl.searchParams.append("blockid", blockId);
-      const blockHeaders = new Headers({
-        "x-ms-date": new Date().toUTCString(),
-        "x-ms-version": blockUrl.searchParams.get("sv"),
-        "Content-Length": data.buffer.byteLength.toString(),
-      });
+    url = await this.renewUrlIfNecessary(url, renewalCallback);
+    const blockUrl = Utils.getUrl(url);
+    const blockId = this.encodedBlockId(0); // Only one block supported since max block size exceeds max file size
+    blockUrl.searchParams.append("comp", "block");
+    blockUrl.searchParams.append("blockid", blockId);
+    const blockHeaders = new Headers({
+      "x-ms-date": new Date().toUTCString(),
+      "x-ms-version": blockUrl.searchParams.get("sv"),
+      "Content-Length": data.buffer.byteLength.toString(),
+    });
 
-      const blockRequest = new Request(blockUrl.toString(), {
-        body: data.buffer as BodyInit,
-        cache: "no-store",
-        method: "PUT",
-        headers: blockHeaders,
-      });
+    const blockRequest = new Request(blockUrl.toString(), {
+      body: data.buffer as BodyInit,
+      cache: "no-store",
+      method: "PUT",
+      headers: blockHeaders,
+    });
 
-      const blockResponse =
-        Utils.isBrowser && options?.onProgress
-          ? await this.apiService.nativeXMLHttpRequest(blockRequest, options.onProgress)
-          : await this.apiService.nativeFetch(blockRequest);
+    const blockResponse =
+      Utils.isBrowser && options?.onProgress
+        ? await this.apiService.nativeXMLHttpRequest(blockRequest, options.onProgress)
+        : await this.apiService.nativeFetch(blockRequest);
 
-      if (blockResponse.status !== 201) {
-        const message = `Unsuccessful block PUT. Received status ${blockResponse.status}`;
-        this.logService.error(message + "\n" + (await blockResponse.json()));
-        throw new Error(message);
-      }
+    if (blockResponse.status !== 201) {
+      const message = `Unsuccessful block PUT. Received status ${blockResponse.status}`;
+      this.logService.error(message + "\n" + (await blockResponse.json()));
+      throw new Error(message);
+    }
 
-      url = await this.renewUrlIfNecessary(url, renewalCallback);
-      const blockListUrl = Utils.getUrl(url);
-      const blockListXml = this.blockListXml([blockId]);
-      blockListUrl.searchParams.append("comp", "blocklist");
-      const headers = new Headers({
-        "x-ms-date": new Date().toUTCString(),
-        "x-ms-version": blockListUrl.searchParams.get("sv"),
-        "Content-Length": blockListXml.length.toString(),
-      });
+    url = await this.renewUrlIfNecessary(url, renewalCallback);
+    const blockListUrl = Utils.getUrl(url);
+    const blockListXml = this.blockListXml([blockId]);
+    blockListUrl.searchParams.append("comp", "blocklist");
+    const headers = new Headers({
+      "x-ms-date": new Date().toUTCString(),
+      "x-ms-version": blockListUrl.searchParams.get("sv"),
+      "Content-Length": blockListXml.length.toString(),
+    });
 
-      const request = new Request(blockListUrl.toString(), {
-        body: blockListXml,
-        cache: "no-store",
-        method: "PUT",
-        headers: headers,
-      });
+    const request = new Request(blockListUrl.toString(), {
+      body: blockListXml,
+      cache: "no-store",
+      method: "PUT",
+      headers: headers,
+    });
 
-      const response = await this.apiService.nativeFetch(request);
+    const response = await this.apiService.nativeFetch(request);
 
-      if (response.status !== 201) {
-        const message = `Unsuccessful block list PUT. Received status ${response.status}`;
-        this.logService.error(message + "\n" + (await response.json()));
-        throw new Error(message);
-      }
-    } catch (e) {
-      throw e;
+    if (response.status !== 201) {
+      const message = `Unsuccessful block list PUT. Received status ${response.status}`;
+      this.logService.error(message + "\n" + (await response.json()));
+      throw new Error(message);
     }
   }
 
