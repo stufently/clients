@@ -16,7 +16,11 @@ import { BiometricStateService } from "@bitwarden/key-management";
 
 import { SafeShell } from "../platform/main/safe-shell.main";
 import { WindowState } from "../platform/models/domain/window-state";
-import { applyMainWindowStyles, applyPopupModalStyles } from "../platform/popup-modal-styles";
+import {
+  applyMainWindowStyles,
+  applyPopupModalStyles,
+  applyQuickSearchStyles,
+} from "../platform/popup-modal-styles";
 import { DesktopSettingsService } from "../platform/services/desktop-settings.service";
 import {
   cleanUserAgent,
@@ -39,6 +43,8 @@ export class WindowMain {
   private windowStates: { [key: string]: WindowState } = {};
   private enableAlwaysOnTop = false;
   private enableRendererProcessForceCrashReload = true;
+  private quickSearchActive = false;
+  private wasVisibleBeforeQuickSearch = false;
   session: Electron.Session;
 
   readonly defaultWidth = 950;
@@ -231,6 +237,31 @@ export class WindowMain {
     if (this.win != null) {
       applyMainWindowStyles(this.win, this.windowStates[mainWindowSizeKey]);
       this.win.show();
+    }
+  }
+
+  openQuickSearch() {
+    if (this.win == null) {
+      return;
+    }
+
+    this.wasVisibleBeforeQuickSearch = this.win.isVisible();
+    this.quickSearchActive = true;
+    applyQuickSearchStyles(this.win);
+    this.win.show();
+    this.win.focus();
+  }
+
+  closeQuickSearch() {
+    if (this.win == null) {
+      return;
+    }
+
+    this.quickSearchActive = false;
+    applyMainWindowStyles(this.win, this.windowStates[mainWindowSizeKey]);
+
+    if (!this.wasVisibleBeforeQuickSearch) {
+      this.win.hide();
     }
   }
 
@@ -467,6 +498,10 @@ export class WindowMain {
 
   private async updateWindowState(configKey: string, win: BrowserWindow) {
     if (win == null || win.isDestroyed()) {
+      return;
+    }
+
+    if (this.quickSearchActive) {
       return;
     }
 

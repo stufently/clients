@@ -5,6 +5,7 @@ import auth from "./auth/preload";
 import autofill from "./autofill/preload";
 import keyManagement from "./key-management/preload";
 import platform from "./platform/preload";
+import vault from "./vault/preload";
 
 /**
  * Bitwarden Preload script.
@@ -23,6 +24,7 @@ export const ipc = {
   platform,
   keyManagement,
   tools,
+  vault,
 };
 
 contextBridge.exposeInMainWorld("ipc", ipc);

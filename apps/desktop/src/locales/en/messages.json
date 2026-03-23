@@ -4726,5 +4726,17 @@
   },
   "userVerificationFailed": {
     "message": "User verification failed."
+  },
+  "quickSearchEmptyState": {
+    "message": "Type to search your login credentials"
+  },
+  "noItemsMatchSearch": {
+    "message": "No logins found"
+  },
+  "navigate": {
+    "message": "navigate"
+  },
+  "searchVaultForLogins": {
+    "message": "Search your vault for logins"
   }
 }

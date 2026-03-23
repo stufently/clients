@@ -52,6 +52,7 @@ import { reactiveUnlockVaultGuard } from "../autofill/guards/reactive-vault-guar
 import { Fido2CreateComponent } from "../autofill/modal/credentials/fido2-create.component";
 import { Fido2ExcludedCiphersComponent } from "../autofill/modal/credentials/fido2-excluded-ciphers.component";
 import { Fido2VaultComponent } from "../autofill/modal/credentials/fido2-vault.component";
+import { QuickSearchComponent } from "../vault/app/quick-search/quick-search.component";
 import { VaultWrapperComponent } from "../vault/app/vault-v3/vault-wrapper.component";
 
 import { DesktopLayoutComponent } from "./layout/desktop-layout.component";
@@ -119,6 +120,11 @@ const routes: Routes = [
   {
     path: "fido2-assertion",
     component: Fido2VaultComponent,
+  },
+  {
+    path: "quick-search",
+    component: QuickSearchComponent,
+    canActivate: [authGuard],
   },
   {
     path: "fido2-creation",

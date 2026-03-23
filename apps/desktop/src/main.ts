@@ -52,6 +52,7 @@ import { NativeAutofillMain } from "./platform/main/autofill/native-autofill.mai
 import { ClipboardMain } from "./platform/main/clipboard.main";
 import { DesktopCredentialStorageListener } from "./platform/main/desktop-credential-storage-listener";
 import { ElectronStorageService } from "./platform/main/electron-storage.service";
+import { QuickSearchMain } from "./platform/main/quick-search.main";
 import { SafeShell } from "./platform/main/safe-shell.main";
 import { VersionMain } from "./platform/main/version.main";
 import { DesktopSettingsService } from "./platform/services/desktop-settings.service";
@@ -94,6 +95,7 @@ export class Main {
   sshAgentService: MainSshAgentService;
   sdkLoadService: SdkLoadService;
   mainDesktopAutotypeService: MainDesktopAutotypeService;
+  quickSearchMain: QuickSearchMain;
   ssoCookieMain: SsoCookieMain;
 
   constructor() {
@@ -321,8 +323,11 @@ export class Main {
       this.windowMain,
     );
 
+    this.quickSearchMain = new QuickSearchMain(this.logService, this.windowMain);
+
     app.on("will-quit", () => {
       this.mainDesktopAutotypeService.dispose();
+      this.quickSearchMain.dispose();
     });
   }
 
@@ -355,6 +360,7 @@ export class Main {
         }
         this.powerMonitorMain.init();
         await this.updaterMain.init();
+        this.quickSearchMain.init();
 
         const [browserIntegrationEnabled, ddgIntegrationEnabled] = await Promise.all([
           firstValueFrom(this.desktopSettingsService.browserIntegrationEnabled$),

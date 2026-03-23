@@ -29,6 +29,7 @@ import { ServerCommunicationConfigService } from "../../platform/services/server
 import { VersionService } from "../../platform/services/version.service";
 import { BiometricMessageHandlerService } from "../../services/biometric-message-handler.service";
 import { NativeMessagingService } from "../../services/native-messaging.service";
+import { QuickSearchService } from "../../vault/services/quick-search.service";
 
 @Injectable()
 export class InitService {
@@ -52,6 +53,7 @@ export class InitService {
     private sshAgentService: SshAgentService,
     private autofillService: DesktopAutofillService,
     private autotypeService: DesktopAutotypeService,
+    private quickSearchService: QuickSearchService,
     private sdkLoadService: SdkLoadService,
     private biometricMessageHandlerService: BiometricMessageHandlerService,
     @Inject(DOCUMENT) private document: Document,
@@ -99,6 +101,7 @@ export class InitService {
       await this.biometricMessageHandlerService.init();
       await this.autofillService.init();
       await this.autotypeService.init();
+      this.quickSearchService.init();
     };
   }
 }

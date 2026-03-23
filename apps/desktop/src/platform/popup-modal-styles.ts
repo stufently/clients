@@ -6,6 +6,9 @@ import { WindowState } from "./models/domain/window-state";
 const popupWidth = 600;
 const popupHeight = 600;
 
+const quickSearchWidth = 640;
+const quickSearchHeight = 520;
+
 type Position = { x: number; y: number };
 
 export function applyPopupModalStyles(
@@ -38,6 +41,25 @@ function positionWindow(window: BrowserWindow, position?: Position) {
     const centeredX = position.x - popupWidth / 2;
     const centeredY = position.y - popupHeight / 2;
     window.setPosition(centeredX, centeredY);
+  } else {
+    window.center();
+  }
+}
+
+export function applyQuickSearchStyles(window: BrowserWindow) {
+  window.unmaximize();
+  window.setSize(quickSearchWidth, quickSearchHeight);
+  window.setWindowButtonVisibility?.(false);
+  window.setMenuBarVisibility?.(false);
+  window.setResizable(false);
+  window.setAlwaysOnTop(true);
+
+  if (window.isFullScreen()) {
+    window.setFullScreen(false);
+    window.once("leave-full-screen", () => {
+      window.setSize(quickSearchWidth, quickSearchHeight);
+      window.center();
+    });
   } else {
     window.center();
   }
