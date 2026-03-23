@@ -6,8 +6,11 @@ import { WINDOW } from "@bitwarden/angular/services/injection-tokens";
 import { EventUploadService as EventUploadServiceAbstraction } from "@bitwarden/common/abstractions/event/event-upload.service";
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { TwoFactorService } from "@bitwarden/common/auth/two-factor";
+import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
 import { EncryptService } from "@bitwarden/common/key-management/crypto/abstractions/encrypt.service";
+import { SharedUnlockLeaderService } from "@bitwarden/common/key-management/shared-unlock";
 import { DefaultVaultTimeoutService } from "@bitwarden/common/key-management/vault-timeout";
+import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
 import { I18nService as I18nServiceAbstraction } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { PlatformUtilsService as PlatformUtilsServiceAbstraction } from "@bitwarden/common/platform/abstractions/platform-utils.service";
 import { SdkLoadService } from "@bitwarden/common/platform/abstractions/sdk/sdk-load.service";
@@ -55,6 +58,8 @@ export class InitService {
     private autotypeService: DesktopAutotypeService,
     private sdkLoadService: SdkLoadService,
     private ipcService: IpcService,
+    private sharedUnlockLeaderService: SharedUnlockLeaderService,
+    private configService: ConfigService,
     private biometricMessageHandlerService: BiometricMessageHandlerService,
     @Inject(DOCUMENT) private document: Document,
     private readonly migrationRunner: MigrationRunner,
@@ -99,6 +104,9 @@ export class InitService {
       containerService.attachToGlobal(this.win);
 
       await this.ipcService.init();
+      if (await this.configService.getFeatureFlag(FeatureFlag.SharedUnlockSession)) {
+        await this.sharedUnlockLeaderService.start();
+      }
       await this.biometricMessageHandlerService.init();
       await this.autofillService.init();
       await this.autotypeService.init();

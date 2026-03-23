@@ -123,6 +123,14 @@ import { SecurityStateService } from "@bitwarden/common/key-management/security-
 import { DefaultSecurityStateService } from "@bitwarden/common/key-management/security-state/services/security-state.service";
 import { DefaultProcessReloadService } from "@bitwarden/common/key-management/services/default-process-reload.service";
 import {
+  SharedUnlockLeaderService,
+  SharedUnlockFollowerService,
+  SharedUnlockSettingsService,
+  DefaultSharedUnlockSettingsService,
+} from "@bitwarden/common/key-management/shared-unlock";
+import { DefaultSharedUnlockFollowerService } from "@bitwarden/common/key-management/shared-unlock/default-shared-unlock-follower.service";
+import { DefaultSharedUnlockLeaderService } from "@bitwarden/common/key-management/shared-unlock/default-shared-unlock-leader.service";
+import {
   DefaultVaultTimeoutSettingsService,
   VaultTimeoutSettingsService,
   VaultTimeoutStringType,
@@ -198,12 +206,6 @@ import {
   PasswordStrengthService,
   PasswordStrengthServiceAbstraction,
 } from "@bitwarden/common/tools/password-strength";
-import {
-  SharedUnlockLeaderService,
-  SharedUnlockSettingsService,
-  DefaultSharedUnlockSettingsService,
-} from "@bitwarden/common/key-management/shared-unlock";
-import { DefaultSharedUnlockLeaderService } from "@bitwarden/common/key-management/shared-unlock/default-shared-unlock-leader.service";
 import { createSystemServiceProvider } from "@bitwarden/common/tools/providers";
 import { SendApiService } from "@bitwarden/common/tools/send/services/send-api.service";
 import { SendApiService as SendApiServiceAbstraction } from "@bitwarden/common/tools/send/services/send-api.service.abstraction";
@@ -500,6 +502,7 @@ export default class MainBackground {
   ipcContentScriptManagerService: IpcContentScriptManagerService;
   ipcService: IpcService;
   sharedUnlockLeaderService: SharedUnlockLeaderService;
+  sharedUnlockFollowerService: SharedUnlockFollowerService;
   sharedUnlockSettingsService: SharedUnlockSettingsService;
 
   badgeService: BadgeService;
@@ -1574,6 +1577,14 @@ export default class MainBackground {
       this.platformUtilsService,
       this.vaultTimeoutSettingsService,
     );
+    this.sharedUnlockFollowerService = new DefaultSharedUnlockFollowerService(
+      this.ipcService,
+      this.accountService,
+      this.lockService,
+      this.keyService,
+      this.platformUtilsService,
+      this.vaultTimeoutSettingsService,
+    );
     this.sharedUnlockSettingsService = new DefaultSharedUnlockSettingsService(this.stateProvider);
 
     this.endUserNotificationService = new DefaultEndUserNotificationService(
@@ -1660,6 +1671,7 @@ export default class MainBackground {
     await this.ipcService.init();
     if (await this.configService.getFeatureFlag(FeatureFlag.SharedUnlockSession)) {
       await this.sharedUnlockLeaderService.start();
+      await this.sharedUnlockFollowerService.start();
     }
     this.badgeService.startListening();
 
