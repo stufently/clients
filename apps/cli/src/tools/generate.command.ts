@@ -78,6 +78,12 @@ export class GenerateCommand {
         flagOverrides,
         defaultConstraints,
       );
+
+      // Hard engine limits cannot be overridden, even with --force
+      if (hardLimits.length > 0) {
+        return Response.badRequest(`${hardLimits.join("; ")}.`);
+      }
+
       const requestedSettings = { ...savedSettings, ...clampedOverrides };
 
       let adjustResult;
@@ -88,11 +94,6 @@ export class GenerateCommand {
       }
       const policyAdjustedSettings = adjustResult.state;
       const applied = adjustResult.applied;
-
-      // Hard engine limits cannot be overridden, even with --force
-      if (hardLimits.length > 0) {
-        return Response.badRequest(`${hardLimits.join("; ")}.`);
-      }
 
       // Report policy adjustments using the framework's `applied` field
       const adjustments = this.describeAppliedConstraints(
