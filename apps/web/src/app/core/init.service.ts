@@ -6,9 +6,11 @@ import { WINDOW } from "@bitwarden/angular/services/injection-tokens";
 import { EventUploadService as EventUploadServiceAbstraction } from "@bitwarden/common/abstractions/event/event-upload.service";
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { TwoFactorService } from "@bitwarden/common/auth/two-factor";
+import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
 import { EncryptService } from "@bitwarden/common/key-management/crypto/abstractions/encrypt.service";
 import { SharedUnlockFollowerService } from "@bitwarden/common/key-management/shared-unlock";
 import { DefaultVaultTimeoutService } from "@bitwarden/common/key-management/vault-timeout";
+import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
 import { I18nService as I18nServiceAbstraction } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { SdkLoadService } from "@bitwarden/common/platform/abstractions/sdk/sdk-load.service";
 import { IpcService } from "@bitwarden/common/platform/ipc";
@@ -39,6 +41,7 @@ export class InitService {
     private versionService: VersionService,
     private ipcService: IpcService,
     private sharedUnlockFollowerService: SharedUnlockFollowerService,
+    private configService: ConfigService,
     private sdkLoadService: SdkLoadService,
     private taskService: TaskService,
     private readonly migrationRunner: MigrationRunner,
@@ -70,7 +73,9 @@ export class InitService {
         // block 2 seconds
         await new Promise((resolve) => setTimeout(resolve, 2000));
         await this.ipcService.init();
-        await this.sharedUnlockFollowerService.start();
+        if (await this.configService.getFeatureFlag(FeatureFlag.SharedUnlockSession)) {
+          await this.sharedUnlockFollowerService.start();
+        }
       })();
 
       this.taskService.listenForTaskNotifications();

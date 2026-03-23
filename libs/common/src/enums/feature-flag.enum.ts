@@ -83,6 +83,9 @@ export enum FeatureFlag {
   /* Innovation */
   PM19148_InnovationArchive = "pm-19148-innovation-archive",
 
+  /* Innovation Sprint */
+  SharedUnlockSession = "innovation-sprint-shared-unlock-session",
+
   /* Desktop */
   DesktopUiMigrationMilestone3 = "desktop-ui-migration-milestone-3",
   DesktopUiMigrationMilestone4 = "desktop-ui-migration-milestone-4",
@@ -177,6 +180,9 @@ export const DefaultFeatureFlagValue = {
 
   /* Innovation */
   [FeatureFlag.PM19148_InnovationArchive]: FALSE,
+
+  /* Innovation Sprint */
+  [FeatureFlag.SharedUnlockSession]: FALSE,
 
   /* Desktop */
   [FeatureFlag.DesktopUiMigrationMilestone3]: FALSE,
