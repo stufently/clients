@@ -153,6 +153,7 @@ export class QuickSearchComponent implements OnInit {
   protected onKeydown(event: KeyboardEvent) {
     const ciphers = this.filteredCiphers();
     const selected = ciphers[this.selectedIndex()];
+    const modKey = this.isMac ? event.metaKey : event.ctrlKey;
 
     switch (event.key) {
       case "Escape":
@@ -173,13 +174,29 @@ export class QuickSearchComponent implements OnInit {
         }
         break;
       case "c":
-        if ((this.isMac ? event.metaKey : event.ctrlKey) && selected) {
+        if (modKey && selected) {
           if (this.hasUsername(selected)) {
             event.preventDefault();
             void this.copyUsername(selected);
           }
         }
         break;
+      default: {
+        // ⌘/Ctrl + 1-9: jump to and copy password from the Nth item
+        const digit = parseInt(event.key, 10);
+        if (modKey && digit >= 1 && digit <= 9) {
+          const index = digit - 1;
+          const target = ciphers[index];
+          if (target) {
+            event.preventDefault();
+            this.selectedIndex.set(index);
+            if (this.hasPassword(target)) {
+              void this.copyPassword(target);
+            }
+          }
+        }
+        break;
+      }
     }
   }
 

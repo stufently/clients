@@ -9,7 +9,7 @@ const popupWidth = 600;
 const popupHeight = 600;
 
 const quickSearchWidth = 640;
-const quickSearchHeight = 520;
+const quickSearchHeight = 480;
 
 type Position = { x: number; y: number };
 
@@ -57,7 +57,7 @@ export function applyQuickSearchStyles(window: BrowserWindow) {
   window.setAlwaysOnTop(true);
 
   if (isMac()) {
-    window.setVibrancy("hud");
+    window.setVibrancy("under-window");
   }
 
   if (window.isFullScreen()) {
