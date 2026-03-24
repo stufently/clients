@@ -250,7 +250,7 @@ jobs:
           repositories: clients
 
       - name: 'Trigger build web for missing branch/tag ${{ inputs.branch-or-tag }}'
-        if: ${{ steps.download-latest-artifacts.outcome == 'failure' }}
+        # if: ${{ steps.download-latest-artifacts.outcome == 'failure' }}
         uses: convictional/trigger-workflow-and-wait@f69fa9eedd3c62a599220f4d5745230e237904be # v1.6.5
         id: trigger-build-web
         with:
