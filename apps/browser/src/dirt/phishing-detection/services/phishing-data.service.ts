@@ -65,6 +65,8 @@ export const PHISHING_DOMAINS_META_KEY = new KeyDefinition<PhishingDataMeta>(
         checksum: value?.checksum ?? "",
         timestamp: value?.timestamp ?? 0,
         applicationVersion: value?.applicationVersion ?? "",
+        sha256: value?.sha256,
+        sortedSha256: value?.sortedSha256,
       };
     },
   },
