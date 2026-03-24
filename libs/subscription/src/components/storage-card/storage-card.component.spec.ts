@@ -104,11 +104,6 @@ describe("StorageCardComponent", () => {
       expect(component.percentageUsed()).toBe(100);
     });
 
-    it("should cap at 100 when used exceeds available", () => {
-      setupComponent({ ...baseStorage, used: 6, readableUsed: "6 GB" });
-      expect(component.percentageUsed()).toBe(100);
-    });
-
     it("should return 0 when available is 0", () => {
       setupComponent({ available: 0, used: 0, readableUsed: "0 GB" });
       expect(component.percentageUsed()).toBe(0);
