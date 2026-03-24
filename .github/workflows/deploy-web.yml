@@ -14,6 +14,7 @@ on:
           - USPROD
           - EUPROD
           - USDEV
+          - DRYRUN
       branch-or-tag:
         description: "Branch or Tag name to deploy (examples: 'main', 'feature/sm', 'web-v2023.12.0')"
         type: string
