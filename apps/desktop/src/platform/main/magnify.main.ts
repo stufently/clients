@@ -1,6 +1,6 @@
 import * as path from "path";
 
-import { app, BrowserWindow, globalShortcut, ipcMain } from "electron";
+import { app, BrowserWindow, globalShortcut, ipcMain, screen } from "electron";
 
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 
@@ -56,19 +56,35 @@ export class MagnifyMain {
     if (!this.win || this.win.isDestroyed()) {
       this.win = this.createWindow();
       this.win.once("ready-to-show", () => {
+        this.centerOnCursorScreen();
         this.win?.show();
         this.win?.focus();
       });
     } else {
+      this.centerOnCursorScreen();
       this.win.show();
       this.win.focus();
     }
   }
 
+  private centerOnCursorScreen() {
+    if (!this.win || this.win.isDestroyed()) {
+      return;
+    }
+    const cursorPoint = screen.getCursorScreenPoint();
+    const display = screen.getDisplayNearestPoint(cursorPoint);
+    const { x, y, width, height } = display.workArea;
+    const { width: winWidth, height: winHeight } = this.win.getBounds();
+    this.win.setPosition(
+      Math.round(x + (width - winWidth) / 2),
+      Math.round(y + (height - winHeight) / 2),
+    );
+  }
+
   private createWindow(): BrowserWindow {
     const win = new BrowserWindow({
       width: 640,
-      height: 520,
+      height: 560,
       resizable: false,
       alwaysOnTop: true,
       skipTaskbar: true,

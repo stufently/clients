@@ -69,10 +69,10 @@
   </div>
 
   <!-- Results list -->
-  <div class="qs-results tw-flex-1 tw-overflow-y-auto" [class.tw-py-2]="isMac">
+  <div class="qs-results tw-flex-1 tw-overflow-y-auto">
     @for (cipher of results(); track cipher.id; let i = $index) {
       <div
-        class="tw-flex tw-cursor-pointer tw-items-center tw-gap-3 tw-px-4 tw-py-2 tw-transition-colors"
+        class="tw-flex tw-cursor-pointer tw-items-center tw-gap-3 tw-px-4 tw-py-3 tw-transition-colors"
         [class.tw-border-b]="!isMac"
         [class.tw-border-secondary-100]="!isMac"
         [class.tw-ring-2]="i === selectedIndex()"
@@ -95,7 +95,7 @@
             <img
               [src]="cipher.faviconUrl"
               [alt]=""
-              class="tw-size-9 tw-rounded-md tw-object-contain"
+              class="tw-size-6 tw-rounded-md tw-object-contain"
               (error)="
                 $any($event.target).style.display = 'none';
                 $any($event.target).nextElementSibling.style.display = 'inline'
