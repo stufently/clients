@@ -126,7 +126,6 @@ const secretView: SecretView = {
   note: "note",
   creationDate: "2024-06-12T15:45:17.49823Z",
   revisionDate: "2024-06-12T15:45:17.49823Z",
-  createdBy: "user-id",
   projects: [
     {
       id: "502d93ae-a084-490a-8a64-b187015eb69c",
@@ -154,7 +153,6 @@ const expectedSecretView: SecretView = {
   note: mockUnencryptedData,
   creationDate: "2024-07-12T15:45:17.49823Z",
   revisionDate: "2024-07-12T15:45:17.49823Z",
-  createdBy: mockUnencryptedData,
   projects: [
     {
       id: "502d93ae-a084-490a-8a64-b187015eb69c",
