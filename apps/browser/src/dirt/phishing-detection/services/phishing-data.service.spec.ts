@@ -10,7 +10,7 @@ import {
 import { FakeGlobalStateProvider } from "@bitwarden/common/spec";
 import { LogService } from "@bitwarden/logging";
 
-import { PHISHING_DOMAINS_META_KEY, PhishingDataService } from "./phishing-data.service";
+import { PhishingDataService } from "./phishing-data.service";
 import type { PhishingIndexedDbService } from "./phishing-indexeddb.service";
 
 describe("PhishingDataService", () => {
@@ -456,7 +456,7 @@ describe("PhishingDataService", () => {
       fetchManifestSpy.mockRejectedValue(new Error("Network error"));
       fetchChecksumSpy.mockResolvedValue("same-checksum");
 
-      const result = await firstValueFrom(service["_backgroundUpdate"](existingMeta));
+      await firstValueFrom(service["_backgroundUpdate"](existingMeta));
 
       expect(mockIndexedDbService.saveUrlsFromStream).not.toHaveBeenCalled();
     });
