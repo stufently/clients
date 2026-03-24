@@ -8,7 +8,10 @@ import {
  * Narrows `value.type` and `value.params` to the type required for an at-risk
  * password notification while preserving the caller's concrete type.
  *
- * Returns `true` when `value.type` is `NotificationTypes.AtRiskPassword` and
+ * This is a type guard, not a validator. It checks that fields have the correct
+ * types but does not validate their values.
+ *
+ * @returns `true` when `value.type` is `NotificationTypes.AtRiskPassword` and
  * `value.params` is an object of type `AtRiskPasswordNotificationParams`.
  * Returns `false` for any other shape.
  */
