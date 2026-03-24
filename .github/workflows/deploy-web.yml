@@ -189,6 +189,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      actions: write
     env:
       _ENVIRONMENT_ARTIFACT: ${{ needs.setup.outputs.environment_artifact }}
     outputs:
@@ -255,7 +256,8 @@ jobs:
         with:
           owner: bitwarden
           repo: clients
-          github_token: ${{ steps.app-token.outputs.token }}
+          # github_token: ${{ steps.app-token.outputs.token }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           workflow_file_name: build-web.yml
           ref: ${{ inputs.branch-or-tag }}
           wait_interval: 100
