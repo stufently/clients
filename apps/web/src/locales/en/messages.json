@@ -13153,5 +13153,8 @@
         "example": "4"
       }
     }
+  },
+  "bankAccountNotSupportedForUpgrade": {
+    "message": "Bank accounts are not supported for this upgrade. Please change your payment method to a card or PayPal to continue."
   }
 }

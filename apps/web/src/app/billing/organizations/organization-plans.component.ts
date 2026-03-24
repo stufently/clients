@@ -837,6 +837,13 @@ export class OrganizationPlansComponent implements OnInit, OnDestroy {
       if (error instanceof Error && error.message === "Payment method validation failed") {
         return;
       }
+      if (this.premiumOrgUpgradeService.isBankAccountNotSupportedError(error)) {
+        this.toastService.showToast({
+          variant: "error",
+          message: this.i18nService.t("bankAccountNotSupportedForUpgrade"),
+        });
+        return;
+      }
       if (this.subscriptionDiscountService.isDiscountExpiredError(error)) {
         this.subscriptionDiscountService.refresh();
         this.toastService.showToast({

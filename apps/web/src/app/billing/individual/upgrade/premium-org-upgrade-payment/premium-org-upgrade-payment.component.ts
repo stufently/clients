@@ -309,6 +309,13 @@ export class PremiumOrgUpgradePaymentComponent implements OnInit, AfterViewInit 
       this.complete.emit(result);
     } catch (error: unknown) {
       this.logService.error("Upgrade failed:", error);
+      if (this.premiumOrgUpgradeService.isBankAccountNotSupportedError(error)) {
+        this.toastService.showToast({
+          variant: "error",
+          message: this.i18nService.t("bankAccountNotSupportedForUpgrade"),
+        });
+        return;
+      }
       this.toastService.showToast({
         variant: "error",
         message: this.i18nService.t("upgradeErrorMessage"),
