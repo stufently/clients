@@ -56,7 +56,9 @@ describe("CreateCommand", () => {
   };
 
   const makeOptions = (overrides: Record<string, unknown> = {}) => ({
-    organizationId: validOrgId,
+    itemId: null as string,
+    organizationId: validOrgId as string,
+    file: null as string,
     ...overrides,
   });
 
@@ -87,25 +89,28 @@ describe("CreateCommand", () => {
 
   describe("createOrganizationCollection", () => {
     it("returns bad request when organizationId option is missing", async () => {
-      const result = await command["createOrganizationCollection"](makeRequest(), {
-        organizationId: null,
-      });
+      const result = await command["createOrganizationCollection"](
+        makeRequest(),
+        makeOptions({ organizationId: null }),
+      );
       expect(result.success).toBe(false);
       expect(result.message).toContain("`organizationid` option is required");
     });
 
     it("returns bad request when organizationId option is empty string", async () => {
-      const result = await command["createOrganizationCollection"](makeRequest(), {
-        organizationId: "",
-      });
+      const result = await command["createOrganizationCollection"](
+        makeRequest(),
+        makeOptions({ organizationId: "" }),
+      );
       expect(result.success).toBe(false);
       expect(result.message).toContain("`organizationid` option is required");
     });
 
     it("returns bad request when organizationId is not a valid GUID", async () => {
-      const result = await command["createOrganizationCollection"](makeRequest(), {
-        organizationId: "not-a-guid",
-      });
+      const result = await command["createOrganizationCollection"](
+        makeRequest(),
+        makeOptions({ organizationId: "not-a-guid" }),
+      );
       expect(result.success).toBe(false);
       expect(result.message).toContain("is not a GUID");
     });
