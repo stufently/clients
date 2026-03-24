@@ -381,8 +381,8 @@ module.exports = {
         addVariant(state, [`&:${state}`, `&.test-${state}`]);
       }
     }),
+    /** Plugin for compact mode */
     plugin(function ({ addVariant }) {
-      /** Plugin for compact mode */
       addVariant("bit-compact", ".bit-compact &");
     }),
     require("@tailwindcss/container-queries"),
