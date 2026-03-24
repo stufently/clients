@@ -331,7 +331,7 @@ describe("VaultPopupItemsService", () => {
       searchService.searchCiphers.mockImplementation(async (userId, _, __, ciphers) => {
         return (ciphers || cipherList).filter((cipher) => {
           return cipher.name.includes(searchText);
-        });
+        }) as any;
       });
 
       service.filteredCiphers$.subscribe((ciphers) => {
@@ -358,7 +358,7 @@ describe("VaultPopupItemsService", () => {
       searchService.searchCiphers.mockImplementation(async (userId, _, __, ciphers) => {
         return (ciphers || cipherList).filter((cipher) => {
           return cipher.name === searchText;
-        });
+        }) as any;
       });
 
       service.favoriteCiphers$.subscribe((ciphers) => {
