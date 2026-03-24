@@ -34,7 +34,6 @@ export class SecretVersionDialogComponent implements OnInit {
   protected readonly flatVersions = signal<SecretVersionView[]>([]);
   protected readonly visibleVersionIds = signal(new Set<string>());
   protected readonly expandedVersionIds = signal(new Set<string>());
-  protected readonly currentEditorName = signal<string | null>(null);
   protected readonly currentValueVisible = signal(false);
   protected readonly currentValue = signal<string | null>(null);
   protected readonly revisionDate = signal<string | null>(null);
@@ -137,7 +136,6 @@ export class SecretVersionDialogComponent implements OnInit {
       if (secretOrNull != null) {
         this.currentValue.set(secretOrNull.value);
         this.revisionDate.set(secretOrNull.revisionDate);
-        this.currentEditorName.set(secretOrNull.createdBy);
       }
 
       this.flatVersions.set(versions);
