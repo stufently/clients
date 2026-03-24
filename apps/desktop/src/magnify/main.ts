@@ -1,4 +1,10 @@
 import "zone.js";
+
+// Global styles — Tailwind utilities (tw-*) + Bitwarden design tokens + component CSS
+import "../scss/tailwind.css";
+// bwi-* icon font
+import "./styles.scss";
+
 import { bootstrapApplication } from "@angular/platform-browser";
 
 import { AppComponent } from "./app/app.component";

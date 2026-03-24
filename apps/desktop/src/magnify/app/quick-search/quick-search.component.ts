@@ -8,21 +8,23 @@ import {
   OnInit,
   signal,
   viewChild,
+  ViewEncapsulation,
 } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { FormControl, ReactiveFormsModule } from "@angular/forms";
 import { debounceTime, distinctUntilChanged, startWith } from "rxjs";
 
-import { BitIconButtonComponent, ButtonModule, SearchModule } from "@bitwarden/components";
+import { BitIconButtonComponent, ButtonModule, InputModule } from "@bitwarden/components";
 
 const DEBOUNCE_MS = 150;
-const MAX_RESULTS = 5;
+const MAX_RESULTS = 7;
 
 @Component({
   selector: "app-quick-search",
   templateUrl: "quick-search.component.html",
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  encapsulation: ViewEncapsulation.None,
   styles: [
     `
       .qs-results::-webkit-scrollbar {
@@ -33,11 +35,13 @@ const MAX_RESULTS = 5;
       }
     `,
   ],
-  imports: [CommonModule, ReactiveFormsModule, BitIconButtonComponent, ButtonModule, SearchModule],
+  imports: [CommonModule, ReactiveFormsModule, BitIconButtonComponent, ButtonModule, InputModule],
 })
 export class QuickSearchComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly searchHeaderRef = viewChild<ElementRef<HTMLElement>>("searchHeader");
+
+  protected readonly maxResults = MAX_RESULTS;
 
   protected readonly isMac = magnifyIpc.platform === "darwin";
   protected readonly searchControl = new FormControl("", { nonNullable: true });
@@ -80,6 +84,10 @@ export class QuickSearchComponent implements OnInit {
 
   protected copyUsername(cipher: MagnifyCipherResult) {
     magnifyIpc.sendCommand({ command: "cipherUsernameCopy", input: cipher.id });
+  }
+
+  protected launchCipher(cipher: MagnifyCipherResult) {
+    magnifyIpc.sendCommand({ command: "cipherLaunch", input: cipher.id });
   }
 
   protected close() {

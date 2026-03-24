@@ -1,9 +1,10 @@
 import * as path from "path";
 
-import { app, BrowserWindow, globalShortcut } from "electron";
+import { app, BrowserWindow, globalShortcut, ipcMain } from "electron";
 
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 
+import { WindowMain } from "../../main/window.main";
 import { isDev, isMac } from "../../utils";
 
 const SHORTCUT = isMac() ? "Command+Shift+Space" : "Ctrl+Shift+Space";
@@ -11,7 +12,10 @@ const SHORTCUT = isMac() ? "Command+Shift+Space" : "Ctrl+Shift+Space";
 export class MagnifyMain {
   private win: BrowserWindow | null = null;
 
-  constructor(private readonly logService: LogService) {}
+  constructor(
+    private readonly logService: LogService,
+    private readonly windowMain: WindowMain,
+  ) {}
 
   init() {
     app.on("will-quit", () => this.dispose());
@@ -22,6 +26,14 @@ export class MagnifyMain {
     } else {
       this.logService.info(`[Magnify] Registered global shortcut: ${SHORTCUT}`);
     }
+
+    ipcMain.on("magnify.command", (_event, payload) => {
+      this.windowMain.win?.webContents.send("magnify.command", payload);
+    });
+
+    ipcMain.on("magnify.results", (_event, results) => {
+      this.win?.webContents.send("magnify.results", results);
+    });
   }
 
   dispose() {
@@ -33,7 +45,7 @@ export class MagnifyMain {
   }
 
   private toggle() {
-    if (this.win?.isVisible()) {
+    if (this.win && !this.win.isDestroyed() && this.win.isVisible()) {
       this.win.hide();
     } else {
       this.openWindow();
@@ -43,9 +55,14 @@ export class MagnifyMain {
   private openWindow() {
     if (!this.win || this.win.isDestroyed()) {
       this.win = this.createWindow();
+      this.win.once("ready-to-show", () => {
+        this.win?.show();
+        this.win?.focus();
+      });
+    } else {
+      this.win.show();
+      this.win.focus();
     }
-    this.win.show();
-    this.win.focus();
   }
 
   private createWindow(): BrowserWindow {

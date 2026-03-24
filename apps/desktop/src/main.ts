@@ -339,7 +339,7 @@ export class Main {
         await this.desktopSettingsService.resetModalMode();
         await this.windowMain.init();
         this.ssoCookieMain.init(this.windowMain.session);
-        this.magnifyMain = new MagnifyMain(this.logService);
+        this.magnifyMain = new MagnifyMain(this.logService, this.windowMain);
         this.magnifyMain.init();
         await this.i18nService.init();
         await this.messagingMain.init();

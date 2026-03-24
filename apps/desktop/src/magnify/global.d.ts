@@ -8,6 +8,8 @@ interface MagnifyCipherResult {
   id: string;
   name: string;
   username: string;
+  faviconUrl?: string;
+  hasUri?: boolean;
 }
 
 interface MagnifyCommandResult {
