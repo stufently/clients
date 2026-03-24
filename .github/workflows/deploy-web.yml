@@ -6,14 +6,14 @@ on:
     inputs:
       environment:
         description: 'Environment'
-        default: 'USQA'
+        default: 'DRYRUN'
         type: choice
         options:
-          - USQA
-          - EUQA
-          - USPROD
-          - EUPROD
-          - USDEV
+          # - USQA
+          # - EUQA
+          # - USPROD
+          # - EUPROD
+          # - USDEV
           - DRYRUN
       branch-or-tag:
         description: "Branch or Tag name to deploy (examples: 'main', 'feature/sm', 'web-v2023.12.0')"
@@ -158,7 +158,7 @@ jobs:
           DEV_ALLOWED_TAGS_PATTERN='main'
 
           DRYRUN_ENV_PATTERN='DRYRUN'
-          DRYRUN_ALLOWED_TAGS_PATTERN='agalles/BRE-1670'
+          DRYRUN_ALLOWED_TAGS_PATTERN='.*'
 
           if [[ \
               $_ENVIRONMENT =~ \.*($PROD_ENV_PATTERN)\.* && \
