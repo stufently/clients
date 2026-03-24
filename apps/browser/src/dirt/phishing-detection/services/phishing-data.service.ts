@@ -337,9 +337,7 @@ export class PhishingDataService {
       throw new Error("Manifest URL missing from phishing resources");
     }
 
-    this.logService.info(
-      `[PhishingDataService] Fetching manifest from ${resource.manifestUrl}`,
-    );
+    this.logService.info(`[PhishingDataService] Fetching manifest from ${resource.manifestUrl}`);
 
     const response = await this.apiService.nativeFetch(
       new Request(resource.manifestUrl, {
@@ -468,9 +466,7 @@ export class PhishingDataService {
             return from(this._phishingMetaState.update(() => result.meta)).pipe(
               tap(() => {
                 const elapsed = Date.now() - startTime;
-                this.logService.info(
-                  `[PhishingDataService] Update completed in ${elapsed}ms`,
-                );
+                this.logService.info(`[PhishingDataService] Update completed in ${elapsed}ms`);
               }),
               map(() => result.meta),
             );
@@ -511,9 +507,7 @@ export class PhishingDataService {
     const applicationVersion = await this.platformUtilsService.getApplicationVersion();
 
     if (applicationVersion !== previous?.applicationVersion) {
-      this.logService.info(
-        "[PhishingDataService] App version changed — performing full update",
-      );
+      this.logService.info("[PhishingDataService] App version changed — performing full update");
       return this._performFullUpdate(applicationVersion);
     }
 
@@ -531,9 +525,7 @@ export class PhishingDataService {
     const localSha256 = previous?.sha256;
 
     if (!localSha256) {
-      this.logService.info(
-        "[PhishingDataService] No local sha256 — performing full update",
-      );
+      this.logService.info("[PhishingDataService] No local sha256 — performing full update");
       return this._performFullUpdateWithManifest(manifest, applicationVersion);
     }
 
@@ -592,9 +584,7 @@ export class PhishingDataService {
       throw new Error("Primary URL missing from phishing resources");
     }
 
-    this.logService.info(
-      `[PhishingDataService] Starting FULL update using ${resource.primaryUrl}`,
-    );
+    this.logService.info(`[PhishingDataService] Starting FULL update using ${resource.primaryUrl}`);
 
     const response = await this.apiService.nativeFetch(
       new Request(resource.primaryUrl, {
@@ -640,9 +630,7 @@ export class PhishingDataService {
       throw new Error("Primary URL missing from phishing resources");
     }
 
-    this.logService.info(
-      `[PhishingDataService] Starting FULL update using ${resource.primaryUrl}`,
-    );
+    this.logService.info(`[PhishingDataService] Starting FULL update using ${resource.primaryUrl}`);
 
     const response = await this.apiService.nativeFetch(
       new Request(resource.primaryUrl, {
