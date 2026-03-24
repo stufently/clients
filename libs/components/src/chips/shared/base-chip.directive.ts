@@ -124,7 +124,6 @@ const commonStyles = [
   "tw-border",
   "tw-font-medium",
   "tw-transition-colors",
-  "tw-group/base-chip",
 
   // Button-specific resets (when applied to button elements)
   "[&:is(button)]:tw-appearance-none",

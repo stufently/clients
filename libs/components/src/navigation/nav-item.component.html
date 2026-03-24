@@ -57,11 +57,6 @@
           <div
             class="tw-flex tw-items-center tw-gap-1 tw-pe-3 [&:has(button)]:tw-pe-2 empty:tw-hidden"
             (click)="$event.stopPropagation()"
-            [class]="
-              showActiveStyles()
-                ? '[&>button[biticonbutton]]:hover:!tw-bg-bg-sidenav-active-arrow-hover'
-                : ''
-            "
           >
             <ng-content select="[slot=end]"></ng-content>
           </div>

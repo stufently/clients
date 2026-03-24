@@ -350,18 +350,4 @@ export const InteractionStates: Story = {
       },
     },
   },
-  // play: async (context) => {
-  //   const canvas = context.canvas;
-  //   const hoverChip = await canvas.findByTestId("hover-chip-story");
-
-  //   const hoverChipButtonEl = hoverChip.querySelector("button[bit-chip-content]");
-
-  //   if (!hoverChipButtonEl) {
-  //     //eslint-disable-next-line
-  //     console.error("sad");
-  //     return;
-  //   }
-
-  //   hoverChipButtonEl.classList.add("tw-test-hover");
-  // },
 };

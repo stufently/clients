@@ -100,7 +100,7 @@ export const InteractionStates: Story = {
     template: /*html*/ `
       <div class="tw-flex tw-flex-col tw-gap-6">
         <div class="tw-flex tw-gap-4 tw-p-2">
-        <a bitLink linkType="primary" href="#">Primary (deprecated -- use Default instead)</a>
+        <a bitLink linkType="primary" href="#">Primary (Deprecated -- use Default instead)</a>
         <a bitLink linkType="primary" href="#" class="tw-test-hover">Primary</a>
         <a bitLink linkType="primary" href="#" class="tw-test-focus-visible">Primary</a>
         <a bitLink linkType="primary" href="#" class="tw-test-hover tw-test-focus-visible">Primary</a>
