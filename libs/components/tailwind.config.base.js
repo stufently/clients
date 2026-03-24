@@ -379,10 +379,6 @@ module.exports = {
         "visited",
       ]) {
         addVariant(state, [`&:${state}`, `&.test-${state}`]);
-        addVariant(`group-${state}`, [
-          `:merge(.group):${state} &`,
-          `:merge(.group).test-${state} &`,
-        ]);
       }
       /**
        * Add test classes generated for complex has-* selectors, which will apply the specified
@@ -396,11 +392,11 @@ module.exports = {
         `&:has(${value})`,
         `&.test-has-${value.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "")}`,
       ]);
-    }),
-    /** Plugin for compact mode */
-    plugin(function ({ addVariant }) {
+      /** Plugin for compact mode */
       addVariant("bit-compact", ".bit-compact &");
     }),
+    // plugin(function ({ addVariant }) {
+    // }),
     require("@tailwindcss/container-queries"),
   ],
 };
