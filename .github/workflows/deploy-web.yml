@@ -126,6 +126,9 @@ jobs:
               echo "environment_url=http://vault.$ENV_NAME_LOWER.bitwarden.pw" >> "$GITHUB_OUTPUT"
               echo "slack_channel_name=alerts-deploy-dev"  >> "$GITHUB_OUTPUT"
               ;;
+            "DRYRUN")
+              echo "slack_channel_name=bre-alerts-test"  >> "$GITHUB_OUTPUT"
+              ;;
           esac
 
       - name: Environment Protection
@@ -153,12 +156,18 @@ jobs:
           DEV_ENV_PATTERN='USDEV'
           DEV_ALLOWED_TAGS_PATTERN='main'
 
+          DRYRUN_ENV_PATTERN='DRYRUN'
+          DRYRUN_ALLOWED_TAGS_PATTERN='agalles/BRE-1670'
+
           if [[ \
               $_ENVIRONMENT =~ \.*($PROD_ENV_PATTERN)\.* && \
               ! "$BRANCH_OR_TAG_LOWER" =~ ^($PROD_ALLOWED_TAGS_PATTERN).* \
           ]] || [[ \
               $_ENVIRONMENT =~ \.*($QA_ENV_PATTERN)\.* && \
               ! "$BRANCH_OR_TAG_LOWER" =~ ^($QA_ALLOWED_TAGS_PATTERN).* \
+          ]] || [[ \
+              $_ENVIRONMENT =~ \.*($DRYRUN_ENV_PATTERN)\.* && \
+              ! "$BRANCH_OR_TAG_LOWER" =~ ^($DRYRUN_ALLOWED_TAGS_PATTERN).* \
           ]] || [[ \
               $_ENVIRONMENT =~ \.*($DEV_ENV_PATTERN)\.* && \
               $BRANCH_OR_TAG_LOWER != "$DEV_ALLOWED_TAGS_PATTERN" \
