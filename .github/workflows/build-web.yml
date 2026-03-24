@@ -503,8 +503,8 @@ jobs:
 
       - name: Notify Slack on failure
         uses: act10ns/slack@44541246747a30eb3102d87f7a4cc5471b0ffb7d # v2.1.0
-        # if: failure()
+        if: failure()
         env:
           SLACK_WEBHOOK_URL: ${{ steps.retrieve-secrets.outputs.devops-alerts-slack-webhook-url }}
         with:
-          status: "Amy's test succeeded"
+          status: ${{ job.status }}
