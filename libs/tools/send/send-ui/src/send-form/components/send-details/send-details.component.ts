@@ -1,7 +1,7 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
 import { CommonModule, DatePipe } from "@angular/common";
-import { Component, OnInit, input, effect, PipeTransform, Pipe } from "@angular/core";
+import { Component, OnInit, input, output, effect, PipeTransform, Pipe } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import {
   FormBuilder,
@@ -147,6 +147,8 @@ export class SendDetailsComponent implements OnInit {
   protected readonly editing = input<boolean>(false);
 
   readonly SendType = SendType;
+  readonly openPasswordGenerator = output<void>();
+
   readonly AuthType = AuthType;
 
   sendLink: string | null = null;
@@ -348,15 +350,18 @@ export class SendDetailsComponent implements OnInit {
     };
   }
 
-  generatePassword = async () => {
-    const generatedValue = await this.sendFormGenerationService.generatePassword();
-
-    if (generatedValue) {
-      this.sendDetailsForm.patchValue({
-        password: generatedValue,
-      });
-    }
+  generatePassword = () => {
+    this.openPasswordGenerator.emit();
   };
+
+  /**
+   * Sets the password field with a generated value from the inline generator.
+   */
+  setGeneratedPassword(value: string) {
+    this.sendDetailsForm.patchValue({
+      password: value,
+    });
+  }
 
   removePassword = async () => {
     if (!this.originalSendView()?.password) {

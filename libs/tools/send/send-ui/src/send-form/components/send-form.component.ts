@@ -12,7 +12,9 @@ import {
   Input,
   OnChanges,
   OnInit,
+  output,
   Output,
+  viewChild,
   ViewChild,
 } from "@angular/core";
 import { takeUntilDestroyed, toSignal } from "@angular/core/rxjs-interop";
@@ -123,6 +125,13 @@ export class SendFormComponent implements AfterViewInit, OnInit, OnChanges, Send
   // FIXME(https://bitwarden.atlassian.net/browse/CL-903): Migrate to Signals
   // eslint-disable-next-line @angular-eslint/prefer-output-emitter-ref
   @Output() onSendUpdated = new EventEmitter<SendView>();
+
+  /**
+   * Event emitted when the user requests to open the password generator.
+   */
+  readonly openPasswordGenerator = output<void>();
+
+  readonly sendDetailsComponent = viewChild(SendDetailsComponent);
 
   /**
    * The original send being edited or cloned. Null for add mode.
