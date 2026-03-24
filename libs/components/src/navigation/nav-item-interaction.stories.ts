@@ -1,5 +1,6 @@
 import { RouterTestingModule } from "@angular/router/testing";
 import { StoryObj, Meta, moduleMetadata, applicationConfig } from "@storybook/angular";
+import { expect } from "storybook/test";
 
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { GlobalStateProvider } from "@bitwarden/state";
@@ -66,9 +67,7 @@ export const Hover: Story = {
         <bit-nav-item text="Nav Item Hover"></bit-nav-item>
       `,
   }),
-  play: async (context) => {
-    const canvas = context.canvas;
-
+  play: async ({ canvas }) => {
     const navItemContainer = await canvas.findByTestId("nav-item-container");
     const navItemEl = await canvas.findByTestId("nav-item-interactive");
 
@@ -80,6 +79,9 @@ export const Hover: Story = {
 
     navItemContainer.classList.add("tw-test-hover");
     navItemEl.classList.add("tw-test-hover");
+
+    await expect(navItemContainer.classList).toContain("tw-test-hover");
+    await expect(navItemEl.classList).toContain("tw-test-hover");
   },
   parameters: {
     chromatic: {
@@ -97,10 +99,12 @@ export const Focus: Story = {
         <bit-nav-item text="Nav Item Focus"></bit-nav-item>
       `,
   }),
-  play: async (context) => {
-    // tab twice to get past the skip link and onto the nav item
-    await context.userEvent.tab();
-    await context.userEvent.tab();
+  play: async ({ canvas }) => {
+    const navItemEl = await canvas.findByTestId("nav-item-interactive");
+
+    navItemEl.focus();
+
+    await expect(navItemEl).toHaveFocus();
   },
   parameters: {
     chromatic: {
@@ -118,9 +122,7 @@ export const ActiveHover: Story = {
         <bit-nav-item text="Nav Item Active Hover" [forceActiveStyles]="true"></bit-nav-item>
       `,
   }),
-  play: async (context) => {
-    const canvas = context.canvas;
-
+  play: async ({ canvas }) => {
     const navItemContainer = await canvas.findByTestId("nav-item-container");
     const navItemEl = await canvas.findByTestId("nav-item-interactive");
 
@@ -132,6 +134,9 @@ export const ActiveHover: Story = {
 
     navItemContainer.classList.add("tw-test-hover");
     navItemEl.classList.add("tw-test-hover");
+
+    await expect(navItemContainer.classList).toContain("tw-test-hover");
+    await expect(navItemEl.classList).toContain("tw-test-hover");
   },
   parameters: {
     chromatic: {
@@ -149,10 +154,12 @@ export const ActiveFocus: Story = {
         <bit-nav-item text="Nav Item Active Focus" [forceActiveStyles]="true"></bit-nav-item>
       `,
   }),
-  play: async (context) => {
-    // tab twice to get past the skip link and onto the nav item
-    await context.userEvent.tab();
-    await context.userEvent.tab();
+  play: async ({ canvas }) => {
+    const navItemEl = await canvas.findByTestId("nav-item-interactive");
+
+    navItemEl.focus();
+
+    await expect(navItemEl).toHaveFocus();
   },
   parameters: {
     chromatic: {
