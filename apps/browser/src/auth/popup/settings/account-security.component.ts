@@ -133,7 +133,8 @@ export class AccountSecurityComponent implements OnInit, OnDestroy {
     );
 
   protected readonly phishingDetectionAvailable$: Observable<boolean>;
-  protected readonly sharedUnlockEnabled$: Observable<boolean>;
+  protected readonly sharedUnlockDesktopBrowserEnabled$: Observable<boolean>;
+  protected readonly sharedUnlockBrowserWebEnabled$: Observable<boolean>;
 
   protected refreshTimeoutSettings$ = new BehaviorSubject<void>(undefined);
   private destroy$ = new Subject<void>();
@@ -165,7 +166,8 @@ export class AccountSecurityComponent implements OnInit, OnDestroy {
   ) {
     // Check if user phishing detection available
     this.phishingDetectionAvailable$ = this.phishingDetectionSettingsService.available$;
-    this.sharedUnlockEnabled$ = this.configService.getFeatureFlag$(FeatureFlag.SharedUnlockSession);
+    this.sharedUnlockDesktopBrowserEnabled$ = this.configService.getFeatureFlag$(FeatureFlag.SharedUnlockDesktopBrowser);
+    this.sharedUnlockBrowserWebEnabled$ = this.configService.getFeatureFlag$(FeatureFlag.SharedUnlockBrowserWeb);
   }
 
   async ngOnInit() {

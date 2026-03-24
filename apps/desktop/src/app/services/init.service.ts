@@ -104,7 +104,7 @@ export class InitService {
       containerService.attachToGlobal(this.win);
 
       await this.ipcService.init();
-      if (await this.configService.getFeatureFlag(FeatureFlag.SharedUnlockSession)) {
+      if (await this.configService.getFeatureFlag(FeatureFlag.SharedUnlockDesktopBrowser)) {
         await this.sharedUnlockLeaderService.start();
       }
       await this.biometricMessageHandlerService.init();

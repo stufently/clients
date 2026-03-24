@@ -281,7 +281,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     }
 
     this.configService
-      .getFeatureFlag$(FeatureFlag.SharedUnlockSession)
+      .getFeatureFlag$(FeatureFlag.SharedUnlockDesktopBrowser)
       .pipe(takeUntil(this.destroy$))
       .subscribe((enabled) => {
         this.showSharedUnlock = enabled;
