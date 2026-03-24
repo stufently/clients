@@ -373,7 +373,7 @@ jobs:
 
       - name: Upload Grype results to GitHub
         if: ${{ needs.setup.outputs.has_secrets == 'true' }}
-        uses: gibitwardenthub/codeql-action/upload-sarif@573acd9552f33577783abde4acb66a1058e762e5 # codeql-bundle-v2.23.1
+        uses: github/codeql-action/upload-sarif@573acd9552f33577783abde4acb66a1058e762e5 # codeql-bundle-v2.23.1
         with:
           sarif_file: ${{ steps.container-scan.outputs.sarif }}
           sha: ${{ contains(github.event_name, 'pull_request') && github.event.pull_request.head.sha || github.sha }}
@@ -384,7 +384,7 @@ jobs:
 
       - name: Log out from Azure
         if: ${{ needs.setup.outputs.has_secrets == 'true' }}
-        uses: /gh-actions/azure-logout@main
+        uses: bitwarden/gh-actions/azure-logout@main
 
   crowdin-push:
     name: Crowdin Push
