@@ -147,6 +147,11 @@ export class NativeMessagingMain {
     this.ipcServer?.send(JSON.stringify(message));
   }
 
+  sendTo(clientId: number, message: object) {
+    this.logService.debug("Native messaging targeted reply to client", clientId, ":", message);
+    this.ipcServer?.sendTo(clientId, JSON.stringify(message));
+  }
+
   async generateManifests() {
     const baseJson = {
       name: "com.8bit.bitwarden",

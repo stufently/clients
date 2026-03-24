@@ -51,14 +51,21 @@ export class IpcMainService extends IpcService {
             typeof message.destination === "object" &&
             "BrowserBackground" in message.destination
           ) {
-            this.nativeMessaging.send({
+            const ipcMessage = {
               type: "bitwarden-ipc-message",
               message: {
                 destination: message.destination,
                 payload: [...message.payload],
                 topic: message.topic,
               },
-            } satisfies IpcMessage);
+            } satisfies IpcMessage;
+
+            const clientId = extractClientId(message.destination.BrowserBackground);
+            if (clientId != null) {
+              this.nativeMessaging.sendTo(clientId, ipcMessage);
+            } else {
+              this.nativeMessaging.send(ipcMessage);
+            }
             return;
           }
 
@@ -87,7 +94,7 @@ export class IpcMainService extends IpcService {
           this.windowMain.win?.webContents.send("ipc.onMessage", {
             type: "forwarded-bitwarden-ipc-message",
             message: ipcMessage.message,
-            originalSource: { BrowserBackground: { id: "Own" } },
+            originalSource: { BrowserBackground: { id: { Id: nativeMessage.clientId } } },
           } satisfies ForwardedIpcMessage);
           return;
         }
@@ -100,7 +107,7 @@ export class IpcMainService extends IpcService {
           new IncomingMessage(
             new Uint8Array(ipcMessage.message.payload),
             ipcMessage.message.destination,
-            { BrowserBackground: { id: "Own" } },
+            { BrowserBackground: { id: { Id: nativeMessage.clientId } } },
             ipcMessage.message.topic,
           ),
         );
@@ -125,7 +132,7 @@ export class IpcMainService extends IpcService {
           typeof message.message.destination === "object" &&
           "BrowserBackground" in message.message.destination
         ) {
-          this.nativeMessaging.send({
+          const forwardedMessage = {
             type: "forwarded-bitwarden-ipc-message",
             message: {
               destination: message.message.destination,
@@ -133,7 +140,14 @@ export class IpcMainService extends IpcService {
               topic: message.message.topic,
             },
             originalSource: "DesktopRenderer",
-          } satisfies ForwardedIpcMessage);
+          } satisfies ForwardedIpcMessage;
+
+          const clientId = extractClientId(message.message.destination.BrowserBackground);
+          if (clientId != null) {
+            this.nativeMessaging.sendTo(clientId, forwardedMessage);
+          } else {
+            this.nativeMessaging.send(forwardedMessage);
+          }
         }
       });
 
@@ -150,4 +164,15 @@ export class IpcMainService extends IpcService {
       this.logService.error("[IPC] Initialization failed", e);
     }
   }
+}
+
+/**
+ * Extract a numeric client ID from a BrowserBackground host ID.
+ * Returns the number if the id is `{ Id: number }`, or null if it's `"Own"`.
+ */
+function extractClientId(host: { id: string | { Id: number } }): number | null {
+  if (typeof host.id === "object" && "Id" in host.id) {
+    return host.id.Id;
+  }
+  return null;
 }
