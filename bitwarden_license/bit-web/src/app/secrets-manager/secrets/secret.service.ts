@@ -210,6 +210,7 @@ export class SecretService {
     secretView.organizationId = secretResponse.organizationId;
     secretView.creationDate = secretResponse.creationDate;
     secretView.revisionDate = secretResponse.revisionDate;
+    secretView.createdBy = secretResponse.createdBy;
 
     const [name, value, note] = await Promise.all([
       this.encryptService.decryptString(new EncString(secretResponse.name), orgKey),

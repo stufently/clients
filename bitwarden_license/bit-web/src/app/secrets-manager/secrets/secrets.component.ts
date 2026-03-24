@@ -166,6 +166,7 @@ export class SecretsComponent implements OnInit, OnDestroy {
   }
 
   openEditSecret(secretId: string) {
+    this.dialogService.closeDrawer();
     this.dialogService.open<unknown, SecretOperation>(SecretDialogComponent, {
       data: {
         organizationId: this.organizationId,
@@ -208,6 +209,7 @@ export class SecretsComponent implements OnInit, OnDestroy {
   }
 
   openNewSecretDialog() {
+    this.dialogService.closeDrawer();
     this.dialogService.open<unknown, SecretOperation>(SecretDialogComponent, {
       data: {
         organizationId: this.organizationId,

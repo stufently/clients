@@ -137,11 +137,7 @@ export class SecretVersionDialogComponent implements OnInit {
       if (secretOrNull != null) {
         this.currentValue.set(secretOrNull.value);
         this.revisionDate.set(secretOrNull.revisionDate);
-      }
-
-      // Extract editor name from the most recent version (first in the list)
-      if (versions.length > 0) {
-        this.currentEditorName.set(versions[0].editorName);
+        this.currentEditorName.set(secretOrNull.createdBy);
       }
 
       this.flatVersions.set(versions);
