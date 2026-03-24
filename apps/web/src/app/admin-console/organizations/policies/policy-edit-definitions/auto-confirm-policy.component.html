@@ -1,6 +1,6 @@
 <ng-template #step0Title>
   <div class="tw-flex tw-flex-col">
-    @let showBadge = policy?.firstTimeDialog ?? false;
+    @let showBadge = policy()?.firstTimeDialog ?? false;
     @if (showBadge) {
       <span bitBadge variant="info" class="tw-w-[99px] tw-my-2"> {{ "availableNow" | i18n }}</span>
     }
@@ -8,7 +8,7 @@
       {{ (showBadge ? "autoConfirm" : "editPolicy") | i18n }}
       @if (!showBadge) {
         <span class="tw-text-muted tw-font-normal tw-text-sm">
-          {{ policy.name | i18n }}
+          {{ policy()!.name | i18n }}
         </span>
       }
     </span>
