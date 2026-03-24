@@ -8448,14 +8448,6 @@
     "message": "Modified by",
     "description": "Label indicating the user who modified a version."
   },
-  "previousVersionsTooltip": {
-    "message": "You can view and restore up to 10 secret versions",
-    "description": "Tooltip text explaining the previous versions feature."
-  },
-  "noVersionsInList": {
-    "message": "There are no versions to list.",
-    "description": "Message displayed when there are no secret versions available to display."
-  },
   "secretValueCopied": {
     "message": "Secret value copied",
     "description": "Message displayed when a secret value has been copied to the clipboard."

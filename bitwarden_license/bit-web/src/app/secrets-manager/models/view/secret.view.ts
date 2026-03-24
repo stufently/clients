@@ -10,7 +10,6 @@ export class SecretView {
   note: string;
   creationDate: string;
   revisionDate: string;
-  createdBy: string;
   projects: SecretProjectView[];
 
   read: boolean;
