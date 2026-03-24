@@ -14,13 +14,20 @@ import {
   ipcRegisterDiscoverHandler,
   IpcClient,
   IpcSessionRepository,
+  ipcRequestDiscover,
 } from "@bitwarden/sdk-internal";
 
 import { BrowserApi } from "../browser/browser-api";
 
+// The interval at which the browser extension in the background tries to reconnect to the desktop app.
+const RECONNECTION_INTERVAL_MS = 10_000;
+// The timeout for the discover message sent to the desktop app when trying to connect. If the desktop app does not respond to the discover message within this time, the connection attempt is considered failed and will be retried after the reconnection interval.
+const DISCOVER_MESSAGE_TIMEOUT_MS = 1_000;
+
 export class IpcBackgroundService extends IpcService {
   private communicationBackend?: IpcCommunicationBackend;
   private nativeMessagingPort?: browser.runtime.Port | chrome.runtime.Port;
+  private reconnectTimer?: ReturnType<typeof setTimeout>;
 
   constructor(
     private platformUtilsService: PlatformUtilsService,
@@ -32,8 +39,6 @@ export class IpcBackgroundService extends IpcService {
 
   override async init() {
     try {
-      this.connectNativeMessaging();
-
       // This function uses classes and functions defined in the SDK, so we need to wait for the SDK to load.
       await SdkLoadService.Ready;
       this.communicationBackend = new IpcCommunicationBackend({
@@ -96,7 +101,30 @@ export class IpcBackgroundService extends IpcService {
         );
       });
 
-      this.nativeMessagingPort?.onMessage.addListener((ipcMessage) => {
+      await super.initWithClient(
+        IpcClient.newWithClientManagedSessions(this.communicationBackend, this.sessionRepository),
+      );
+
+      await ipcRegisterDiscoverHandler(this.client, {
+        version: await this.platformUtilsService.getApplicationVersion(),
+      });
+
+      await this.connectToDesktop();
+    } catch (e) {
+      this.logService.error("[IPC] Initialization failed", e);
+    }
+  }
+
+  /**
+   * Starts a connection to the desktop app. This function attempts to establish a connection with the desktop application
+   * using native messaging. It will automaticall retry and reconnect if the connection fails or is lost.
+   */
+  private async connectToDesktop() {
+    try {
+      const port = BrowserApi.connectNative("com.8bit.bitwarden");
+      this.nativeMessagingPort = port;
+
+      port.onMessage.addListener((ipcMessage) => {
         if (!isIpcMessage(ipcMessage) && !isForwardedIpcMessage(ipcMessage)) {
           return;
         }
@@ -111,26 +139,34 @@ export class IpcBackgroundService extends IpcService {
         );
       });
 
-      await super.initWithClient(
-        IpcClient.newWithClientManagedSessions(this.communicationBackend, this.sessionRepository),
+      // Ensure the desktop app is properly connected
+      const version = await ipcRequestDiscover(
+        this.client,
+        "DesktopRenderer",
+        AbortSignal.timeout(DISCOVER_MESSAGE_TIMEOUT_MS),
+      );
+      this.logService.info(
+        `[IPC] Connected to Bitwarden Desktop App with version ${version.version}`,
       );
 
-      await ipcRegisterDiscoverHandler(this.client, {
-        version: await this.platformUtilsService.getApplicationVersion(),
+      port.onDisconnect.addListener(() => {
+        this.logService.warning("[IPC] Disconnected from Bitwarden Desktop App");
+        this.nativeMessagingPort = undefined;
+        this.scheduleReconnect();
       });
-    } catch (e) {
-      this.logService.error("[IPC] Initialization failed", e);
+    } catch {
+      this.nativeMessagingPort = undefined;
+      this.scheduleReconnect();
     }
   }
 
-  private connectNativeMessaging() {
-    try {
-      // TODO: This needs to handle the full complexity of native messaging connections,
-      // including permissions, errors and disconnections.
-      const port = BrowserApi.connectNative("com.8bit.bitwarden");
-      this.nativeMessagingPort = port;
-    } catch (e) {
-      this.logService.error("[IPC] Native messaging connection failed", e);
+  private scheduleReconnect() {
+    if (this.reconnectTimer != null) {
+      return;
     }
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = undefined;
+      void this.connectToDesktop();
+    }, RECONNECTION_INTERVAL_MS);
   }
 }
