@@ -33,12 +33,13 @@ export class IpcRendererService extends IpcService {
         async send(message: OutgoingMessage): Promise<void> {
           if (message.destination === "DesktopRenderer") {
             throw new Error(
-              `Destination not supported: ${message.destination} (cannot send messages to self)`,
+              `Destination not supported: ${JSON.stringify(message.destination)} (cannot send messages to self)`,
             );
           }
 
           if (
-            message.destination === "BrowserBackground" ||
+            (typeof message.destination === "object" &&
+              "BrowserBackground" in message.destination) ||
             message.destination === "DesktopMain"
           ) {
             ipc.platform.ipcService.send({

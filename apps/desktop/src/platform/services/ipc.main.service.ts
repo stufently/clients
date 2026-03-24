@@ -43,11 +43,14 @@ export class IpcMainService extends IpcService {
         send: async (message: OutgoingMessage): Promise<void> => {
           if (message.destination === "DesktopMain") {
             throw new Error(
-              `Destination not supported: ${message.destination} (cannot send messages to self)`,
+              `Destination not supported: ${JSON.stringify(message.destination)} (cannot send messages to self)`,
             );
           }
 
-          if (message.destination === "BrowserBackground") {
+          if (
+            typeof message.destination === "object" &&
+            "BrowserBackground" in message.destination
+          ) {
             this.nativeMessaging.send({
               type: "bitwarden-ipc-message",
               message: {
@@ -84,7 +87,7 @@ export class IpcMainService extends IpcService {
           this.windowMain.win?.webContents.send("ipc.onMessage", {
             type: "forwarded-bitwarden-ipc-message",
             message: ipcMessage.message,
-            originalSource: "BrowserBackground",
+            originalSource: { BrowserBackground: { id: "Own" } },
           } satisfies ForwardedIpcMessage);
           return;
         }
@@ -97,8 +100,7 @@ export class IpcMainService extends IpcService {
           new IncomingMessage(
             new Uint8Array(ipcMessage.message.payload),
             ipcMessage.message.destination,
-            // TODO: Add ID to BrowserBackground
-            "BrowserBackground",
+            { BrowserBackground: { id: "Own" } },
             ipcMessage.message.topic,
           ),
         );
@@ -119,7 +121,10 @@ export class IpcMainService extends IpcService {
         }
 
         // Forward to native messaging
-        if (message.message.destination === "BrowserBackground") {
+        if (
+          typeof message.message.destination === "object" &&
+          "BrowserBackground" in message.message.destination
+        ) {
           this.nativeMessaging.send({
             type: "forwarded-bitwarden-ipc-message",
             message: {

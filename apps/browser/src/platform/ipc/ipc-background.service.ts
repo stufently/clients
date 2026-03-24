@@ -43,7 +43,7 @@ export class IpcBackgroundService extends IpcService {
       await SdkLoadService.Ready;
       this.communicationBackend = new IpcCommunicationBackend({
         send: async (message: OutgoingMessage): Promise<void> => {
-          if (typeof message.destination === "object" && message.destination.Web != undefined) {
+          if (typeof message.destination === "object" && "Web" in message.destination) {
             await BrowserApi.tabSendMessage(
               { id: message.destination.Web.id } as chrome.tabs.Tab,
               {
@@ -80,7 +80,11 @@ export class IpcBackgroundService extends IpcService {
       });
 
       BrowserApi.messageListener("platform.ipc", (message, sender) => {
-        if (!isIpcMessage(message) || message.message.destination !== "BrowserBackground") {
+        if (
+          !isIpcMessage(message) ||
+          typeof message.message.destination !== "object" ||
+          !("BrowserBackground" in message.message.destination)
+        ) {
           return;
         }
 

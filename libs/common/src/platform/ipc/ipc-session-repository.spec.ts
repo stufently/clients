@@ -14,16 +14,16 @@ describe("IpcSessionRepository", () => {
   });
 
   it("returns undefined when empty", async () => {
-    const result = await repository.get("BrowserBackground");
+    const result = await repository.get({ BrowserBackground: { id: "Own" } });
 
     expect(result).toBeUndefined();
   });
 
   it("saves and retrieves a session", async () => {
     const session = { some: "data" };
-    await repository.save("BrowserBackground", session);
+    await repository.save({ BrowserBackground: { id: "Own" } }, session);
 
-    const result = await repository.get("BrowserBackground");
+    const result = await repository.get({ BrowserBackground: { id: "Own" } });
 
     expect(result).toEqual(session);
   });
@@ -39,10 +39,10 @@ describe("IpcSessionRepository", () => {
 
   it("removes a session", async () => {
     const session = { some: "data" };
-    await repository.save("BrowserBackground", session);
+    await repository.save({ BrowserBackground: { id: "Own" } }, session);
 
-    await repository.remove("BrowserBackground");
-    const result = await repository.get("BrowserBackground");
+    await repository.remove({ BrowserBackground: { id: "Own" } });
+    const result = await repository.get({ BrowserBackground: { id: "Own" } });
 
     expect(result).toBeUndefined();
   });
