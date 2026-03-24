@@ -15,9 +15,11 @@ import { KeyService } from "@bitwarden/key-management";
 
 import { AccountBillingClient } from "../../../../clients/account-billing.client";
 import { PreviewInvoiceClient } from "../../../../clients/preview-invoice.client";
+import { SubscriberBillingClient } from "../../../../clients/subscriber-billing.client";
 import { BillingAddress } from "../../../../payment/types";
 
 import {
+  BANK_ACCOUNT_NOT_SUPPORTED_MESSAGE,
   PremiumOrgUpgradePlanDetails,
   PremiumOrgUpgradeService,
 } from "./premium-org-upgrade.service";
@@ -63,6 +65,14 @@ describe("PremiumOrgUpgradeService", () => {
         .fn()
         .mockResolvedValue({ tax: 5, total: 55, credit: 0 }),
     } as any;
+    subscriberBillingClient = {
+      getPaymentMethod: jest.fn().mockResolvedValue({
+        type: "card",
+        brand: "visa",
+        last4: "4242",
+        expiration: "12/2025",
+      }),
+    } as any;
     syncService = {
       fullSync: jest.fn().mockResolvedValue(undefined),
     } as any;
@@ -86,6 +96,7 @@ describe("PremiumOrgUpgradeService", () => {
         PremiumOrgUpgradeService,
         { provide: AccountBillingClient, useValue: accountBillingClient },
         { provide: PreviewInvoiceClient, useValue: previewInvoiceClient },
+        { provide: SubscriberBillingClient, useValue: subscriberBillingClient },
         { provide: SyncService, useValue: syncService },
         { provide: AccountService, useValue: { activeAccount$: of(mockAccount) } },
         { provide: KeyService, useValue: keyService },

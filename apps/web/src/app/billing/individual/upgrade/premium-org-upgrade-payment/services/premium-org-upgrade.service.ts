@@ -58,6 +58,7 @@ export class PremiumOrgUpgradeService {
   constructor(
     private accountBillingClient: AccountBillingClient,
     private previewInvoiceClient: PreviewInvoiceClient,
+    private subscriberBillingClient: SubscriberBillingClient,
     private keyService: KeyService,
     private i18nService: I18nService,
     private encryptService: EncryptService,
@@ -94,6 +95,15 @@ export class PremiumOrgUpgradeService {
 
     if (!billingAddress?.country || !billingAddress?.postalCode) {
       throw new Error("Billing address information is incomplete");
+    }
+
+    const paymentMethod = await this.subscriberBillingClient.getPaymentMethod({
+      type: "account",
+      data: account,
+    });
+
+    if (paymentMethod?.type === TokenizablePaymentMethods.bankAccount) {
+      throw new Error(BANK_ACCOUNT_NOT_SUPPORTED_MESSAGE);
     }
 
     const productTier: ProductTierType = this.ProductTierTypeFromSubscriptionTierId(tier);
