@@ -1,4 +1,9 @@
-import { UserKeyDefinition, VAULT_TIMEOUT_SETTINGS_DISK_LOCAL } from "../../../platform/state";
+import {
+  KeyDefinition,
+  UserKeyDefinition,
+  VAULT_TIMEOUT_SETTINGS_DISK_LOCAL,
+  VAULT_TIMEOUT_SETTINGS_MEMORY,
+} from "../../../platform/state";
 import { VaultTimeoutAction } from "../enums/vault-timeout-action.enum";
 import { VaultTimeout } from "../types/vault-timeout.type";
 
@@ -23,5 +28,13 @@ export const VAULT_TIMEOUT = new UserKeyDefinition<VaultTimeout>(
   {
     deserializer: (vaultTimeout) => vaultTimeout,
     clearOn: [], // persisted on logout
+  },
+);
+
+export const VAULT_TIMEOUT_SUPPRESSED_UNTIL = new KeyDefinition<number | null>(
+  VAULT_TIMEOUT_SETTINGS_MEMORY,
+  "vaultTimeoutSuppressedUntil",
+  {
+    deserializer: (value) => value,
   },
 );
