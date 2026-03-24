@@ -46,6 +46,10 @@ const DEFAULT_PARAMS = {
  *    tsConfig: string;
  *    htmlTemplate: string;
  *  };
+ *  magnifyPreload: {
+ *    entry: string;
+ *    tsConfig: string;
+ *  };
  *  outputPath?: string;
  * }} params
  */
@@ -341,10 +345,50 @@ module.exports.buildConfig = function buildConfig(params) {
     ],
   };
 
+  const magnifyPreloadConfig = {
+    name: "magnify-preload",
+    mode: NODE_ENV,
+    target: "electron-preload",
+    node: {
+      __dirname: false,
+      __filename: false,
+    },
+    entry: {
+      "magnify-preload": params.magnifyPreload.entry,
+    },
+    optimization: {
+      minimize: false,
+    },
+    output: getOutputConfig(NODE_ENV === "development"),
+    devtool: NODE_ENV === "development" ? "cheap-source-map" : false,
+    module: {
+      rules: [
+        {
+          test: /\.tsx?$/,
+          use: {
+            loader: "ts-loader",
+            options: { configFile: params.magnifyPreload.tsConfig },
+          },
+          exclude: /node_modules\/(?!(@bitwarden)\/).*/,
+        },
+      ],
+    },
+    resolve: {
+      ...commonConfig.resolve,
+      plugins: [new TsconfigPathsPlugin({ configFile: params.magnifyPreload.tsConfig })],
+    },
+    plugins: [
+      new DefinePlugin({
+        BIT_ENVIRONMENT: JSON.stringify(NODE_ENV),
+      }),
+    ],
+  };
+
   return [
     mainConfig,
     rendererConfig,
     preloadConfig,
+    magnifyPreloadConfig,
     module.exports.buildMagnifyConfig({
       entry: params.magnify.entry,
       tsConfig: params.magnify.tsConfig,
