@@ -47,7 +47,6 @@ export function createUnlockManagementDriver(
       return Object.keys(accounts);
     },
     async suppress_vault_timeout(until: number): Promise<void> {
-      console.log("Suppressing vault timeout until", new Date(until).toISOString());
       vaultTimeoutSettingsService.suppressVaultTimeout(until);
     },
     async get_client_name(): Promise<ClientType> {
