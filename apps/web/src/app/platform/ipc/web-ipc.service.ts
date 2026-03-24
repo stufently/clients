@@ -14,8 +14,11 @@ import {
   IpcClient,
   IpcCommunicationBackend,
   ipcRegisterDiscoverHandler,
+  ipcRequestDiscover,
   OutgoingMessage,
 } from "@bitwarden/sdk-internal";
+
+const DISCOVER_MESSAGE_TIMEOUT_MS = 1_000;
 
 export class WebIpcService extends IpcService {
   private logService = inject(LogService);
@@ -25,10 +28,8 @@ export class WebIpcService extends IpcService {
 
   override async init() {
     try {
-      console.log("Initializing WebIpcService...");
       // This function uses classes and functions defined in the SDK, so we need to wait for the SDK to load.
       await SdkLoadService.Ready;
-      console.log("SDK is ready, setting up communication backend...");
 
       this.communicationBackend = new IpcCommunicationBackend({
         async send(message: OutgoingMessage): Promise<void> {
@@ -85,6 +86,16 @@ export class WebIpcService extends IpcService {
       await ipcRegisterDiscoverHandler(this.client, {
         version: await this.platformUtilsService.getApplicationVersion(),
       });
+
+      // Ensure the browser extension is present
+      const version = await ipcRequestDiscover(
+        this.client,
+        "BrowserBackground",
+        AbortSignal.timeout(DISCOVER_MESSAGE_TIMEOUT_MS),
+      );
+      this.logService.info(
+        `[IPC] Connected to Bitwarden Browser Extension with version ${version.version}`,
+      );
     } catch (e) {
       this.logService.error("[IPC] Initialization failed", e);
     }
