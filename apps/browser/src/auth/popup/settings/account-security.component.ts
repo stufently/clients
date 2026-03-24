@@ -6,6 +6,7 @@ import { FormBuilder, FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { RouterModule } from "@angular/router";
 import {
   BehaviorSubject,
+  combineLatest,
   concatMap,
   distinctUntilChanged,
   firstValueFrom,
@@ -135,6 +136,7 @@ export class AccountSecurityComponent implements OnInit, OnDestroy {
   protected readonly phishingDetectionAvailable$: Observable<boolean>;
   protected readonly sharedUnlockDesktopBrowserEnabled$: Observable<boolean>;
   protected readonly sharedUnlockBrowserWebEnabled$: Observable<boolean>;
+  protected readonly sharedUnlockEnabled$: Observable<boolean>;
 
   protected refreshTimeoutSettings$ = new BehaviorSubject<void>(undefined);
   private destroy$ = new Subject<void>();
@@ -166,8 +168,16 @@ export class AccountSecurityComponent implements OnInit, OnDestroy {
   ) {
     // Check if user phishing detection available
     this.phishingDetectionAvailable$ = this.phishingDetectionSettingsService.available$;
-    this.sharedUnlockDesktopBrowserEnabled$ = this.configService.getFeatureFlag$(FeatureFlag.SharedUnlockDesktopBrowser);
-    this.sharedUnlockBrowserWebEnabled$ = this.configService.getFeatureFlag$(FeatureFlag.SharedUnlockBrowserWeb);
+    this.sharedUnlockDesktopBrowserEnabled$ = this.configService.getFeatureFlag$(
+      FeatureFlag.SharedUnlockDesktopBrowser,
+    );
+    this.sharedUnlockBrowserWebEnabled$ = this.configService.getFeatureFlag$(
+      FeatureFlag.SharedUnlockBrowserWeb,
+    );
+    this.sharedUnlockEnabled$ = combineLatest([
+      this.sharedUnlockDesktopBrowserEnabled$,
+      this.sharedUnlockBrowserWebEnabled$,
+    ]).pipe(map(([desktop, web]) => desktop || web));
   }
 
   async ngOnInit() {
