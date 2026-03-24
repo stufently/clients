@@ -288,7 +288,7 @@ export const InteractionStates: Story = {
             placeholderIcon="bwi-folder"
             [options]="options"
             [disabled]="disabled"
-            class="tw-test-hover"
+            class="tw-test-has-button-hover-not-bit-chip-dismiss-button"
           ></bit-chip-filter>
           <bit-chip-filter
             placeholderText="Folder"
@@ -296,7 +296,7 @@ export const InteractionStates: Story = {
             [options]="options"
             [ngModel]="value"
             [disabled]="disabled"
-            class="tw-test-hover"
+            class="tw-test-has-button-hover-not-bit-chip-dismiss-button"
           ></bit-chip-filter>
         </div>
 
@@ -307,7 +307,7 @@ export const InteractionStates: Story = {
             placeholderIcon="bwi-folder"
             [options]="options"
             [disabled]="disabled"
-            class="tw-test-focus-visible"
+            class="tw-test-has-button-focus-visible-not-bit-chip-dismiss-button tw-test-has-focus-visible-not-bit-chip-dismiss-button"
           ></bit-chip-filter>
           <bit-chip-filter
             placeholderText="Folder"
@@ -315,7 +315,7 @@ export const InteractionStates: Story = {
             [options]="options"
             [ngModel]="value"
             [disabled]="disabled"
-            class="tw-test-focus-visible"
+            class="tw-test-has-button-focus-visible-not-bit-chip-dismiss-button tw-test-has-focus-visible-not-bit-chip-dismiss-button"
           ></bit-chip-filter>
         </div>
       </div>
@@ -350,4 +350,18 @@ export const InteractionStates: Story = {
       },
     },
   },
+  // play: async (context) => {
+  //   const canvas = context.canvas;
+  //   const hoverChip = await canvas.findByTestId("hover-chip-story");
+
+  //   const hoverChipButtonEl = hoverChip.querySelector("button[bit-chip-content]");
+
+  //   if (!hoverChipButtonEl) {
+  //     //eslint-disable-next-line
+  //     console.error("sad");
+  //     return;
+  //   }
+
+  //   hoverChipButtonEl.classList.add("tw-test-hover");
+  // },
 };

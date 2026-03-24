@@ -269,7 +269,7 @@ export const InteractionStates: StoryObj<NavGroupComponent> = {
             (click)="handleEditClick()"
           ></button>
         </bit-nav-group>
-        <bit-nav-group text="Nav Group Hover" [route]="['a']" icon="bwi-filter" class="tw-test-hover">
+        <bit-nav-group text="Nav Group Hover" [route]="['a']" icon="bwi-filter" data-testid="nav-group-hover">
           <button
             type="button"
             slot="end"
@@ -281,7 +281,7 @@ export const InteractionStates: StoryObj<NavGroupComponent> = {
             (click)="handleEditClick()"
           ></button>
         </bit-nav-group>
-        <bit-nav-group text="Nav Group Focus" [route]="['a']" icon="bwi-filter" class="tw-test-focus-visible">
+        <bit-nav-group text="Nav Group Focus" [route]="['a']" icon="bwi-filter" data-testid="nav-group-focus">
           <button
             type="button"
             slot="end"
@@ -306,7 +306,7 @@ export const InteractionStates: StoryObj<NavGroupComponent> = {
             (click)="handleEditClick()"
           ></button>
         </bit-nav-group>
-        <bit-nav-group text="Nav Group Active Hover" [route]="['a']" icon="bwi-filter" [forceActiveStyles]="true" class="tw-test-hover">
+        <bit-nav-group text="Nav Group Active Hover" [route]="['a']" icon="bwi-filter" [forceActiveStyles]="true" data-testid="nav-group-hover">
           <button
             type="button"
             slot="end"
@@ -318,7 +318,7 @@ export const InteractionStates: StoryObj<NavGroupComponent> = {
             (click)="handleEditClick()"
           ></button>
         </bit-nav-group>
-        <bit-nav-group text="Nav Group Active Focus" [route]="['a']" icon="bwi-filter" [forceActiveStyles]="true" class="tw-test-focus-visible">
+        <bit-nav-group text="Nav Group Active Focus" [route]="['a']" icon="bwi-filter" [forceActiveStyles]="true" data-testid="nav-group-focus">
           <button
             type="button"
             slot="end"
@@ -333,6 +333,23 @@ export const InteractionStates: StoryObj<NavGroupComponent> = {
       </bit-side-nav>
       `,
   }),
+  play: async ({ canvas }) => {
+    const hoverNavGroups = await canvas.findAllByTestId("nav-group-hover");
+    const focusNavGroups = await canvas.findAllByTestId("nav-group-focus");
+
+    // make sure everything is rendered before we try to add test classes
+    await canvas.findAllByTestId("nav-group-collapse-arrow");
+
+    hoverNavGroups.forEach((navGroup) => {
+      const collapseArrowBtn = navGroup.querySelector('[data-testid="nav-group-collapse-arrow"]');
+      collapseArrowBtn?.classList.add("tw-test-hover");
+    });
+
+    focusNavGroups.forEach((navGroup) => {
+      const collapseArrowBtn = navGroup.querySelector('[data-testid="nav-group-collapse-arrow"]');
+      collapseArrowBtn?.classList.add("tw-test-focus-visible");
+    });
+  },
   parameters: {
     chromatic: {
       modes: {

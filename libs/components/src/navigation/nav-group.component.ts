@@ -119,16 +119,4 @@ export class NavGroupComponent extends NavBaseComponent {
     }
     this.mainContentClicked.emit();
   }
-
-  /**
-   * Storybook helper function to test focus states
-   *
-   * This is an anti-pattern. Ideally we'd be able to apply
-   * `[&:is(.tw-test-focus-visible_*)]:tw-test-focus-visible` directly in the html to use css to
-   * check for the parent focus selector. Unfortunately, the custom variants for the test selectors
-   * don't work with arbitrary selectors.
-   */
-  protected hasTestFocusSelector() {
-    return this.el.nativeElement.classList.contains("tw-test-focus-visible");
-  }
 }

@@ -13,6 +13,7 @@
           ? '--color-nav-bg-primary: var(--color-nav-bg-primary-strong); --color-nav-bg-secondary: var(--color-nav-bg-secondary-strong); --color-nav-bg-primary-hover: var(--color-nav-bg-primary-hover-strong); --color-nav-bg-secondary-hover: var(--color-nav-bg-secondary-hover-strong);'
           : ''
       "
+      data-testid="nav-item-container"
     >
       <div class="tw-relative tw-flex tw-items-center tw-h-full">
         @if (open) {
@@ -36,6 +37,7 @@
             [state]="{
               focusAfterNav: focusAfterNavTarget(),
             }"
+            data-testid="nav-item-interactive"
           >
             <ng-container *ngTemplateOutlet="anchorAndButtonContent"></ng-container>
           </a>
@@ -45,6 +47,7 @@
             [class]="interactiveElClass"
             data-fvw
             (click)="mainContentClicked.emit()"
+            data-testid="nav-item-interactive"
           >
             <ng-container *ngTemplateOutlet="anchorAndButtonContent"></ng-container>
           </button>
@@ -56,7 +59,7 @@
             (click)="$event.stopPropagation()"
             [class]="
               showActiveStyles()
-                ? '[&>button[biticonbutton]]:hover:!tw-bg-bg-sidenav-active-arrow-hover [&>button[biticonbutton].tw-test-hover]:!tw-bg-bg-sidenav-active-arrow-hover'
+                ? '[&>button[biticonbutton]]:hover:!tw-bg-bg-sidenav-active-arrow-hover'
                 : ''
             "
           >

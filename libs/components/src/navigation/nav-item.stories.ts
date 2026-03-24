@@ -146,24 +146,3 @@ export const ForceActiveStyles: Story = {
     `,
   }),
 };
-
-export const InteractionStates: Story = {
-  render: (args) => ({
-    template: /*html*/ `
-        <bit-nav-item text="Nav Item"></bit-nav-item>
-        <bit-nav-item text="Nav Item Hover" class="tw-test-hover"></bit-nav-item>
-        <bit-nav-item text="Nav Item Focus" class="tw-test-focus-visible"></bit-nav-item>
-        <bit-nav-item text="Nav Item Active" [forceActiveStyles]="true"></bit-nav-item>
-        <bit-nav-item text="Nav Item Active Hover" [forceActiveStyles]="true" class="tw-test-hover"></bit-nav-item>
-        <bit-nav-item text="Nav Item Active Focus" [forceActiveStyles]="true" class="tw-test-focus-visible"></bit-nav-item>
-      `,
-  }),
-  parameters: {
-    chromatic: {
-      modes: {
-        light: { theme: "light" },
-        dark: { theme: "dark" },
-      },
-    },
-  },
-};

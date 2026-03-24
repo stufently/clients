@@ -116,16 +116,8 @@ export class NavItemComponent extends NavBaseComponent {
   protected readonly focusVisibleWithin = signal(false);
   protected readonly fvwStyles = computed(() =>
     this.focusVisibleWithin()
-      ? "tw-z-10 tw-rounded tw-outline-none tw-ring tw-ring-inset tw-ring-border-nav-focus"
-      : // storybook helpers -- must match above
-        [
-          "[&:is(.tw-test-focus-visible_*)]:tw-z-10",
-          "[&:is(.tw-test-focus-visible_*)]:tw-rounded",
-          "[&:is(.tw-test-focus-visible_*)]:tw-outline-none",
-          "[&:is(.tw-test-focus-visible_*)]:tw-ring",
-          "[&:is(.tw-test-focus-visible_*)]:tw-ring-inset",
-          "[&:is(.tw-test-focus-visible_*)]:tw-ring-border-sidenav-focus",
-        ],
+      ? "tw-z-10 tw-rounded tw-outline-none tw-ring tw-ring-inset tw-ring-border-nav-focus tw-bg-bg-nav-hover"
+      : "",
   );
 
   protected onFocusIn(target: HTMLElement) {

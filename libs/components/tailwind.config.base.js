@@ -368,7 +368,7 @@ module.exports = {
         {},
       );
     }),
-    plugin(function ({ addVariant }) {
+    plugin(function ({ addVariant, matchVariant }) {
       for (const state of [
         "active",
         "hover",
@@ -379,7 +379,23 @@ module.exports = {
         "visited",
       ]) {
         addVariant(state, [`&:${state}`, `&.test-${state}`]);
+        addVariant(`group-${state}`, [
+          `:merge(.group):${state} &`,
+          `:merge(.group).test-${state} &`,
+        ]);
       }
+      /**
+       * Add test classes generated for complex has-* selectors, which will apply the specified
+       * tailwind classes for that selector. Removes all special characters and replaces with a `-`,
+       * deduping all adjacent dashes and removing leading/trailing dashes. Example:
+       *
+       * prod class: "has-[button:hover:not([bit-chip-dismiss-button])]:tw-bg-bg-brand-soft"
+       * generated test class: "tw-test-has-button-hover-not-bit-chip-dismiss-button"
+       */
+      matchVariant("has", (value) => [
+        `&:has(${value})`,
+        `&.test-has-${value.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "")}`,
+      ]);
     }),
     /** Plugin for compact mode */
     plugin(function ({ addVariant }) {

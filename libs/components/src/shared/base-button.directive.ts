@@ -209,6 +209,7 @@ export const getButtonColorStyles = ({
       "focus-visible:!tw-ring-fg-nav",
       "focus-visible:!tw-ring-offset-bg-nav",
       "focus-visible:!tw-text-fg-nav",
+      "focus-visible:tw-bg-bg-nav-hover",
       "focus-visible:tw-border-transparent",
     ],
     unstyled: [],

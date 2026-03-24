@@ -24,10 +24,10 @@ const focusRing = [
   "focus-visible:tw-ring-offset-2",
   "focus-visible:tw-ring-border-focus",
   "focus-visible:tw-z-10",
-  "[&:has(:focus-visible:not(button[bit-chip-dismiss-button]))]:tw-ring-2",
-  "[&:has(:focus-visible:not(button[bit-chip-dismiss-button]))]:tw-ring-offset-2",
-  "[&:has(:focus-visible:not(button[bit-chip-dismiss-button]))]:tw-ring-border-focus",
-  "[&:has(:focus-visible:not(button[bit-chip-dismiss-button]))]:tw-z-10",
+  "has-[:focus-visible:not([bit-chip-dismiss-button])]:tw-ring-2",
+  "has-[:focus-visible:not([bit-chip-dismiss-button])]:tw-ring-offset-2",
+  "has-[:focus-visible:not([bit-chip-dismiss-button])]:tw-ring-border-focus",
+  "has-[:focus-visible:not([bit-chip-dismiss-button])]:tw-z-10",
 ];
 
 const inactiveStyles = [
@@ -52,11 +52,10 @@ const variantStyles: Record<ChipVariant, string[]> = {
     "tw-text-fg-brand-strong",
     "[&:is(button,a)]:hover:tw-bg-bg-brand-soft",
     "[&:is(button,a)]:focus-visible:tw-bg-bg-brand-soft",
-    "[&:has(button:hover:not([bit-chip-dismiss-button]),a:hover)]:tw-bg-bg-brand-soft",
-    "[&:has(button:focus-visible:not([bit-chip-dismiss-button]),a:focus-visible)]:tw-bg-bg-brand-soft",
-    // test helpers for Storybook (must match styles applied above)
-    "[&.tw-test-hover:has(button:not([bit-chip-dismiss-button]),a)]:tw-bg-bg-brand-soft",
-    "[&.tw-test-focus-visible:has(button:not([bit-chip-dismiss-button]),a)]:tw-bg-bg-brand-soft",
+    "has-[button:hover:not([bit-chip-dismiss-button])]:tw-bg-bg-brand-soft",
+    "has-[a:hover]:tw-bg-bg-brand-soft",
+    "has-[button:focus-visible:not([bit-chip-dismiss-button])]:tw-bg-bg-brand-soft",
+    "has-[a:focus-visible]:tw-bg-bg-brand-soft",
   ],
   subtle: [
     "tw-bg-bg-primary",
@@ -64,11 +63,10 @@ const variantStyles: Record<ChipVariant, string[]> = {
     "tw-text-fg-body",
     "[&:is(button,a)]:hover:tw-bg-bg-quaternary",
     "[&:is(button,a)]:focus-visible:tw-bg-bg-quaternary",
-    "[&:has(button:hover:not([bit-chip-dismiss-button]),a:hover)]:tw-bg-bg-quaternary",
-    "[&:has(button:focus-visible:not([bit-chip-dismiss-button]),a:focus-visible)]:tw-bg-bg-quaternary",
-    // test helpers for Storybook (must match styles applied above)
-    "[&.tw-test-hover:has(button:not([bit-chip-dismiss-button]),a)]:tw-bg-bg-quaternary",
-    "[&.tw-test-focus-visible:has(button:not([bit-chip-dismiss-button]),a)]:tw-bg-bg-quaternary",
+    "has-[button:hover:not([bit-chip-dismiss-button])]:tw-bg-bg-quaternary",
+    "has-[a:hover]:tw-bg-bg-quaternary",
+    "has-[button:focus-visible:not([bit-chip-dismiss-button])]:tw-bg-bg-quaternary",
+    "has-[a:focus-visible]:tw-bg-bg-quaternary",
   ],
   "accent-primary": [
     "tw-bg-bg-accent-primary-soft",
@@ -76,8 +74,10 @@ const variantStyles: Record<ChipVariant, string[]> = {
     "tw-text-fg-accent-primary-strong",
     "[&:is(button,a)]:hover:tw-bg-bg-accent-primary-medium",
     "[&:is(button,a)]:focus-visible:tw-bg-bg-accent-primary-medium",
-    "[&:has(button:hover:not([bit-chip-dismiss-button]),a:hover)]:tw-bg-bg-accent-primary-medium",
-    "[&:has(button:focus-visible:not([bit-chip-dismiss-button]),a:focus-visible)]:tw-bg-bg-accent-primary-medium",
+    "has-[button:hover:not([bit-chip-dismiss-button])]:tw-bg-bg-accent-primary-medium",
+    "has-[a:hover]:tw-bg-bg-accent-primary-medium",
+    "has-[button:focus-visible:not([bit-chip-dismiss-button])]:tw-bg-bg-accent-primary-medium",
+    "has-[a:focus-visible]:tw-bg-bg-accent-primary-medium",
   ],
   "accent-secondary": [
     "tw-bg-bg-accent-secondary-soft",
@@ -85,8 +85,10 @@ const variantStyles: Record<ChipVariant, string[]> = {
     "tw-text-fg-accent-secondary-strong",
     "[&:is(button,a)]:hover:tw-bg-bg-accent-secondary-medium",
     "[&:is(button,a)]:focus-visible:tw-bg-bg-accent-secondary-medium",
-    "[&:has(button:hover:not([bit-chip-dismiss-button]),a:hover)]:tw-bg-bg-accent-secondary-medium",
-    "[&:has(button:focus-visible:not([bit-chip-dismiss-button]),a:focus-visible)]:tw-bg-bg-accent-secondary-medium",
+    "has-[button:hover:not([bit-chip-dismiss-button])]:tw-bg-bg-accent-secondary-medium",
+    "has-[a:hover]:tw-bg-bg-accent-secondary-medium",
+    "has-[button:focus-visible:not([bit-chip-dismiss-button])]:tw-bg-bg-accent-secondary-medium",
+    "has-[a:focus-visible]:tw-bg-bg-accent-secondary-medium",
   ],
 };
 
@@ -122,6 +124,7 @@ const commonStyles = [
   "tw-border",
   "tw-font-medium",
   "tw-transition-colors",
+  "tw-group/base-chip",
 
   // Button-specific resets (when applied to button elements)
   "[&:is(button)]:tw-appearance-none",

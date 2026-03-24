@@ -18,7 +18,6 @@
       type="button"
       class="tw-ms-auto"
       [class]="!open() ? 'tw-transform tw-rotate-[-90deg]' : ''"
-      [class.tw-test-focus-visible]="hasTestFocusSelector()"
       bitIconButton="bwi-down-solid"
       buttonType="side-nav"
       (click)="toggle($event)"
@@ -26,6 +25,7 @@
       [attr.aria-expanded]="open().toString()"
       [attr.aria-controls]="contentId"
       [label]="['toggleCollapse' | i18n, text()].join(' ')"
+      data-testid="nav-group-collapse-arrow"
     ></button>
     <ng-container slot="end">
       <ng-content select="[slot=end]"></ng-content>
