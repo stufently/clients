@@ -41,6 +41,11 @@ const DEFAULT_PARAMS = {
  *    entry: string;
  *    tsConfig: string;
  *  };
+ *  magnify: {
+ *    entry: string;
+ *    tsConfig: string;
+ *    htmlTemplate: string;
+ *  };
  *  outputPath?: string;
  * }} params
  */
@@ -336,7 +341,17 @@ module.exports.buildConfig = function buildConfig(params) {
     ],
   };
 
-  return [mainConfig, rendererConfig, preloadConfig];
+  return [
+    mainConfig,
+    rendererConfig,
+    preloadConfig,
+    module.exports.buildMagnifyConfig({
+      entry: params.magnify.entry,
+      tsConfig: params.magnify.tsConfig,
+      htmlTemplate: params.magnify.htmlTemplate,
+      outputPath: path.join(params.outputPath, "magnify"),
+    }),
+  ];
 };
 
 /**

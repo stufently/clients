@@ -1,60 +1,53 @@
 const path = require("path");
-const { buildConfig, buildMagnifyConfig } = require("./webpack.base");
+const { buildConfig } = require("./webpack.base");
 
 module.exports = (webpackConfig, context) => {
   const isNxBuild = context && context.options;
 
   if (isNxBuild) {
-    const outputPath = path.resolve(context.context.root, context.options.outputPath);
-    return [
-      ...buildConfig({
-        configName: "OSS",
-        renderer: {
-          entry: path.resolve(__dirname, "src/app/main.ts"),
-          entryModule: "src/app/app.module#AppModule",
-          tsConfig: path.resolve(context.context.root, "apps/desktop/tsconfig.renderer.json"),
-        },
-        main: {
-          entry: path.resolve(__dirname, "src/entry.ts"),
-          tsConfig: path.resolve(context.context.root, "apps/desktop/tsconfig.main.json"),
-        },
-        preload: {
-          entry: path.resolve(__dirname, "src/preload.ts"),
-          tsConfig: path.resolve(context.context.root, "apps/desktop/tsconfig.preload.json"),
-        },
-        outputPath,
-      }),
-      buildMagnifyConfig({
+    return buildConfig({
+      configName: "OSS",
+      renderer: {
+        entry: path.resolve(__dirname, "src/app/main.ts"),
+        entryModule: "src/app/app.module#AppModule",
+        tsConfig: path.resolve(context.context.root, "apps/desktop/tsconfig.renderer.json"),
+      },
+      main: {
+        entry: path.resolve(__dirname, "src/entry.ts"),
+        tsConfig: path.resolve(context.context.root, "apps/desktop/tsconfig.main.json"),
+      },
+      preload: {
+        entry: path.resolve(__dirname, "src/preload.ts"),
+        tsConfig: path.resolve(context.context.root, "apps/desktop/tsconfig.preload.json"),
+      },
+      magnify: {
         entry: path.resolve(__dirname, "src/magnify/main.ts"),
         tsConfig: path.resolve(context.context.root, "apps/desktop/tsconfig.magnify.json"),
         htmlTemplate: path.resolve(__dirname, "src/magnify/index.html"),
-        outputPath: path.resolve(outputPath, "magnify"),
-      }),
-    ];
+      },
+      outputPath: path.resolve(context.context.root, context.options.outputPath),
+    });
   } else {
-    return [
-      ...buildConfig({
-        configName: "OSS",
-        renderer: {
-          entry: path.resolve(__dirname, "src/app/main.ts"),
-          entryModule: "src/app/app.module#AppModule",
-          tsConfig: path.resolve(__dirname, "tsconfig.renderer.json"),
-        },
-        main: {
-          entry: path.resolve(__dirname, "src/entry.ts"),
-          tsConfig: path.resolve(__dirname, "tsconfig.main.json"),
-        },
-        preload: {
-          entry: path.resolve(__dirname, "src/preload.ts"),
-          tsConfig: path.resolve(__dirname, "tsconfig.preload.json"),
-        },
-      }),
-      buildMagnifyConfig({
+    return buildConfig({
+      configName: "OSS",
+      renderer: {
+        entry: path.resolve(__dirname, "src/app/main.ts"),
+        entryModule: "src/app/app.module#AppModule",
+        tsConfig: path.resolve(__dirname, "tsconfig.renderer.json"),
+      },
+      main: {
+        entry: path.resolve(__dirname, "src/entry.ts"),
+        tsConfig: path.resolve(__dirname, "tsconfig.main.json"),
+      },
+      preload: {
+        entry: path.resolve(__dirname, "src/preload.ts"),
+        tsConfig: path.resolve(__dirname, "tsconfig.preload.json"),
+      },
+      magnify: {
         entry: path.resolve(__dirname, "src/magnify/main.ts"),
         tsConfig: path.resolve(__dirname, "tsconfig.magnify.json"),
         htmlTemplate: path.resolve(__dirname, "src/magnify/index.html"),
-        outputPath: path.resolve(__dirname, "build/magnify"),
-      }),
-    ];
+      },
+    });
   }
 };
