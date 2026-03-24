@@ -20,8 +20,15 @@ import { SyncService } from "@bitwarden/common/vault/abstractions/sync/sync.serv
 import { KeyService } from "@bitwarden/key-management";
 import { UserId } from "@bitwarden/user-core";
 
-import { AccountBillingClient, PreviewInvoiceClient } from "../../../../clients";
-import { BillingAddress } from "../../../../payment/types";
+import {
+  AccountBillingClient,
+  PreviewInvoiceClient,
+  SubscriberBillingClient,
+} from "../../../../clients";
+import { BillingAddress, TokenizablePaymentMethods } from "../../../../payment/types";
+
+export const BANK_ACCOUNT_NOT_SUPPORTED_MESSAGE =
+  "Bank account payment method is not supported for this upgrade";
 
 export type PremiumOrgUpgradePlanDetails = {
   tier: PersonalSubscriptionPricingTierId | BusinessSubscriptionPricingTierId;
@@ -106,6 +113,10 @@ export class PremiumOrgUpgradeService {
     await this.syncService.fullSync(true);
 
     return orgId;
+  }
+
+  isBankAccountNotSupportedError(error: unknown): boolean {
+    return error instanceof Error && error.message === BANK_ACCOUNT_NOT_SUPPORTED_MESSAGE;
   }
 
   private ProductTierTypeFromSubscriptionTierId(

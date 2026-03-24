@@ -26,6 +26,7 @@ describe("PremiumOrgUpgradeService", () => {
   let service: PremiumOrgUpgradeService;
   let accountBillingClient: jest.Mocked<AccountBillingClient>;
   let previewInvoiceClient: jest.Mocked<PreviewInvoiceClient>;
+  let subscriberBillingClient: jest.Mocked<SubscriberBillingClient>;
   let syncService: jest.Mocked<SyncService>;
   let keyService: jest.Mocked<KeyService>;
   let encryptService: jest.Mocked<EncryptService>;
