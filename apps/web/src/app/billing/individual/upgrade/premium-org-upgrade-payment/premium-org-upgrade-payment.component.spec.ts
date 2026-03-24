@@ -60,6 +60,7 @@ class MockDisplayPaymentMethodInlineComponent {
   readonly subscriber = input.required<any>();
   readonly paymentMethod = input<any>();
   readonly externalFormGroup = input<any>();
+  readonly showBankAccountOption = input<boolean>(false);
   readonly updated = output<any>();
   readonly changePaymentMethodClicked = output<void>();
 
