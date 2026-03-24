@@ -158,6 +158,19 @@ describe("ItemMoreOptionsComponent", () => {
       expect(autofillSvc.doAutofillAndSave).not.toHaveBeenCalled();
     });
 
+    it("directly autofills without showing the confirmation dialog for card ciphers", async () => {
+      const cardCipher = { ...baseCipher, type: CipherType.Card, login: undefined };
+      component.cipher = cardCipher;
+      cipherService.getFullCipherView.mockResolvedValue(cardCipher);
+      autofillSvc.currentAutofillTab$.next({ url: "https://page.example.com" });
+      const openSpy = jest.spyOn(AutofillConfirmationDialogComponent, "open");
+
+      await component.doAutofill();
+
+      expect(openSpy).not.toHaveBeenCalled();
+      expect(autofillSvc.doAutofill).toHaveBeenCalledWith(cardCipher, true, true);
+    });
+
     describe("autofill confirmation dialog", () => {
       beforeEach(() => {
         uriMatchStrategy$.next(UriMatchStrategy.Domain);

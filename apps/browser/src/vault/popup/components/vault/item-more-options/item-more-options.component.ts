@@ -198,6 +198,12 @@ export class ItemMoreOptionsComponent {
       return;
     }
 
+    // Do not show exact match dialog for non login types
+    if (CipherViewLikeUtils.getType(cipher) !== CipherType.Login) {
+      await this.vaultPopupAutofillService.doAutofill(cipher, true, true);
+      return;
+    }
+
     const uris = cipher.login?.uris ?? [];
     const uriMatchStrategy = await firstValueFrom(this.uriMatchStrategy$);
 
