@@ -35,7 +35,7 @@ export class DefaultSharedUnlockLeaderService implements SharedUnlockLeaderServi
     const leader = await SharedUnlockLeader.try_new(this.ipcService.client, unlockManagementDriver);
     leader.start();
     this.lockService.registerOnLockAction(async (userId) => {
-      await leader.handle_device_event(
+      leader.handle_device_event(
         {
           ManualLock: {
             user_id: asUuid(userId),
@@ -58,7 +58,7 @@ export class DefaultSharedUnlockLeaderService implements SharedUnlockLeaderServi
         const previousUserKey = previousUserKeys.get(accountId) ?? null;
 
         if (previousUserKey == null && accountUserKey != null) {
-          await leader.handle_device_event(
+          leader.handle_device_event(
             {
               ManualUnlock: {
                 user_id: asUuid(accountId),
