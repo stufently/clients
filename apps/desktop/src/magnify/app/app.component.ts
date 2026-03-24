@@ -1,12 +1,12 @@
 import { ChangeDetectionStrategy, Component } from "@angular/core";
 
-import { QuickSearchComponent } from "./quick-search/quick-search.component";
+import { UsernamePasswordSpotlightComponent } from "./spotlight-search/username-password/username-password-spotlight.component";
 
 @Component({
   selector: "magnify-root",
-  template: `<app-quick-search />`,
+  template: `<app-username-password-spotlight />`,
   standalone: true,
-  imports: [QuickSearchComponent],
+  imports: [UsernamePasswordSpotlightComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppComponent {}
