@@ -137,6 +137,39 @@ describe("PremiumOrgUpgradeService", () => {
       expect(result).toBe("new-org-id");
     });
 
+    it("should throw an error when payment method is a bank account", async () => {
+      subscriberBillingClient.getPaymentMethod.mockResolvedValue({
+        type: "bankAccount",
+        bankName: "Chase",
+        last4: "1234",
+      } as any);
+
+      await expect(
+        service.upgradeToOrganization(
+          mockAccount,
+          "Test Organization",
+          mockPlanDetails.tier,
+          mockBillingAddress,
+        ),
+      ).rejects.toThrow(BANK_ACCOUNT_NOT_SUPPORTED_MESSAGE);
+
+      expect(accountBillingClient.upgradePremiumToOrganization).not.toHaveBeenCalled();
+    });
+
+    it("should proceed when payment method is null", async () => {
+      subscriberBillingClient.getPaymentMethod.mockResolvedValue(null);
+
+      const result = await service.upgradeToOrganization(
+        mockAccount,
+        "Test Organization",
+        mockPlanDetails.tier,
+        mockBillingAddress,
+      );
+
+      expect(result).toBe("new-org-id");
+      expect(accountBillingClient.upgradePremiumToOrganization).toHaveBeenCalled();
+    });
+
     it("should throw an error if organization name is missing", async () => {
       await expect(
         service.upgradeToOrganization(mockAccount, "", mockPlanDetails.tier, mockBillingAddress),
@@ -354,6 +387,30 @@ describe("PremiumOrgUpgradeService", () => {
       await expect(
         service.previewProratedInvoice(mockPlanDetails, mockBillingAddress),
       ).rejects.toThrow("Invoice API error");
+    });
+  });
+
+  describe("isBankAccountNotSupportedError", () => {
+    it("should return true when error is a bank account not supported error", () => {
+      const error = new Error(BANK_ACCOUNT_NOT_SUPPORTED_MESSAGE);
+
+      expect(service.isBankAccountNotSupportedError(error)).toBe(true);
+    });
+
+    it("should return false when error is an Error but with different message", () => {
+      const error = new Error("Some other error message");
+
+      expect(service.isBankAccountNotSupportedError(error)).toBe(false);
+    });
+
+    it("should return false when error is not an Error instance", () => {
+      const error = "string error";
+
+      expect(service.isBankAccountNotSupportedError(error)).toBe(false);
+    });
+
+    it("should return false when error is null", () => {
+      expect(service.isBankAccountNotSupportedError(null)).toBe(false);
     });
   });
 });

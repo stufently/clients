@@ -502,6 +502,12 @@ describe("OrganizationPlansComponent", () => {
         postalCode: "12345",
       }),
       updatePaymentMethod: jest.fn().mockResolvedValue(undefined),
+      getPaymentMethod: jest.fn().mockResolvedValue({
+        type: "card",
+        brand: "visa",
+        last4: "4242",
+        expiration: "12/2025",
+      }),
     } as any;
 
     mockPreviewInvoiceClient = {
@@ -552,6 +558,7 @@ describe("OrganizationPlansComponent", () => {
         }
         throw new Error(`Unsupported product tier: ${productTier}`);
       }),
+      isBankAccountNotSupportedError: jest.fn().mockReturnValue(false),
     } as any;
 
     mockDiscountSubject = new Subject<SubscriptionDiscount[]>();
@@ -2331,6 +2338,25 @@ describe("OrganizationPlansComponent", () => {
           variant: "success",
           title: "organizationCreated",
           message: "organizationReadyToGo",
+        });
+      });
+
+      it("should show an error toast when the service rejects a bank account payment method", async () => {
+        organizationsSubject.next([{ id: newOrgId, name: newOrgName, isOwner: true } as any]);
+        const bankAccountError = new Error(
+          "Bank account payment method is not supported for this upgrade",
+        );
+        mockPremiumOrgUpgradeService.upgradeToOrganization.mockRejectedValue(bankAccountError);
+        mockPremiumOrgUpgradeService.isBankAccountNotSupportedError.mockReturnValue(true);
+
+        await component.submit();
+
+        expect(mockPremiumOrgUpgradeService.isBankAccountNotSupportedError).toHaveBeenCalledWith(
+          bankAccountError,
+        );
+        expect(mockToastService.showToast).toHaveBeenCalledWith({
+          variant: "error",
+          message: "bankAccountNotSupportedForUpgrade",
         });
       });
 
