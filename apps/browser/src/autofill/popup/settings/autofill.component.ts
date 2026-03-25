@@ -101,8 +101,6 @@ import { PopupPageComponent } from "../../../platform/popup/layout/popup-page.co
     SelectModule,
     TypographyModule,
     ReactiveFormsModule,
-    CalloutModule,
-    ButtonModule,
   ],
 })
 export class AutofillComponent implements OnInit {
