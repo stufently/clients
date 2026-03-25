@@ -67,8 +67,6 @@ import {
   SectionHeaderComponent,
   SelectModule,
   TypographyModule,
-  CalloutModule,
-  ButtonModule,
 } from "@bitwarden/components";
 import { AdvancedUriOptionDialogComponent } from "@bitwarden/vault";
 
