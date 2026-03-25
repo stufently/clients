@@ -1,0 +1,28 @@
+name: Community PR management
+
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  remove-individual-reviewers:
+    name: Remove individual reviewers from community PRs
+    if: contains(github.event.pull_request.labels.*.name, 'community-pr')
+    runs-on: ubuntu-22.04
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Remove individual reviewers
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          # Get individual requested reviewers (not teams)
+          REVIEWERS=$(gh api "repos/$REPO/pulls/$PR_NUMBER/requested_reviewers" --jq '.users[].login' | tr '\n' ',' | sed 's/,$//')
+          if [ -n "$REVIEWERS" ]; then
+            IFS=',' read -ra USERS <<< "$REVIEWERS"
+            for user in "${USERS[@]}"; do
+              gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-reviewer "$user"
+            done
+          fi
