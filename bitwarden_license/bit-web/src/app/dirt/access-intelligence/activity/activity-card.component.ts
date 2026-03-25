@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from "@angular/core";
+import { Component, EventEmitter, input, Input, Output } from "@angular/core";
 import { Router } from "@angular/router";
 
 import { JslibModule } from "@bitwarden/angular/jslib.module";
@@ -85,6 +85,15 @@ export class ActivityCardComponent {
   // FIXME(https://bitwarden.atlassian.net/browse/CL-903): Migrate to Signals
   // eslint-disable-next-line @angular-eslint/prefer-output-emitter-ref
   @Output() buttonClick = new EventEmitter<void>();
+
+  /*
+   * To facilitate automated testing, provide a testId that will be
+   * added as a data attribute to the root element of the card
+   * (e.g., <dirt-activity-card [testId]="'my-card'">).
+   * This allows tests to easily select the card using
+   * the data attribute (e.g., [data-test-id="my-card"].
+   */
+  readonly testId = input.required<string>();
 
   /**
    * Event emitted when action link is clicked
