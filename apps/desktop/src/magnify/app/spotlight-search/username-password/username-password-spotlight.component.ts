@@ -18,6 +18,10 @@ export class UsernamePasswordSpotlightComponent implements OnInit {
   protected readonly isMac = magnifyIpc.platform === "darwin";
   protected readonly results = signal<MagnifyCipherResult[]>([]);
   protected readonly maxResults = MAX_RESULTS;
+  protected readonly copiedPasswordId = signal<string | null>(null);
+  protected readonly copiedUsernameId = signal<string | null>(null);
+
+  private readonly COPY_FEEDBACK_MS = 2000;
 
   ngOnInit() {
     magnifyIpc.onResults((data) => {
@@ -50,10 +54,14 @@ export class UsernamePasswordSpotlightComponent implements OnInit {
 
   protected copyPassword(cipher: MagnifyCipherResult) {
     magnifyIpc.sendCommand({ command: "cipherPasswordCopy", input: cipher.id });
+    this.copiedPasswordId.set(cipher.id);
+    setTimeout(() => this.copiedPasswordId.set(null), this.COPY_FEEDBACK_MS);
   }
 
   protected copyUsername(cipher: MagnifyCipherResult) {
     magnifyIpc.sendCommand({ command: "cipherUsernameCopy", input: cipher.id });
+    this.copiedUsernameId.set(cipher.id);
+    setTimeout(() => this.copiedUsernameId.set(null), this.COPY_FEEDBACK_MS);
   }
 
   protected launchCipher(cipher: MagnifyCipherResult) {
