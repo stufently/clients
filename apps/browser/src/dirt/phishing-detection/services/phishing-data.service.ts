@@ -554,15 +554,16 @@ export class PhishingDataService {
       return this._performFullUpdateWithManifest(manifest, applicationVersion);
     }
 
-    const { sha256, sortedSha256 } = await this.computeLocalHashes();
-
+    // Trust the manifest's sha256 values rather than computing from IndexedDB.
+    // IndexedDB stores URLs sorted by keyPath, losing original file order,
+    // so a locally computed sha256 would never match the manifest's order-dependent hash.
     return {
       meta: {
         checksum: previous?.checksum ?? "",
         timestamp: Date.now(),
         applicationVersion,
-        sha256,
-        sortedSha256,
+        sha256: manifest.full_list.sha256,
+        sortedSha256: manifest.full_list.sorted_sha256,
       },
       updated: true,
     };
@@ -600,20 +601,35 @@ export class PhishingDataService {
 
     await this.indexedDbService.saveUrlsFromStream(response.body);
 
-    const { sha256, sortedSha256 } = await this.computeLocalHashes();
-
-    if (manifest && sha256 !== manifest.full_list.sha256) {
-      this.logService.warning(
-        `[PhishingDataService] Full download sha256 mismatch — may be timing issue`,
-      );
+    // Verify integrity via sorted_sha256 (order-independent) if manifest is available,
+    // then trust the manifest's sha256 values. IndexedDB loses insertion order so we
+    // cannot compute the order-dependent sha256 locally.
+    if (manifest) {
+      const { sortedSha256 } = await this.computeLocalHashes();
+      if (sortedSha256 !== manifest.full_list.sorted_sha256) {
+        this.logService.warning(
+          `[PhishingDataService] Full download sorted_sha256 mismatch — may be timing issue`,
+        );
+      }
+      return {
+        meta: {
+          checksum: "",
+          timestamp: Date.now(),
+          applicationVersion,
+          sha256: manifest.full_list.sha256,
+          sortedSha256: manifest.full_list.sorted_sha256,
+        },
+        updated: true,
+      };
     }
 
+    // No manifest — store sortedSha256 only; next sync with manifest will establish sha256 baseline
+    const { sortedSha256 } = await this.computeLocalHashes();
     return {
       meta: {
         checksum: "",
         timestamp: Date.now(),
         applicationVersion,
-        sha256,
         sortedSha256,
       },
       updated: true,
@@ -646,11 +662,11 @@ export class PhishingDataService {
 
     await this.indexedDbService.saveUrlsFromStream(response.body);
 
-    const { sha256, sortedSha256 } = await this.computeLocalHashes();
-
-    if (sha256 !== manifest.full_list.sha256) {
+    // Verify integrity via sorted_sha256 (order-independent), then trust manifest values.
+    const { sortedSha256 } = await this.computeLocalHashes();
+    if (sortedSha256 !== manifest.full_list.sorted_sha256) {
       this.logService.warning(
-        `[PhishingDataService] Full download sha256 mismatch: ${sha256.slice(0, 12)}... !== ${manifest.full_list.sha256.slice(0, 12)}...`,
+        `[PhishingDataService] Full download sorted_sha256 mismatch: ${sortedSha256.slice(0, 12)}... !== ${manifest.full_list.sorted_sha256.slice(0, 12)}...`,
       );
     }
 
@@ -659,8 +675,8 @@ export class PhishingDataService {
         checksum: "",
         timestamp: Date.now(),
         applicationVersion,
-        sha256,
-        sortedSha256,
+        sha256: manifest.full_list.sha256,
+        sortedSha256: manifest.full_list.sorted_sha256,
       },
       updated: true,
     };
