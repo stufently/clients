@@ -80,13 +80,16 @@ describe("SessionTimeoutPolicyComponent", () => {
   }
 
   function setPolicyResponseType(type: SessionTimeoutType) {
-    component.policyResponse = new PolicyResponse({
-      Data: {
-        type,
-        minutes: 480,
-        action: null,
-      },
-    });
+    fixture.componentRef.setInput(
+      "policyResponse",
+      new PolicyResponse({
+        Data: {
+          type,
+          minutes: 480,
+          action: null,
+        },
+      }),
+    );
   }
 
   describe("initialization and data loading", () => {
@@ -104,7 +107,7 @@ describe("SessionTimeoutPolicyComponent", () => {
     }
 
     it("should initialize with default state when policy have no value", () => {
-      component.policyResponse = undefined;
+      fixture.componentRef.setInput("policyResponse", undefined);
 
       fixture.detectChanges();
 
@@ -122,12 +125,15 @@ describe("SessionTimeoutPolicyComponent", () => {
 
     // This is for backward compatibility when type field did not exist
     it("should load as custom type when type field does not exist but minutes does", () => {
-      component.policyResponse = new PolicyResponse({
-        Data: {
-          minutes: 500,
-          action: VaultTimeoutAction.Lock,
-        },
-      });
+      fixture.componentRef.setInput(
+        "policyResponse",
+        new PolicyResponse({
+          Data: {
+            minutes: 500,
+            action: VaultTimeoutAction.Lock,
+          },
+        }),
+      );
 
       fixture.detectChanges();
 
@@ -159,13 +165,16 @@ describe("SessionTimeoutPolicyComponent", () => {
       ["custom", VaultTimeoutAction.Lock],
       ["custom", VaultTimeoutAction.LogOut],
     ])("should load correctly when policy type is %s and action is %s", (type, action) => {
-      component.policyResponse = new PolicyResponse({
-        Data: {
-          type,
-          minutes: 510,
-          action,
-        },
-      });
+      fixture.componentRef.setInput(
+        "policyResponse",
+        new PolicyResponse({
+          Data: {
+            type,
+            minutes: 510,
+            action,
+          },
+        }),
+      );
 
       fixture.detectChanges();
 
