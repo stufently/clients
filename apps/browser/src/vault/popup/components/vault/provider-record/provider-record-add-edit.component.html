@@ -1,0 +1,61 @@
+<popup-page [loading]="loading">
+  <popup-header
+    slot="header"
+    [pageTitle]="(isEdit ? 'editProviderRecord' : 'newProviderRecord') | i18n"
+    showBackButton
+  ></popup-header>
+
+  <form [formGroup]="form" class="tw-p-4 tw-flex tw-flex-col tw-gap-4">
+    <bit-form-field>
+      <bit-label>{{ "providerName" | i18n }} *</bit-label>
+      <input
+        bitInput
+        type="text"
+        formControlName="providerName"
+        [placeholder]="'providerNamePlaceholder' | i18n"
+      />
+      <bit-error *ngIf="form.get('providerName')?.hasError('required')">
+        {{ "fieldRequired" | i18n }}
+      </bit-error>
+    </bit-form-field>
+
+    <bit-form-field>
+      <bit-label>{{ "siteName" | i18n }} *</bit-label>
+      <input
+        bitInput
+        type="text"
+        formControlName="siteName"
+        [placeholder]="'siteNamePlaceholder' | i18n"
+      />
+      <bit-error *ngIf="form.get('siteName')?.hasError('required')">
+        {{ "fieldRequired" | i18n }}
+      </bit-error>
+    </bit-form-field>
+
+    <bit-form-field>
+      <bit-label>{{ "email" | i18n }}</bit-label>
+      <input
+        bitInput
+        type="email"
+        formControlName="email"
+        [placeholder]="'emailPlaceholder' | i18n"
+      />
+    </bit-form-field>
+
+    <bit-form-field>
+      <bit-label>{{ "phone" | i18n }}</bit-label>
+      <input
+        bitInput
+        type="text"
+        formControlName="phoneNumber"
+        [placeholder]="'phonePlaceholder' | i18n"
+      />
+    </bit-form-field>
+  </form>
+
+  <popup-footer slot="footer">
+    <button bitButton buttonType="primary" type="button" [bitAction]="save" class="tw-w-full">
+      {{ "save" | i18n }}
+    </button>
+  </popup-footer>
+</popup-page>

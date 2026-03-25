@@ -6190,5 +6190,38 @@
   },
   "downloadFailed": {
     "message": "Failed to download."
+  },
+  "providerRecords": {
+    "message": "Provider Records"
+  },
+  "newProviderRecord": {
+    "message": "New Provider Record"
+  },
+  "editProviderRecord": {
+    "message": "Edit Provider Record"
+  },
+  "providerRecordCreated": {
+    "message": "Provider record created."
+  },
+  "providerRecordUpdated": {
+    "message": "Provider record updated."
+  },
+  "noProviderRecords": {
+    "message": "No provider records found. Add one to get started."
+  },
+  "providerName": {
+    "message": "Provider Name"
+  },
+  "providerNamePlaceholder": {
+    "message": "e.g. Dr. Smith"
+  },
+  "siteName": {
+    "message": "Site Name"
+  },
+  "siteNamePlaceholder": {
+    "message": "e.g. Patient Portal"
+  },
+  "phonePlaceholder": {
+    "message": "e.g. +1 555 000 0000"
   }
 }

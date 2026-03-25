@@ -215,7 +215,7 @@ module.exports.buildConfig = function buildConfig(params) {
   const mainConfig = {
     name: "main",
     mode: ENV,
-    devtool: false,
+    devtool: "inline-source-map",
 
     entry: {
       "popup/polyfills": path.resolve(__dirname, "src/popup/polyfills.ts"),
@@ -439,7 +439,7 @@ module.exports.buildConfig = function buildConfig(params) {
     const backgroundConfig = {
       name: "background",
       mode: ENV,
-      devtool: false,
+      devtool: "inline-source-map",
 
       entry: params.background.entry,
       target: target,

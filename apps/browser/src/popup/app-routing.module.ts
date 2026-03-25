@@ -82,6 +82,8 @@ import { AddEditComponent } from "../vault/popup/components/vault/add-edit/add-e
 import { AssignCollections } from "../vault/popup/components/vault/assign-collections/assign-collections.component";
 import { AttachmentsComponent } from "../vault/popup/components/vault/attachments/attachments.component";
 import { IntroCarouselComponent } from "../vault/popup/components/vault/intro-carousel/intro-carousel.component";
+import { ProviderRecordAddEditComponent } from "../vault/popup/components/vault/provider-record/provider-record-add-edit.component";
+import { ProviderRecordListComponent } from "../vault/popup/components/vault/provider-record/provider-record-list.component";
 import { PasswordHistoryComponent } from "../vault/popup/components/vault/vault-password-history/vault-password-history.component";
 import { VaultComponent } from "../vault/popup/components/vault/vault.component";
 import { ViewComponent } from "../vault/popup/components/vault/view/view.component";
@@ -244,6 +246,18 @@ const routes: Routes = [
       resetRouterCacheOnTabChange: true,
     } satisfies RouteDataProperties,
     runGuardsAndResolvers: "always",
+  },
+  {
+    path: "provider-records",
+    component: ProviderRecordListComponent,
+    canActivate: [authGuard],
+    data: { elevation: 1 } satisfies RouteDataProperties,
+  },
+  {
+    path: "provider-record-add-edit",
+    component: ProviderRecordAddEditComponent,
+    canActivate: [authGuard],
+    data: { elevation: 2 } satisfies RouteDataProperties,
   },
   {
     path: "attachments",
