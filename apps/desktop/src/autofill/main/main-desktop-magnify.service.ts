@@ -117,4 +117,40 @@ export class MainDesktopMagnifyService {
       });
     });
   }
+
+  /**
+   * Relay a command from the Magnify BrowserWindow to the Bitwarden renderer
+   * and wait for a correlated response.
+   */
+  private relayToRenderer(request: MagnifyExternalRequest): Promise<MagnifyResponse> {
+    const correlationId = randomUUID();
+
+    return new Promise<MagnifyResponse>((resolve) => {
+      const responseChannel = `${MAGNIFY_IPC_CHANNELS.COMMAND_RESPONSE}.${correlationId}`;
+
+      const timeout = setTimeout(() => {
+        ipcMain.removeAllListeners(responseChannel);
+        this.logService.warning(
+          `[MainDesktopMagnifyService] Timeout waiting for response to ${request.command}`,
+        );
+        resolve({
+          command: request.command,
+          correlationId,
+          results: [],
+          error: "Timeout waiting for Bitwarden renderer response",
+        });
+      }, RELAY_TIMEOUT_MS);
+
+      ipcMain.once(responseChannel, (_event, response: MagnifyResponse) => {
+        clearTimeout(timeout);
+        resolve(response);
+      });
+
+      this.windowMain.win.webContents.send(MAGNIFY_IPC_CHANNELS.COMMAND_REQUEST, {
+        command: request.command,
+        input: request.input,
+        correlationId,
+      });
+    });
+  }
 }
