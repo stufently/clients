@@ -16,9 +16,9 @@ import { mock } from "jest-mock-extended";
 import { firstValueFrom, of } from "rxjs";
 
 import { ApiService } from "@bitwarden/common/abstractions/api.service";
-import { EventCollectionService } from "@bitwarden/common/abstractions/event/event-collection.service";
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { BillingAccountProfileStateService } from "@bitwarden/common/billing/abstractions";
+import { EventCollectionService } from "@bitwarden/common/dirt/event-logs/abstractions/event-collection.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 import { MessagingService } from "@bitwarden/common/platform/abstractions/messaging.service";
