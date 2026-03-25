@@ -11,6 +11,9 @@
   "favorites": {
     "message": "Favoriler"
   },
+  "unfavorite": {
+    "message": "Favorilerden kaldır"
+  },
   "types": {
     "message": "Türler"
   },
@@ -334,6 +337,22 @@
   "premiumRequiredDesc": {
     "message": "Bu özelliği kullanmak için premium üyelik gereklidir."
   },
+  "syncWithBrowser": {
+    "message": "Tarayıcıyla eşitleyin"
+  },
+  "acquireCookieSpeedbumpContent": {
+    "message": "To connect to $VAULTURL$, you need to sync your default browser with the Bitwarden app. You’ll be redirected back to this app once your browser is synced.",
+    "description": "A speedbump message (dialog) shown when the user needs to sync with the browser to acquire an SSO cookie.",
+    "placeholders": {
+      "vaultUrl": {
+        "content": "$1",
+        "example": "https://vault.bitwarden.com"
+      }
+    }
+  },
+  "launchBrowser": {
+    "message": "Tarayıcıyı aç"
+  },
   "errorOccurred": {
     "message": "Bir hata oluştu."
   },
@@ -585,6 +604,12 @@
   },
   "editedItem": {
     "message": "Kayıt kaydedildi"
+  },
+  "itemAddedToFavorites": {
+    "message": "Kayıt favorilere eklendi"
+  },
+  "itemRemovedFromFavorites": {
+    "message": "Kayıt favorilerden silindi"
   },
   "deleteItem": {
     "message": "Kaydı sil"
@@ -1271,6 +1296,9 @@
   "changeMasterPass": {
     "message": "Ana parolayı değiştir"
   },
+  "masterPasswordChanged": {
+    "message": "Ana parola kaydedildi"
+  },
   "continueToWebApp": {
     "message": "Web uygulamasına devam edilsin mi?"
   },
@@ -1349,17 +1377,11 @@
   "twoStepLogin": {
     "message": "İki aşamalı giriş"
   },
-  "vaultTimeoutHeader": {
-    "message": "Kasa zaman aşımı"
-  },
   "vaultTimeout": {
     "message": "Kasa zaman aşımı"
   },
   "vaultTimeout1": {
     "message": "Zaman aşımı"
-  },
-  "vaultTimeoutAction1": {
-    "message": "Zaman aşımı eylemi"
   },
   "vaultTimeoutDesc": {
     "message": "Kasa zaman aşımı eyleminin ne zaman gerçekleştirileceğini seçin."
@@ -1555,6 +1577,18 @@
   "unknown": {
     "message": "Bilinmiyor"
   },
+  "copyAddress": {
+    "message": "Adresi kopyala"
+  },
+  "copyPhone": {
+    "message": "Telefonu kopyala"
+  },
+  "copyNote": {
+    "message": "Notu kopyala"
+  },
+  "copyVerificationCode": {
+    "message": "Doğrulama kodunu kopyala"
+  },
   "copyUsername": {
     "message": "Kullanıcı adını kopyala"
   },
@@ -1637,6 +1671,21 @@
         "example": "$10"
       }
     }
+  },
+  "month": {
+    "message": "ay"
+  },
+  "monthly": {
+    "message": "Aylık"
+  },
+  "year": {
+    "message": "yıl"
+  },
+  "annually": {
+    "message": "Yıllık"
+  },
+  "annual": {
+    "message": "Yıllık"
   },
   "refreshComplete": {
     "message": "Yenileme tamamlandı"
@@ -2068,9 +2117,6 @@
   "vaultTimeoutActionLogOutDesc": {
     "message": "Çıkış yapılmış bir kasaya tekrardan erişmek için yeniden kimlik doğrulaması gerekir."
   },
-  "unlockMethodNeededToChangeTimeoutActionDesc": {
-    "message": "Kasa zaman aşımı eyleminizi değiştirmek için kilit açma yönteminizi ayarlayın."
-  },
   "lock": {
     "message": "Kilitle",
     "description": "Verb form: to make secure or inaccessible by"
@@ -2081,6 +2127,24 @@
   },
   "searchTrash": {
     "message": "Çöp kutusunda ara"
+  },
+  "searchArchive": {
+    "message": "Arşivde ara"
+  },
+  "searchLogin": {
+    "message": "Hesaplarda ara"
+  },
+  "searchCard": {
+    "message": "Kartlarda ara"
+  },
+  "searchIdentity": {
+    "message": "Kimliklerde ara"
+  },
+  "searchSecureNote": {
+    "message": "Güvenli notlarda ara"
+  },
+  "searchSshKey": {
+    "message": "SSH anahtarlarında ara"
   },
   "permanentlyDeleteItem": {
     "message": "Kaydı kalıcı olarak sil"
@@ -2378,6 +2442,9 @@
     "message": "Send'i düzenle",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
+  "me": {
+    "message": "Ben"
+  },
   "myVault": {
     "message": "Kasam"
   },
@@ -2667,9 +2734,6 @@
   },
   "vaultTimeoutTooLarge": {
     "message": "Kasa zaman aşımınız, kuruluşunuz tarafından belirlenen kısıtlamaları aşıyor."
-  },
-  "vaultTimeoutPolicyAffectingOptions": {
-    "message": "Zaman aşımı ayarlarınıza kurumsal ilke gereksinimleri uygulandı"
   },
   "vaultTimeoutPolicyInEffect": {
     "message": "Kuruluş ilkeleriniz izin verilen maksimum kasa zaman aşımını $HOURS$ saat $MINUTES$ dakika olarak belirlemiş.",
@@ -3703,6 +3767,9 @@
   "exportSuccess": {
     "message": "Kasa verileri dışa aktarıldı"
   },
+  "exportError": {
+    "message": "An error occurred while exporting your vault data"
+  },
   "multifactorAuthenticationCancelled": {
     "message": "Çok faktörlü kimlik doğrulama iptal edildi"
   },
@@ -4085,6 +4152,9 @@
   },
   "missingWebsite": {
     "message": "Web sitesi eksik"
+  },
+  "missingPermissions": {
+    "message": "Bu eylemi gerçekleştirmek için gereken izinlere sahip değilsiniz."
   },
   "cannotRemoveViewOnlyCollections": {
     "message": "Yalnızca Görüntüleme izinlerine sahip koleksiyonları kaldıramazsınız: $COLLECTIONS$",
@@ -4572,8 +4642,8 @@
       }
     }
   },
-  "transferItemsToOrganizationContent": {
-    "message": "$ORGANIZATION$, güvenlik ve mevzuata uyum amacıyla tüm kayıtların kuruluşa ait olmasını zorunlu kılıyor. Kayıtlarınızın sahipliğini devretmek için \"Kabul et\"e tıklayın.",
+  "transferItemsToOrganizationDescription": {
+    "message": "$ORGANIZATION$ is requiring all items to be owned by the organization for security and compliance.",
     "placeholders": {
       "organization": {
         "content": "$1",
@@ -4581,14 +4651,47 @@
       }
     }
   },
+  "transferItemsToOrganizationAction": {
+    "message": "Click accept to transfer ownership of your items."
+  },
+  "openTransferItemsHelpArticle": {
+    "message": "Open help article on transferring items"
+  },
   "acceptTransfer": {
     "message": "Aktarımı kabul et"
   },
   "declineAndLeave": {
     "message": "Reddet ve ayrıl"
   },
-  "whyAmISeeingThis": {
-    "message": "Bunu neden görüyorum?"
+  "organizationIsSuspended": {
+    "message": "Kuruluş askıya alındı"
+  },
+  "organizationIsSuspendedDesc": {
+    "message": "Askıya alınmış kuruluşlardaki kayıtlara erişilemez. Destek almak için kuruluş sahibinizle iletişime geçin."
+  },
+  "noItemsInTrash": {
+    "message": "Çöp kutusunda hiç kayıt yok"
+  },
+  "noItemsInTrashDesc": {
+    "message": "Sildiğiniz kayıtlar burada görünecek ve 30 gün sonra kalıcı olarak silinecektir"
+  },
+  "noItemsInVault": {
+    "message": "Kasada hiç kayıt yok"
+  },
+  "emptyVaultDescription": {
+    "message": "Kasanız sadece parolalarınız için değil. Hesaplarınızı, kimliklerinizi, kredi kartlarınızı ve notlarınızı da güvenle burada depolayabilirsiniz."
+  },
+  "emptyFavorites": {
+    "message": "Henüz hiçbir kaydı favorilere eklemediniz"
+  },
+  "emptyFavoritesDesc": {
+    "message": "Sık kullandığınız kayıtları hızlı erişim için favorilere ekleyin."
+  },
+  "noSearchResults": {
+    "message": "Hiçbir sonuç bulunamadı"
+  },
+  "clearFiltersOrTryAnother": {
+    "message": "Filtreleri temizleyin veya başka bir arama yapmayı deneyin"
   },
   "sendPasswordHelperText": {
     "message": "Bu Send'i görmek isteyen kişilerin parola girmesi gerekecektir",
@@ -4617,9 +4720,6 @@
   },
   "enterMultipleEmailsSeparatedByComma": {
     "message": "E-posta adreslerini virgülle ayırarak yazın."
-  },
-  "emailsRequiredChangeAccessType": {
-    "message": "E-posta doğrulaması için en az bir e-posta adresi gerekir. Tüm e-postaları silmek için yukarıdan erişim türünü değiştirin."
   },
   "emailPlaceholder": {
     "message": "kullanici@bitwarden.com , kullanici@acme.com"

@@ -696,17 +696,11 @@
   "unlockMethods": {
     "message": "אפשרויות ביטול נעילה"
   },
-  "unlockMethodNeededToChangeTimeoutActionDesc": {
-    "message": "הגדר שיטת ביטול נעילה כדי לשנות את פעולת פסק הזמן לכספת שלך."
-  },
   "unlockMethodNeeded": {
     "message": "הגדר שיטת ביטול נעילה בהגדרות"
   },
   "sessionTimeoutHeader": {
     "message": "פסק זמן להפעלה"
-  },
-  "vaultTimeoutHeader": {
-    "message": "פסק זמן לכספת"
   },
   "otherOptions": {
     "message": "אפשרויות אחרות"
@@ -2462,9 +2456,6 @@
   "vaultTimeoutAction": {
     "message": "פעולת פסק זמן לכספת"
   },
-  "vaultTimeoutAction1": {
-    "message": "פעולת פסק זמן"
-  },
   "lock": {
     "message": "נעילה",
     "description": "Verb form: to make secure or inaccessible by"
@@ -3229,9 +3220,6 @@
   },
   "minutes": {
     "message": "דקות"
-  },
-  "vaultTimeoutPolicyAffectingOptions": {
-    "message": "דרישות מדיניות ארגונית הוחלו על אפשרויות פסק הזמן שלך"
   },
   "vaultTimeoutPolicyInEffect": {
     "message": "פוליסות הארגון שלך הגדירו את פסק הזמן לכספת המרבי שלך ל־$HOURS$ שעות ו־$MINUTES$ דקות.",
@@ -4436,6 +4424,9 @@
   "exportSuccess": {
     "message": "נתוני הכספת יוצאו"
   },
+  "exportError": {
+    "message": "An error occurred while exporting your vault data"
+  },
   "typePasskey": {
     "message": "מפתח גישה"
   },
@@ -4864,6 +4855,9 @@
   },
   "copyAddress": {
     "message": "העתק כתובת"
+  },
+  "myItems": {
+    "message": "My Items"
   },
   "adminConsole": {
     "message": "מסוף מנהל"
@@ -6127,8 +6121,8 @@
       }
     }
   },
-  "transferItemsToOrganizationContent": {
-    "message": "$ORGANIZATION$ is requiring all items to be owned by the organization for security and compliance. Click accept to transfer ownership of your items.",
+  "transferItemsToOrganizationDescription": {
+    "message": "$ORGANIZATION$ is requiring all items to be owned by the organization for security and compliance.",
     "placeholders": {
       "organization": {
         "content": "$1",
@@ -6136,20 +6130,32 @@
       }
     }
   },
+  "transferItemsToOrganizationAction": {
+    "message": "Click accept to transfer ownership of your items."
+  },
+  "openTransferItemsHelpArticle": {
+    "message": "Open help article on transferring items"
+  },
   "acceptTransfer": {
     "message": "Accept transfer"
   },
   "declineAndLeave": {
     "message": "Decline and leave"
   },
-  "whyAmISeeingThis": {
-    "message": "Why am I seeing this?"
-  },
   "items": {
     "message": "Items"
   },
   "searchResults": {
     "message": "Search results"
+  },
+  "simplifiedAutofill": {
+    "message": "Simplified autofill"
+  },
+  "simplifiedAutofillDescription": {
+    "message": "When you click a suggested autofill item, it fills rather than taking you to details. You can still view these items from the More menu."
+  },
+  "openSimplifiedAutofillPopover": {
+    "message": "Open simplified autofill popover"
   },
   "resizeSideNavigation": {
     "message": "Resize side navigation"
@@ -6166,9 +6172,6 @@
   "enterMultipleEmailsSeparatedByComma": {
     "message": "Enter multiple emails by separating with a comma."
   },
-  "emailsRequiredChangeAccessType": {
-    "message": "Email verification requires at least one email address. To remove all emails, change the access type above."
-  },
   "emailPlaceholder": {
     "message": "user@bitwarden.com , user@acme.com"
   },
@@ -6184,5 +6187,8 @@
   },
   "userVerificationFailed": {
     "message": "User verification failed."
+  },
+  "downloadFailed": {
+    "message": "Failed to download."
   }
 }

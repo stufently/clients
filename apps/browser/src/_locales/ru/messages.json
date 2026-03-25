@@ -696,17 +696,11 @@
   "unlockMethods": {
     "message": "Настройки разблокировки"
   },
-  "unlockMethodNeededToChangeTimeoutActionDesc": {
-    "message": "Настройте способ разблокировки для изменения действия по тайм-ауту хранилища."
-  },
   "unlockMethodNeeded": {
     "message": "Установите способ разблокировки в настройках"
   },
   "sessionTimeoutHeader": {
     "message": "Тайм-аут сессии"
-  },
-  "vaultTimeoutHeader": {
-    "message": "Тайм-аут хранилища"
   },
   "otherOptions": {
     "message": "Прочие настройки"
@@ -2157,7 +2151,7 @@
     "description": "Header for edit SSH key item type"
   },
   "editItemHeaderTextSend": {
-    "message": "Изменить тестовую Send",
+    "message": "Изменить текстовую Send",
     "description": "Header for edit text send"
   },
   "editItemHeaderFileSend": {
@@ -2461,9 +2455,6 @@
   },
   "vaultTimeoutAction": {
     "message": "Действие по тайм-ауту хранилища"
-  },
-  "vaultTimeoutAction1": {
-    "message": "Тайм-аут действия"
   },
   "lock": {
     "message": "Блокировка",
@@ -3229,9 +3220,6 @@
   },
   "minutes": {
     "message": "Мин."
-  },
-  "vaultTimeoutPolicyAffectingOptions": {
-    "message": "К настройкам тайм-аута были применены требования корпоративной политики"
   },
   "vaultTimeoutPolicyInEffect": {
     "message": "В соответствии с политиками вашей организации максимально допустимый тайм-аут хранилища составляет $HOURS$ час. и $MINUTES$ мин.",
@@ -4436,6 +4424,9 @@
   "exportSuccess": {
     "message": "Данные хранилища экспортированы"
   },
+  "exportError": {
+    "message": "При экспорте данных хранилища произошла ошибка"
+  },
   "typePasskey": {
     "message": "Passkey"
   },
@@ -4864,6 +4855,9 @@
   },
   "copyAddress": {
     "message": "Скопировать адрес"
+  },
+  "myItems": {
+    "message": "Мои элементы"
   },
   "adminConsole": {
     "message": "консоли администратора"
@@ -6127,8 +6121,8 @@
       }
     }
   },
-  "transferItemsToOrganizationContent": {
-    "message": "$ORGANIZATION$ требует, чтобы все элементы принадлежали организации для обеспечения безопасности и соответствия требованиям. Нажмите Принять, чтобы передать собственность на ваши элементы.",
+  "transferItemsToOrganizationDescription": {
+    "message": "$ORGANIZATION$ требует, чтобы все элементы принадлежали организации в целях безопасности и соблюдения нормативных требований.",
     "placeholders": {
       "organization": {
         "content": "$1",
@@ -6136,20 +6130,32 @@
       }
     }
   },
+  "transferItemsToOrganizationAction": {
+    "message": "Нажмите Принять, чтобы передать право собственности на ваши элементы."
+  },
+  "openTransferItemsHelpArticle": {
+    "message": "Открыть статью помощь по передаче элементов"
+  },
   "acceptTransfer": {
     "message": "Принять передачу"
   },
   "declineAndLeave": {
     "message": "Отклонить и покинуть"
   },
-  "whyAmISeeingThis": {
-    "message": "Почему я это вижу?"
-  },
   "items": {
     "message": "Элементы"
   },
   "searchResults": {
     "message": "Результаты поиска"
+  },
+  "simplifiedAutofill": {
+    "message": "Упрощенное автозаполнение"
+  },
+  "simplifiedAutofillDescription": {
+    "message": "При нажатии на предложенный элемент автозаполнения он заполняется, а не перенаправляет вас к деталям. Вы по-прежнему можете просматривать эти элементы в меню Подробнее."
+  },
+  "openSimplifiedAutofillPopover": {
+    "message": "Открыть всплывающее окно упрощенного автозаполнения"
   },
   "resizeSideNavigation": {
     "message": "Изменить размер боковой навигации"
@@ -6166,9 +6172,6 @@
   "enterMultipleEmailsSeparatedByComma": {
     "message": "Введите несколько email, разделяя их запятой."
   },
-  "emailsRequiredChangeAccessType": {
-    "message": "Для проверки электронной почты требуется как минимум один адрес email. Чтобы удалить все адреса электронной почты, измените тип доступа выше."
-  },
   "emailPlaceholder": {
     "message": "user@bitwarden.com , user@acme.com"
   },
@@ -6184,5 +6187,8 @@
   },
   "userVerificationFailed": {
     "message": "Проверка пользователя не удалась."
+  },
+  "downloadFailed": {
+    "message": "Не удалось загрузить."
   }
 }
