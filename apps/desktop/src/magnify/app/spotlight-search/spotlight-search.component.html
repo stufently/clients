@@ -63,7 +63,7 @@
   </div>
 
   <!-- Results list -->
-  <div class="spotlight-results tw-flex-1 tw-overflow-y-auto">
+  <div class="spotlight-results tw-flex-1 tw-min-h-0 tw-overflow-y-auto">
     @for (item of results(); track $index; let i = $index) {
       <div
         class="tw-flex tw-cursor-pointer tw-items-center tw-gap-3 tw-px-4 tw-py-3 tw-transition-colors tw-rounded-lg tw-mx-2 tw-my-0.5"
@@ -118,7 +118,7 @@
   >
     <span class="tw-flex tw-items-center tw-gap-1.5">
       <kbd
-        class="tw-rounded tw-border tw-border-secondary-300 tw-bg-secondary-100 tw-px-1.5 tw-py-0.5 tw-font-mono tw-text-xs"
+        class="tw-rounded tw-border tw-border-secondary-300 tw-bg-secondary-100 tw-px-1.5 tw-py-0.5 tw-font-mono tw-text-xs tw-leading-[normal]"
         >↑↓</kbd
       >
       Navigate
@@ -126,7 +126,7 @@
     <ng-container *ngTemplateOutlet="footerHintsTemplate() ?? null"></ng-container>
     <span class="tw-flex tw-items-center tw-gap-1.5">
       <kbd
-        class="tw-rounded tw-border tw-border-secondary-300 tw-bg-secondary-100 tw-px-1.5 tw-py-0.5 tw-font-mono tw-text-xs"
+        class="tw-rounded tw-border tw-border-secondary-300 tw-bg-secondary-100 tw-px-1.5 tw-py-0.5 tw-font-mono tw-text-xs tw-leading-[normal]"
         >Esc</kbd
       >
       Close
