@@ -1,13 +1,13 @@
 name: Community PR management
 
 on:
-  pull_request:
-    types: [opened]
+  pull_request_target:
+    types: [labeled]
 
 jobs:
   remove-individual-reviewers:
     name: Remove individual reviewers from community PRs
-    if: contains(github.event.pull_request.labels.*.name, 'community-pr')
+    if: github.event.label.name == 'community-pr'
     runs-on: ubuntu-22.04
     permissions:
       pull-requests: write
