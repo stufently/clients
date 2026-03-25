@@ -1,4 +1,4 @@
-import type { Endpoint, OutgoingMessage } from "@bitwarden/sdk-internal";
+import type { OutgoingMessage, Source } from "@bitwarden/sdk-internal";
 
 export interface IpcMessage {
   type: "bitwarden-ipc-message";
@@ -8,7 +8,7 @@ export interface IpcMessage {
 export interface ForwardedIpcMessage {
   type: "forwarded-bitwarden-ipc-message";
   message: SerializedOutgoingMessage;
-  originalSource: Endpoint;
+  originalSource: Source;
 }
 
 export interface SerializedOutgoingMessage extends Omit<

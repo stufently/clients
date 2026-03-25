@@ -16,6 +16,7 @@ import {
   IpcCommunicationBackend,
   ipcRegisterDiscoverHandler,
   OutgoingMessage,
+  Source,
 } from "@bitwarden/sdk-internal";
 
 export class IpcRendererService extends IpcService {
@@ -60,7 +61,7 @@ export class IpcRendererService extends IpcService {
           new IncomingMessage(
             new Uint8Array(message.message.payload),
             message.message.destination,
-            isForwardedIpcMessage(message) ? message.originalSource : "DesktopMain",
+            isForwardedIpcMessage(message) ? message.originalSource : ("DesktopMain" as Source),
             message.message.topic,
           ),
         );

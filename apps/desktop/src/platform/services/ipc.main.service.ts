@@ -15,6 +15,7 @@ import {
   IpcCommunicationBackend,
   ipcRegisterDiscoverHandler,
   OutgoingMessage,
+  Source,
 } from "@bitwarden/sdk-internal";
 
 import { NativeMessagingMain } from "../../main/native-messaging.main";
@@ -94,7 +95,7 @@ export class IpcMainService extends IpcService {
           this.windowMain.win?.webContents.send("ipc.onMessage", {
             type: "forwarded-bitwarden-ipc-message",
             message: ipcMessage.message,
-            originalSource: { BrowserBackground: { id: { Id: nativeMessage.clientId } } },
+            originalSource: { BrowserBackground: { id: { Id: nativeMessage.clientId } } } as Source,
           } satisfies ForwardedIpcMessage);
           return;
         }
@@ -107,7 +108,7 @@ export class IpcMainService extends IpcService {
           new IncomingMessage(
             new Uint8Array(ipcMessage.message.payload),
             ipcMessage.message.destination,
-            { BrowserBackground: { id: { Id: nativeMessage.clientId } } },
+            { BrowserBackground: { id: { Id: nativeMessage.clientId } } } as Source,
             ipcMessage.message.topic,
           ),
         );
@@ -120,7 +121,7 @@ export class IpcMainService extends IpcService {
             new IncomingMessage(
               new Uint8Array(message.message.payload),
               message.message.destination,
-              "DesktopRenderer",
+              "DesktopRenderer" as Source,
               message.message.topic,
             ),
           );
@@ -139,7 +140,7 @@ export class IpcMainService extends IpcService {
               payload: [...message.message.payload],
               topic: message.message.topic,
             },
-            originalSource: "DesktopRenderer",
+            originalSource: "DesktopRenderer" as Source,
           } satisfies ForwardedIpcMessage;
 
           const clientId = extractClientId(message.message.destination.BrowserBackground);

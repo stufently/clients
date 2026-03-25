@@ -30,9 +30,9 @@ describe("IpcSessionRepository", () => {
 
   it("saves and retrieves a web session", async () => {
     const session = { some: "data" };
-    await repository.save({ Web: { id: 9001 } }, session);
+    await repository.save({ Web: { tab_id: 9001, document_id: "doc-abc-123" } }, session);
 
-    const result = await repository.get({ Web: { id: 9001 } });
+    const result = await repository.get({ Web: { tab_id: 9001, document_id: "doc-abc-123" } });
 
     expect(result).toEqual(session);
   });

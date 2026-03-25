@@ -59,7 +59,7 @@ function endpointToString(endpoint: Endpoint): string {
   }
 
   if ("Web" in endpoint) {
-    return `Web(${endpoint.Web.id})`;
+    return `Web(${endpoint.Web.tab_id},${endpoint.Web.document_id})`;
   }
 
   if ("BrowserForeground" in endpoint) {
