@@ -190,7 +190,10 @@ async function initNotificationBar(message: NotificationBarWindowMessage) {
   const resolvedTheme = getResolvedTheme(theme ?? ThemeTypes.Light);
 
   const notificationType = resolveNotificationType(notificationBarIframeInitData);
-  const headerMessage = getNotificationHeaderMessage(i18n, notificationType);
+  let headerMessage = getNotificationHeaderMessage(i18n, notificationType);
+  if (notificationBarIframeInitData.ssoProvider && notificationType === NotificationTypes.Add) {
+    headerMessage = `SSO sign-in detected (${notificationBarIframeInitData.ssoProvider})`;
+  }
   const notificationTestId = getNotificationTestId(notificationType);
   appendHeaderMessageToTitle(headerMessage);
 

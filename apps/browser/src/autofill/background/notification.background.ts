@@ -435,6 +435,61 @@ export default class NotificationBackground {
     }
   }
 
+  /**
+   * Pushes an SSO/OAuth login to the add-login notification queue
+   * so the user is prompted to save it.
+   */
+  async pushSsoLoginToQueue(
+    tab: chrome.tabs.Tab,
+    ssoProvider: string,
+    email: string | undefined,
+    uri: string,
+  ): Promise<void> {
+    this.logService.info(
+      `[OAuthDetection][NotifQueue] pushSsoLoginToQueue called — ` +
+        `tabId=${tab.id}, provider="${ssoProvider}", email="${email}", uri="${uri}"`,
+    );
+
+    this.removeTabFromNotificationQueue(tab);
+    const loginDomain = Utils.getDomain(uri);
+    if (!loginDomain) {
+      this.logService.info(
+        `[OAuthDetection][NotifQueue] ABORTED: could not extract domain from uri="${uri}"`,
+      );
+      return;
+    }
+
+    this.logService.info(`[OAuthDetection][NotifQueue] Domain resolved: "${loginDomain}"`);
+
+    const launchTimestamp = new Date().getTime();
+    const message: AddLoginQueueMessage = {
+      type: NotificationType.AddLogin,
+      data: {
+        username: email ?? "",
+        password: `[SSO: ${ssoProvider}]`,
+        uri,
+        ssoProvider,
+      },
+      domain: loginDomain,
+      tab,
+      launchTimestamp,
+      expires: new Date(launchTimestamp + NOTIFICATION_BAR_LIFESPAN_MS),
+      wasVaultLocked: false,
+    };
+    this.notificationQueue.push(message);
+
+    this.logService.info(
+      `[OAuthDetection][NotifQueue] Queued SSO login notification — ` +
+        `queue length now: ${this.notificationQueue.length}`,
+    );
+
+    await this.checkNotificationQueue(tab);
+
+    this.logService.info(
+      `[OAuthDetection][NotifQueue] checkNotificationQueue completed for tab ${tab.id}`,
+    );
+  }
+
   private cleanupNotificationQueue() {
     for (let i = this.notificationQueue.length - 1; i >= 0; i--) {
       if (this.notificationQueue[i].expires < new Date()) {
@@ -476,6 +531,11 @@ export default class NotificationBackground {
     switch (notificationType) {
       case NotificationType.AddLogin:
         typeData.removeIndividualVault = await this.removeIndividualVault();
+        if (notificationQueueMessage.data && "ssoProvider" in notificationQueueMessage.data) {
+          typeData.ssoProvider = (
+            notificationQueueMessage.data as { ssoProvider?: string }
+          ).ssoProvider;
+        }
         break;
     }
 

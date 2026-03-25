@@ -97,6 +97,7 @@ export class OverlayNotificationsContentService implements OverlayNotificationsC
       removeIndividualVault: typeData.removeIndividualVault,
       importType: typeData.importType,
       launchTimestamp: typeData.launchTimestamp,
+      ssoProvider: typeData.ssoProvider,
       params,
     };
 

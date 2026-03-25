@@ -295,6 +295,7 @@ import { OverlayBackground as OverlayBackgroundInterface } from "../autofill/bac
 import { AutoSubmitLoginBackground } from "../autofill/background/auto-submit-login.background";
 import ContextMenusBackground from "../autofill/background/context-menus.background";
 import NotificationBackground from "../autofill/background/notification.background";
+import { OAuthDetectionBackground } from "../autofill/background/oauth-detection.background";
 import { OverlayNotificationsBackground } from "../autofill/background/overlay-notifications.background";
 import { OverlayBackground } from "../autofill/background/overlay.background";
 import TabsBackground from "../autofill/background/tabs.background";
@@ -510,6 +511,7 @@ export default class MainBackground {
   private idleBackground: IdleBackground;
   private notificationBackground: NotificationBackground;
   private overlayBackground: OverlayBackgroundInterface;
+  private oauthDetectionBackground: OAuthDetectionBackground;
   private overlayNotificationsBackground: OverlayNotificationsBackgroundInterface;
   private runtimeBackground: RuntimeBackground;
   private tabsBackground: TabsBackground;
@@ -1419,6 +1421,11 @@ export default class MainBackground {
       this.fido2Background,
     );
 
+    this.oauthDetectionBackground = new OAuthDetectionBackground(
+      this.logService,
+      this.notificationBackground,
+    );
+
     this.overlayNotificationsBackground = new OverlayNotificationsBackground(
       this.logService,
       this.notificationBackground,
@@ -1618,6 +1625,7 @@ export default class MainBackground {
     await this.runtimeBackground.init();
     await this.notificationBackground.init();
     this.overlayNotificationsBackground.init();
+    this.oauthDetectionBackground.init();
     this.commandsBackground.init();
     this.contextMenusBackground?.init();
     this.idleBackground.init();

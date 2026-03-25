@@ -26,6 +26,7 @@ export type AddLoginNotificationData = {
   username: string;
   password: string;
   uri: string;
+  ssoProvider?: string;
 };
 
 export type ChangePasswordNotificationData = {

@@ -41,6 +41,7 @@ type NotificationBarIframeInitData = {
   launchTimestamp?: number;
   organizations?: OrgView[];
   removeIndividualVault?: boolean;
+  ssoProvider?: string;
   theme?: Theme;
   type?: NotificationType;
   params?: AtRiskPasswordNotificationParams | any;
