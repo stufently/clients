@@ -1,5 +1,5 @@
 import { NO_ERRORS_SCHEMA } from "@angular/core";
-import { ComponentFixture, fakeAsync, TestBed, tick } from "@angular/core/testing";
+import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { ReactiveFormsModule, UntypedFormGroup } from "@angular/forms";
 import { MockProxy, mock } from "jest-mock-extended";
 import { of } from "rxjs";
@@ -148,42 +148,42 @@ describe("MultiStepPolicyEditDialogComponent", () => {
   });
 
   describe("saveDisabled signal", () => {
-    it("is true when the current step's disableSave observable emits true", fakeAsync(() => {
+    // These tests set state directly via setupSteps() and use TestBed.flushEffects() to
+    // propagate signal changes. This avoids detectChanges(), which would trigger the async
+    // ngAfterViewInit and its createComponent() call against the bare (undecorated) test class.
+
+    it("is true when the current step's disableSave observable emits true", () => {
       setupSteps([{ disableSave: of(true) }]);
-      fixture.detectChanges();
-      tick();
+      TestBed.flushEffects();
 
       expect((component as any).saveDisabled()).toBe(true);
-    }));
+    });
 
-    it("is false when step has no disableSave and policyComponent has no data", fakeAsync(() => {
+    it("is false when step has no disableSave and policyComponent has no data", () => {
       policyComponent.data = undefined;
       setupSteps([{}]);
-      fixture.detectChanges();
-      tick();
+      TestBed.flushEffects();
 
       expect((component as any).saveDisabled()).toBe(false);
-    }));
+    });
 
-    it("is false when step has no disableSave and the data form is valid", fakeAsync(() => {
+    it("is false when step has no disableSave and the data form is valid", () => {
       policyComponent.data = new UntypedFormGroup({});
       setupSteps([{}]);
-      fixture.detectChanges();
-      tick();
+      TestBed.flushEffects();
 
       expect((component as any).saveDisabled()).toBe(false);
-    }));
+    });
 
-    it("reflects the new step's disableSave after advancing to the next step", fakeAsync(() => {
+    it("reflects the new step's disableSave after advancing to the next step", () => {
+      policyComponent.data = undefined;
       setupSteps([{}, { disableSave: of(true) }]);
-      fixture.detectChanges();
-      tick();
+      TestBed.flushEffects();
 
       component.currentStep.set(1);
-      fixture.detectChanges();
-      tick();
+      TestBed.flushEffects();
 
       expect((component as any).saveDisabled()).toBe(true);
-    }));
+    });
   });
 });
