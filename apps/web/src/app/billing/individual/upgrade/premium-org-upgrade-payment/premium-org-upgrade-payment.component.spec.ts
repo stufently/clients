@@ -386,8 +386,34 @@ describe("PremiumOrgUpgradePaymentComponent", () => {
       });
     });
 
-    it("should show an error toast and not upgrade when existing payment method is a bank account", async () => {
-      component["paymentMethod"].set({ type: "bankAccount" } as any);
+    it("should show an error toast and not upgrade when existing payment method is an unverified bank account", async () => {
+      component["paymentMethod"].set({
+        type: "bankAccount",
+        bankName: "Chase",
+        last4: "1234",
+        hostedVerificationUrl: "https://stripe.com/verify",
+      } as any);
+      mockPremiumOrgUpgradeService.isUnverifiedBankAccount.mockReturnValue(true);
+
+      component["formGroup"].patchValue({ organizationName: "My New Org" });
+
+      await component["submit"]();
+
+      expect(mockPremiumOrgUpgradeService.isUnverifiedBankAccount).toHaveBeenCalled();
+      expect(mockPremiumOrgUpgradeService.upgradeToOrganization).not.toHaveBeenCalled();
+      expect(mockToastService.showToast).toHaveBeenCalledWith({
+        variant: "error",
+        message: "unverifiedBankAccountNotSupportedForUpgrade",
+      });
+    });
+
+    it("should not show toast and proceed with upgrade when existing payment method is a verified bank account", async () => {
+      component["paymentMethod"].set({
+        type: "bankAccount",
+        bankName: "Chase",
+        last4: "1234",
+      } as any);
+      mockPremiumOrgUpgradeService.isUnverifiedBankAccount.mockReturnValue(false);
 
       component["formGroup"].setValue({
         organizationName: "My New Org",
@@ -412,20 +438,13 @@ describe("PremiumOrgUpgradePaymentComponent", () => {
         },
       });
 
-      const bankAccountError = new Error(
-        "Bank account payment method is not supported for this upgrade",
-      );
-      mockPremiumOrgUpgradeService.upgradeToOrganization.mockRejectedValue(bankAccountError);
-      mockPremiumOrgUpgradeService.isBankAccountNotSupportedError.mockReturnValue(true);
-
       await component["submit"]();
 
-      expect(mockPremiumOrgUpgradeService.isBankAccountNotSupportedError).toHaveBeenCalledWith(
-        bankAccountError,
-      );
-      expect(mockToastService.showToast).toHaveBeenCalledWith({
+      expect(mockPremiumOrgUpgradeService.isUnverifiedBankAccount).toHaveBeenCalled();
+      expect(mockPremiumOrgUpgradeService.upgradeToOrganization).toHaveBeenCalled();
+      expect(mockToastService.showToast).not.toHaveBeenCalledWith({
         variant: "error",
-        message: "bankAccountNotSupportedForUpgrade",
+        message: "unverifiedBankAccountNotSupportedForUpgrade",
       });
     });
 
