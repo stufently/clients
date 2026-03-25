@@ -1056,7 +1056,8 @@ export default class NotificationBackground {
         ([inputScenarios.password, inputScenarios.newPassword] as InputScenario[]).includes(
           inputScenario,
         ) &&
-        changePasswordNotificationIsEnabled
+        changePasswordNotificationIsEnabled &&
+        ciphersForURL.length > 0
       ) {
         await this.pushChangePasswordToQueue(
           ciphersForURL.map((c) => c.id),

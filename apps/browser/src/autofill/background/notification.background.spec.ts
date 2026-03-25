@@ -1918,6 +1918,16 @@ describe("NotificationBackground", () => {
           expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
           expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
         });
+
+        it("and no ciphers are saved for the URL, do not trigger a notification", async () => {
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce([]);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        });
       });
 
       describe("when `username` and `password` fields are filled, ", () => {
@@ -2241,6 +2251,16 @@ describe("NotificationBackground", () => {
           activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
           getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
           getEnableChangedPasswordPromptSpy.mockReturnValueOnce(false);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+        });
+
+        it("and no ciphers are saved for the URL, do not trigger a notification", async () => {
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValueOnce([]);
 
           await notificationBackground.triggerCipherNotification(formEntryData, tab);
 
