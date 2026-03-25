@@ -9,6 +9,7 @@ const COPY_FEEDBACK_MS = 2000;
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [],
+  host: { class: "tw-contents" },
 })
 export class UsernamePasswordResultItemComponent {
   readonly item = input.required<MagnifyCipherResult>();
