@@ -1,3 +1,16 @@
+import AutofillPageDetails from "../models/autofill-page-details";
+
+/**
+ * Response returned by the content script after collecting page details for triage.
+ */
+export interface AutofillTriageResponse {
+  pageDetails: AutofillPageDetails;
+  /**
+   * The htmlID or htmlName of the right-clicked field, if resolvable.
+   */
+  targetFieldRef?: string;
+}
+
 /**
  * Represents the result of a single condition check during field triage.
  */
@@ -11,6 +24,36 @@ export interface AutofillTriageConditionResult {
    * Whether this condition passed (true) or failed (false).
    */
   passed: boolean;
+}
+
+/**
+ * Triage results for all fields on a page, assembled by the background after collecting page details.
+ */
+export interface AutofillTriagePageResult {
+  /**
+   * The browser tab ID this result was collected from.
+   */
+  tabId: number;
+
+  /**
+   * The URL of the page that was analyzed.
+   */
+  pageUrl: string;
+
+  /**
+   * ISO timestamp of when the triage was performed.
+   */
+  analyzedAt: string;
+
+  /**
+   * The htmlID or htmlName of the field that was right-clicked, if scope is a single field.
+   */
+  targetElementRef?: string;
+
+  /**
+   * Triage results for each analyzed field.
+   */
+  fields: AutofillTriageFieldResult[];
 }
 
 /**
