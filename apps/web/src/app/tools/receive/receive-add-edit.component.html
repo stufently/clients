@@ -1,0 +1,20 @@
+<bit-dialog dialogSize="large">
+  <ng-container bitDialogTitle>{{ "newReceive" | i18n }}</ng-container>
+  <ng-container bitDialogContent>
+    <bit-form-field>
+      <bit-label>{{ "name" | i18n }}</bit-label>
+      <input bitInput type="text" [(ngModel)]="name" />
+    </bit-form-field>
+    <bit-form-field>
+      <bit-label>{{ "expirationDays" | i18n }}</bit-label>
+      <input bitInput type="number" [(ngModel)]="expirationDays" />
+      <bit-hint>{{ "expirationDaysDescV2" | i18n }}</bit-hint>
+    </bit-form-field>
+  </ng-container>
+  <ng-container bitDialogFooter>
+    <button type="button" bitButton buttonType="primary">{{ "generateLink" | i18n }}</button>
+    <button type="button" bitButton buttonType="secondary" bitDialogClose>
+      {{ "cancel" | i18n }}
+    </button>
+  </ng-container>
+</bit-dialog>
