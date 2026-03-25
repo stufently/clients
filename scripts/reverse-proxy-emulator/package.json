@@ -1,3 +1,4 @@
 {
+  "name": "@bitwarden/reverse-proxy-emulator",
   "type": "module"
 }
