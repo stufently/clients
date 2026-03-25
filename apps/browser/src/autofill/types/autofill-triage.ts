@@ -11,12 +11,6 @@ export interface AutofillTriageConditionResult {
    * Whether this condition passed (true) or failed (false).
    */
   passed: boolean;
-
-  /**
-   * Optional nested sub-conditions that contributed to this result.
-   * Allows for hierarchical visibility into complex checks.
-   */
-  subConditions: AutofillTriageConditionResult[];
 }
 
 /**
