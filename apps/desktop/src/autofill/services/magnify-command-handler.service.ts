@@ -6,13 +6,17 @@ import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/pl
 import { UserId } from "@bitwarden/common/types/guid";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
 import { SearchService } from "@bitwarden/common/vault/abstractions/search.service";
+import { CipherView } from "@bitwarden/common/vault/models/view/cipher.view";
 import { LogService } from "@bitwarden/logging";
 
 import {
+  CopyVaultItemFieldInput,
   MagnifyCommand,
-  MagnifyCipherResult,
   MagnifyRequest,
   MagnifyResponse,
+  MagnifyVaultItemResult,
+  VaultItemField,
+  VaultSearchInput,
 } from "../models/magnify-command";
 
 const MAX_SEARCH_RESULTS = 5;
@@ -50,11 +54,11 @@ export class MagnifyCommandHandlerService {
 
   private async handleCommand(request: MagnifyRequest): Promise<void> {
     switch (request.command) {
-      case MagnifyCommand.CipherSearch:
-        await this.handleCipherSearch(request);
+      case MagnifyCommand.VaultSearch:
+        await this.handleVaultSearch(request.input as VaultSearchInput, request);
         break;
-      case MagnifyCommand.CipherPasswordCopy:
-        await this.handleCipherPasswordCopy(request);
+      case MagnifyCommand.CopyVaultItemField:
+        await this.handleCopyVaultItemField(request.input as CopyVaultItemFieldInput, request);
         break;
       default:
         this.sendResponse({
@@ -66,7 +70,7 @@ export class MagnifyCommandHandlerService {
     }
   }
 
-  private async handleCipherSearch(request: MagnifyRequest): Promise<void> {
+  private async handleVaultSearch(input: VaultSearchInput, request: MagnifyRequest): Promise<void> {
     const userId = await this.getActiveUserId();
     if (userId == null) {
       this.sendResponse({
@@ -79,9 +83,13 @@ export class MagnifyCommandHandlerService {
     }
 
     const allCiphers = await this.cipherService.getAllDecrypted(userId);
-    const matched = await this.searchService.searchCiphers(userId, request.input, null, allCiphers);
 
-    const results: MagnifyCipherResult[] = matched.slice(0, MAX_SEARCH_RESULTS).map((c) => ({
+    const filter =
+      input.cipherTypes?.length > 0 ? (c: CipherView) => input.cipherTypes.includes(c.type) : null;
+
+    const matched = await this.searchService.searchCiphers(userId, input.query, filter, allCiphers);
+
+    const results: MagnifyVaultItemResult[] = matched.slice(0, MAX_SEARCH_RESULTS).map((c) => ({
       id: c.id,
       name: c.name,
       username: c.login?.username,
@@ -95,7 +103,10 @@ export class MagnifyCommandHandlerService {
     });
   }
 
-  private async handleCipherPasswordCopy(request: MagnifyRequest): Promise<void> {
+  private async handleCopyVaultItemField(
+    input: CopyVaultItemFieldInput,
+    request: MagnifyRequest,
+  ): Promise<void> {
     const userId = await this.getActiveUserId();
     if (userId == null) {
       this.sendResponse({
@@ -108,27 +119,56 @@ export class MagnifyCommandHandlerService {
     }
 
     const allCiphers = await this.cipherService.getAllDecrypted(userId);
-    const cipher = allCiphers.find((c) => c.id === request.input);
+    const cipher = allCiphers.find((c) => c.id === input.vaultItemId);
 
     if (cipher == null) {
       this.sendResponse({
         command: request.command,
         correlationId: request.correlationId,
         results: [],
-        error: "Cipher not found",
+        error: "Vault item not found",
       });
       return;
     }
 
-    // Copy password to clipboard from within the Bitwarden renderer.
-    // The password never crosses IPC to the Magnify window.
-    this.platformUtilsService.copyToClipboard(cipher.login?.password ?? "");
+    const fieldValue = this.resolveField(cipher, input.field);
+
+    if (fieldValue == null) {
+      this.sendResponse({
+        command: request.command,
+        correlationId: request.correlationId,
+        results: [],
+        error: `Field "${input.field}" is not available on this vault item`,
+      });
+      return;
+    }
+
+    // Copy to clipboard from within the Bitwarden renderer.
+    // The decrypted value never crosses IPC to the Magnify window.
+    this.platformUtilsService.copyToClipboard(fieldValue);
 
     this.sendResponse({
       command: request.command,
       correlationId: request.correlationId,
       results: [{ id: cipher.id, name: cipher.name }],
     });
+  }
+
+  private resolveField(cipher: CipherView, field: VaultItemField): string | undefined {
+    switch (field) {
+      case VaultItemField.Password:
+        return cipher.login?.password;
+      case VaultItemField.Username:
+        return cipher.login?.username;
+      case VaultItemField.Totp:
+        return cipher.login?.totp;
+      case VaultItemField.CardNumber:
+        return cipher.card?.number;
+      case VaultItemField.CardCode:
+        return cipher.card?.code;
+      default:
+        return undefined;
+    }
   }
 
   private async getActiveUserId(): Promise<UserId | null> {
