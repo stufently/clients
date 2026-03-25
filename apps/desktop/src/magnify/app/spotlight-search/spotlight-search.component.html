@@ -1,10 +1,4 @@
-<div
-  class="tw-flex tw-h-screen tw-flex-col"
-  [class.tw-bg-background]="!isMac"
-  [class.tw-ring-1]="!isMac"
-  [class.tw-ring-secondary-300]="!isMac"
-  (keydown)="onKeydown($event)"
->
+<div (keydown)="onKeydown($event)">
   <!-- Search header -->
   <div
     #searchHeader
@@ -72,15 +66,14 @@
   <div class="spotlight-results tw-flex-1 tw-overflow-y-auto">
     @for (item of results(); track $index; let i = $index) {
       <div
-        class="tw-flex tw-cursor-pointer tw-items-center tw-gap-3 tw-px-4 tw-py-3 tw-transition-colors"
+        class="tw-flex tw-cursor-pointer tw-items-center tw-gap-3 tw-px-4 tw-py-3 tw-transition-colors tw-rounded-lg tw-mx-2 tw-my-0.5"
         [class.tw-border-b]="!isMac"
         [class.tw-border-secondary-100]="!isMac"
         [class.tw-ring-2]="i === selectedIndex()"
         [class.tw-ring-primary-600]="i === selectedIndex()"
         [class.tw-bg-primary-50]="i === selectedIndex()"
-        [class.tw-rounded-lg]="isMac"
-        [class.tw-mx-2]="isMac"
-        [class.tw-my-0.5]="isMac"
+        [class.hover:tw-ring-1]="i !== selectedIndex()"
+        [class.hover:tw-ring-secondary-300]="i !== selectedIndex()"
         (mouseenter)="setSelectedIndex(i)"
         (click)="setSelectedIndex(i)"
         role="option"

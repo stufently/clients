@@ -42,6 +42,12 @@ const DEBOUNCE_MS = 150;
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
+  host: {
+    class: "tw-flex tw-h-screen tw-flex-col",
+    "[class.tw-bg-background]": "!isMac",
+    "[class.tw-ring-1]": "!isMac",
+    "[class.tw-ring-secondary-300]": "!isMac",
+  },
   styles: [
     `
       .spotlight-results::-webkit-scrollbar {
