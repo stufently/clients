@@ -47,7 +47,7 @@ const DEBOUNCE_MS = 150;
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   host: {
-    class: "tw-flex tw-h-screen tw-flex-col",
+    class: "tw-flex tw-h-full tw-flex-col",
     "[class.tw-bg-background]": "!isMac",
     "[class.tw-ring-1]": "!isMac",
     "[class.tw-ring-secondary-300]": "!isMac",
