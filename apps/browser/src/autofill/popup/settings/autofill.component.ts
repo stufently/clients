@@ -23,7 +23,6 @@ import {
 
 import { JslibModule } from "@bitwarden/angular/jslib.module";
 import { NudgesService, NudgeType } from "@bitwarden/angular/vault";
-import { SpotlightComponent } from "@bitwarden/angular/vault/components/spotlight/spotlight.component";
 import { PolicyService } from "@bitwarden/common/admin-console/abstractions/policy/policy.service.abstraction";
 import { Account, AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { getUserId } from "@bitwarden/common/auth/services/account.service";
@@ -68,6 +67,8 @@ import {
   SectionHeaderComponent,
   SelectModule,
   TypographyModule,
+  CalloutModule,
+  ButtonModule,
 } from "@bitwarden/components";
 import { AdvancedUriOptionDialogComponent } from "@bitwarden/vault";
 
@@ -102,7 +103,8 @@ import { PopupPageComponent } from "../../../platform/popup/layout/popup-page.co
     SelectModule,
     TypographyModule,
     ReactiveFormsModule,
-    SpotlightComponent,
+    CalloutModule,
+    ButtonModule,
   ],
 })
 export class AutofillComponent implements OnInit {
@@ -372,13 +374,6 @@ export class AutofillComponent implements OnInit {
       // Mark as dismissed in storage (so it won't show on future visits)
       await this.autofillSettingsService.setClipboardSettingUpdatedNotificationDismissed(true);
     }
-  }
-
-  get spotlightButtonIcon() {
-    if (this.browserClientVendor === BrowserClientVendors.Unknown) {
-      return "bwi-external-link";
-    }
-    return null;
   }
 
   get browserClientVendorExtended() {
