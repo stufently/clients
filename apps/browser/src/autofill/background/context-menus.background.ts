@@ -44,6 +44,7 @@ export default class ContextMenusBackground {
         // the autofill triage popout component calls this to fetch the triage result
         if (msg.command === "getAutofillTriageResult") {
           sendResponse(this.contextMenuClickedHandler.latestTriageResult ?? null);
+          return true;
         }
       },
     );
