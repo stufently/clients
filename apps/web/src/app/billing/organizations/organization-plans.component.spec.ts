@@ -2341,10 +2341,10 @@ describe("OrganizationPlansComponent", () => {
         });
       });
 
-      it("should show an error toast when the service rejects a bank account payment method", async () => {
+      it("should show an error toast when the service rejects an unverified bank account payment method", async () => {
         organizationsSubject.next([{ id: newOrgId, name: newOrgName, isOwner: true } as any]);
         const bankAccountError = new Error(
-          "Bank account payment method is not supported for this upgrade",
+          "Unverified bank account payment method is not supported for this upgrade",
         );
         mockPremiumOrgUpgradeService.upgradeToOrganization.mockRejectedValue(bankAccountError);
         mockPremiumOrgUpgradeService.isBankAccountNotSupportedError.mockReturnValue(true);
@@ -2356,7 +2356,7 @@ describe("OrganizationPlansComponent", () => {
         );
         expect(mockToastService.showToast).toHaveBeenCalledWith({
           variant: "error",
-          message: "bankAccountNotSupportedForUpgrade",
+          message: "unverifiedBankAccountNotSupportedForUpgrade",
         });
       });
 

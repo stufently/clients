@@ -19,7 +19,7 @@ import { SubscriberBillingClient } from "../../../../clients/subscriber-billing.
 import { BillingAddress } from "../../../../payment/types";
 
 import {
-  BANK_ACCOUNT_NOT_SUPPORTED_MESSAGE,
+  UNVERIFIED_BANK_ACCOUNT_MESSAGE,
   PremiumOrgUpgradePlanDetails,
   PremiumOrgUpgradeService,
 } from "./premium-org-upgrade.service";
@@ -391,8 +391,8 @@ describe("PremiumOrgUpgradeService", () => {
   });
 
   describe("isBankAccountNotSupportedError", () => {
-    it("should return true when error is a bank account not supported error", () => {
-      const error = new Error(BANK_ACCOUNT_NOT_SUPPORTED_MESSAGE);
+    it("should return true when error is an unverified bank account not supported error", () => {
+      const error = new Error(UNVERIFIED_BANK_ACCOUNT_MESSAGE);
 
       expect(service.isBankAccountNotSupportedError(error)).toBe(true);
     });

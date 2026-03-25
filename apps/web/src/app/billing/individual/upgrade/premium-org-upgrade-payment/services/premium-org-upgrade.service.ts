@@ -25,10 +25,14 @@ import {
   PreviewInvoiceClient,
   SubscriberBillingClient,
 } from "../../../../clients";
-import { BillingAddress, TokenizablePaymentMethods } from "../../../../payment/types";
+import {
+  BillingAddress,
+  MaskedPaymentMethod,
+  TokenizablePaymentMethods,
+} from "../../../../payment/types";
 
-export const BANK_ACCOUNT_NOT_SUPPORTED_MESSAGE =
-  "Bank account payment method is not supported for this upgrade";
+export const UNVERIFIED_BANK_ACCOUNT_MESSAGE =
+  "Unverified bank account payment method is not supported for this upgrade";
 
 export type PremiumOrgUpgradePlanDetails = {
   tier: PersonalSubscriptionPricingTierId | BusinessSubscriptionPricingTierId;

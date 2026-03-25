@@ -13154,7 +13154,7 @@
       }
     }
   },
-  "bankAccountNotSupportedForUpgrade": {
-    "message": "Bank accounts are not supported for this upgrade. Please change your payment method to a card or PayPal to continue."
+  "unverifiedBankAccountNotSupportedForUpgrade": {
+    "message": "Your bank account needs to be verified before it can be used for this upgrade. Please verify your bank account or choose a different payment method."
   }
 }
