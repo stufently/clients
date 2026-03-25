@@ -1,6 +1,6 @@
 import { RouterTestingModule } from "@angular/router/testing";
 import { StoryObj, Meta, moduleMetadata, applicationConfig } from "@storybook/angular";
-import { expect } from "storybook/test";
+import { expect, waitFor } from "storybook/test";
 
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { GlobalStateProvider } from "@bitwarden/state";
@@ -67,20 +67,21 @@ export const Hover: Story = {
       `,
   }),
   play: async ({ canvas }) => {
-    const navItemContainer = await canvas.findByTestId("nav-item-container");
-    const navItemEl = await canvas.findByTestId("nav-item-interactive");
+    await waitFor(async () => {
+      await expect(canvas.getByTestId("nav-item-container")).toBeInTheDocument();
 
-    if (!navItemContainer || !navItemEl) {
-      // eslint-disable-next-line
-      console.error("Can't find nav item elements needed for hover test");
-      return;
-    }
+      const navItemContainer = await canvas.findByTestId("nav-item-container");
 
-    navItemContainer.classList.add("tw-test-hover");
-    navItemEl.classList.add("tw-test-hover");
+      if (!navItemContainer) {
+        // eslint-disable-next-line
+        console.error("Can't find nav item elements needed for hover test");
+        return;
+      }
 
-    await expect(navItemContainer.classList).toContain("tw-test-hover");
-    await expect(navItemEl.classList).toContain("tw-test-hover");
+      navItemContainer.classList.add("tw-test-hover");
+
+      await expect(navItemContainer.classList).toContain("tw-test-hover");
+    });
   },
   parameters: {
     chromatic: {
@@ -99,11 +100,15 @@ export const Focus: Story = {
       `,
   }),
   play: async ({ canvas }) => {
-    const navItemEl = await canvas.findByTestId("nav-item-interactive");
+    await waitFor(async () => {
+      await expect(canvas.getByTestId("nav-item-interactive")).toBeInTheDocument();
 
-    navItemEl.focus();
+      const navItemEl = await canvas.findByTestId("nav-item-interactive");
 
-    await expect(navItemEl).toHaveFocus();
+      navItemEl.focus();
+
+      await expect(navItemEl).toHaveFocus();
+    });
   },
   parameters: {
     chromatic: {
@@ -122,20 +127,21 @@ export const ActiveHover: Story = {
       `,
   }),
   play: async ({ canvas }) => {
-    const navItemContainer = await canvas.findByTestId("nav-item-container");
-    const navItemEl = await canvas.findByTestId("nav-item-interactive");
+    await waitFor(async () => {
+      await expect(canvas.getByTestId("nav-item-container")).toBeInTheDocument();
 
-    if (!navItemContainer || !navItemEl) {
-      // eslint-disable-next-line
-      console.error("Can't find nav item elements needed for hover test");
-      return;
-    }
+      const navItemContainer = await canvas.findByTestId("nav-item-container");
 
-    navItemContainer.classList.add("tw-test-hover");
-    navItemEl.classList.add("tw-test-hover");
+      if (!navItemContainer) {
+        // eslint-disable-next-line
+        console.error("Can't find nav item elements needed for hover test");
+        return;
+      }
 
-    await expect(navItemContainer.classList).toContain("tw-test-hover");
-    await expect(navItemEl.classList).toContain("tw-test-hover");
+      navItemContainer.classList.add("tw-test-hover");
+
+      await expect(navItemContainer.classList).toContain("tw-test-hover");
+    });
   },
   parameters: {
     chromatic: {
@@ -154,11 +160,15 @@ export const ActiveFocus: Story = {
       `,
   }),
   play: async ({ canvas }) => {
-    const navItemEl = await canvas.findByTestId("nav-item-interactive");
+    await waitFor(async () => {
+      await expect(canvas.getByTestId("nav-item-interactive")).toBeInTheDocument();
 
-    navItemEl.focus();
+      const navItemEl = await canvas.findByTestId("nav-item-interactive");
 
-    await expect(navItemEl).toHaveFocus();
+      navItemEl.focus();
+
+      await expect(navItemEl).toHaveFocus();
+    });
   },
   parameters: {
     chromatic: {
