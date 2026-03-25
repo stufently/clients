@@ -79,12 +79,15 @@
         role="option"
         [attr.aria-selected]="i === selectedIndex()"
       >
-        <ng-container
-          *ngTemplateOutlet="
-            resultItemTemplate();
-            context: { $implicit: item, index: i, isSelected: i === selectedIndex() }
-          "
-        ></ng-container>
+        @switch (type()) {
+          @case (MagnifySpotlightSearchType.UsernamePassword) {
+            <username-password-result-item
+              [item]="$any(item)"
+              [index]="i"
+              [isSelected]="i === selectedIndex()"
+            />
+          }
+        }
       </div>
     }
 

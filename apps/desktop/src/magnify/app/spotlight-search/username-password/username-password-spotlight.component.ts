@@ -1,8 +1,7 @@
 import { CommonModule } from "@angular/common";
 import { ChangeDetectionStrategy, Component, OnInit, signal } from "@angular/core";
 
-import { BitIconButtonComponent, ButtonModule } from "@bitwarden/components";
-
+import { MagnifySpotlightSearchType } from "../../../constants";
 import { SpotlightItemAction, SpotlightSearchComponent } from "../spotlight-search.component";
 
 const MAX_RESULTS = 7;
@@ -12,9 +11,11 @@ const MAX_RESULTS = 7;
   templateUrl: "username-password-spotlight.component.html",
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, SpotlightSearchComponent, BitIconButtonComponent, ButtonModule],
+  imports: [CommonModule, SpotlightSearchComponent],
 })
 export class UsernamePasswordSpotlightComponent implements OnInit {
+  readonly type = MagnifySpotlightSearchType.UsernamePassword;
+
   protected readonly isMac = magnifyIpc.platform === "darwin";
   protected readonly results = signal<MagnifyCipherResult[]>([]);
   protected readonly maxResults = MAX_RESULTS;

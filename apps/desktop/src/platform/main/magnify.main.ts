@@ -114,6 +114,10 @@ export class MagnifyMain {
 
     void win.loadURL(magnifyUrl);
 
+    if (isDev()) {
+      win.webContents.openDevTools({ mode: "detach" });
+    }
+
     return win;
   }
 }

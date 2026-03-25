@@ -21,6 +21,10 @@ import { debounceTime, distinctUntilChanged, startWith } from "rxjs";
 
 import { InputModule } from "@bitwarden/components";
 
+import { MagnifySpotlightSearchType } from "../../constants";
+
+import { UsernamePasswordResultItemComponent } from "./username-password/username-password-result-item.component";
+
 export interface SpotlightItemAction {
   event: KeyboardEvent;
   item: unknown;
@@ -58,11 +62,13 @@ const DEBOUNCE_MS = 150;
       }
     `,
   ],
-  imports: [CommonModule, ReactiveFormsModule, InputModule],
+  imports: [CommonModule, ReactiveFormsModule, InputModule, UsernamePasswordResultItemComponent],
 })
 export class SpotlightSearchComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly searchHeaderRef = viewChild<ElementRef<HTMLElement>>("searchHeader");
+
+  readonly type = input<string>(MagnifySpotlightSearchType.UsernamePassword);
 
   readonly placeholder = input("Search…");
   readonly results = input<unknown[]>([]);
@@ -70,10 +76,9 @@ export class SpotlightSearchComponent implements OnInit {
   readonly queryChange = output<string>();
   readonly itemAction = output<SpotlightItemAction>();
 
-  readonly resultItemTemplate =
-    contentChild.required<TemplateRef<SpotlightItemContext>>("resultItem");
   readonly footerHintsTemplate = contentChild<TemplateRef<void>>("footerHints");
 
+  protected readonly MagnifySpotlightSearchType = MagnifySpotlightSearchType;
   protected readonly isMac = magnifyIpc.platform === "darwin";
   protected readonly searchControl = new FormControl("", { nonNullable: true });
   protected readonly selectedIndex = signal(0);
