@@ -9,11 +9,11 @@ export const AUTOTYPE_IPC_CHANNELS = {
 } as const;
 
 export const MAGNIFY_IPC_CHANNELS = {
-  //INIT: "autofill.initMagnify",
-  //INITIALIZED: "autofill.magnifyIsInitialized",
   TOGGLE: "autofill.toggleMagnify",
-  //CONFIGURE: "autofill.configureMagnify",
-  //LISTEN: "autofill.listenMagnifyRequest",
-  //EXECUTION_ERROR: "autofill.magnifyExecutionError",
-  //OPEN: "autofill.openMagnify",
+  /** Magnify renderer → Main process (invoke/handle) */
+  COMMAND: "autofill.magnifyCommand",
+  /** Main process → Bitwarden renderer (send) */
+  COMMAND_REQUEST: "autofill.magnifyCommandRequest",
+  /** Bitwarden renderer → Main process (send, with correlationId suffix) */
+  COMMAND_RESPONSE: "autofill.magnifyCommandResponse",
 } as const;

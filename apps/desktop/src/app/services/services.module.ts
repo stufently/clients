@@ -116,6 +116,7 @@ import {
 import { SyncService } from "@bitwarden/common/platform/sync";
 import { CipherService as CipherServiceAbstraction } from "@bitwarden/common/vault/abstractions/cipher.service";
 import { FolderService } from "@bitwarden/common/vault/abstractions/folder/folder.service.abstraction";
+import { SearchService as SearchServiceAbstraction } from "@bitwarden/common/vault/abstractions/search.service";
 import { DialogService, ToastService } from "@bitwarden/components";
 import { GeneratorServicesModule } from "@bitwarden/generator-components";
 import { PasswordGenerationServiceAbstraction } from "@bitwarden/generator-legacy";
@@ -152,6 +153,7 @@ import { DesktopAutotypeDefaultSettingPolicy } from "../../autofill/services/des
 import { DesktopAutotypeService } from "../../autofill/services/desktop-autotype.service";
 import { DesktopFido2UserInterfaceService } from "../../autofill/services/desktop-fido2-user-interface.service";
 import { DesktopMagnifyService } from "../../autofill/services/desktop-magnify.service";
+import { MagnifyCommandHandlerService } from "../../autofill/services/magnify-command-handler.service";
 import { DesktopBiometricsService } from "../../key-management/biometrics/desktop.biometrics.service";
 import { RendererBiometricsService } from "../../key-management/biometrics/renderer-biometrics.service";
 import { ElectronKeyService } from "../../key-management/electron-key.service";
@@ -539,6 +541,17 @@ const safeProviders: SafeProvider[] = [
   safeProvider({
     provide: DesktopMagnifyService,
     deps: [ActiveUserStateProvider],
+  }),
+  safeProvider({
+    provide: MagnifyCommandHandlerService,
+    useClass: MagnifyCommandHandlerService,
+    deps: [
+      SearchServiceAbstraction,
+      CipherServiceAbstraction,
+      AccountService,
+      PlatformUtilsServiceAbstraction,
+      LogService,
+    ],
   }),
   safeProvider({
     provide: DesktopAutotypeDefaultSettingPolicy,

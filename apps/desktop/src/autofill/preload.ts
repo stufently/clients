@@ -9,6 +9,7 @@ import { AutotypeConfig } from "./models/autotype-config";
 import { AutotypeMatchError } from "./models/autotype-errors";
 import { AutotypeVaultData } from "./models/autotype-vault-data";
 import { AUTOTYPE_IPC_CHANNELS, MAGNIFY_IPC_CHANNELS } from "./models/ipc-channels";
+import { MagnifyRequest, MagnifyResponse } from "./models/magnify-command";
 
 export default {
   runCommand: <C extends Command>(params: RunCommandParams<C>): Promise<RunCommandResult<C>> =>
@@ -193,5 +194,14 @@ export default {
   },
   toggleMagnify: (enable: boolean) => {
     ipcRenderer.send(MAGNIFY_IPC_CHANNELS.TOGGLE, enable);
+  },
+  onMagnifyCommandRequest: (callback: (request: MagnifyRequest) => void) => {
+    ipcRenderer.on(MAGNIFY_IPC_CHANNELS.COMMAND_REQUEST, (_event, request: MagnifyRequest) => {
+      callback(request);
+    });
+  },
+  sendMagnifyCommandResponse: (response: MagnifyResponse) => {
+    const channel = `${MAGNIFY_IPC_CHANNELS.COMMAND_RESPONSE}.${response.correlationId}`;
+    ipcRenderer.send(channel, response);
   },
 };
