@@ -273,6 +273,21 @@ export class PremiumOrgUpgradePaymentComponent implements OnInit, AfterViewInit 
       return;
     }
 
+    const paymentMethodComponent = this.paymentMethodComponent();
+    const isChangingPayment = paymentMethodComponent?.isChangingPayment();
+    const paymentMethod = this.paymentMethod();
+
+    if (
+      !isChangingPayment &&
+      this.premiumOrgUpgradeService.isUnverifiedBankAccount(paymentMethod)
+    ) {
+      this.toastService.showToast({
+        variant: "error",
+        message: this.i18nService.t("unverifiedBankAccountNotSupportedForUpgrade"),
+      });
+      return;
+    }
+
     if (!this.selectedPlan()) {
       throw new Error("No plan selected");
     }
@@ -287,14 +302,9 @@ export class PremiumOrgUpgradePaymentComponent implements OnInit, AfterViewInit 
       throw new Error("Billing address is incomplete");
     }
 
-    // Handle payment method - either update or validate existing
-    const paymentMethodComponent = this.paymentMethodComponent();
-    const isChangingPayment = paymentMethodComponent?.isChangingPayment();
-
     if (isChangingPayment) {
       await this.updatePaymentMethod(billingAddress);
     } else {
-      const paymentMethod = this.paymentMethod();
       if (!paymentMethod) {
         throw new Error("Payment method is required");
       }
