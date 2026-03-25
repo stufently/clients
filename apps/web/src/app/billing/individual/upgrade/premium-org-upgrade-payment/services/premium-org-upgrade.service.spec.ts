@@ -413,4 +413,53 @@ describe("PremiumOrgUpgradeService", () => {
       expect(service.isBankAccountNotSupportedError(null)).toBe(false);
     });
   });
+
+  describe("isUnverifiedBankAccount", () => {
+    it("should return true when payment method is a bank account with hostedVerificationUrl", () => {
+      const paymentMethod = {
+        type: "bankAccount",
+        bankName: "Chase",
+        last4: "1234",
+        hostedVerificationUrl: "https://stripe.com/verify",
+      } as any;
+
+      expect(service.isUnverifiedBankAccount(paymentMethod)).toBe(true);
+    });
+
+    it("should return false when payment method is a bank account without hostedVerificationUrl", () => {
+      const paymentMethod = {
+        type: "bankAccount",
+        bankName: "Chase",
+        last4: "1234",
+      } as any;
+
+      expect(service.isUnverifiedBankAccount(paymentMethod)).toBe(false);
+    });
+
+    it("should return false when payment method is a bank account with empty hostedVerificationUrl", () => {
+      const paymentMethod = {
+        type: "bankAccount",
+        bankName: "Chase",
+        last4: "1234",
+        hostedVerificationUrl: "",
+      } as any;
+
+      expect(service.isUnverifiedBankAccount(paymentMethod)).toBe(false);
+    });
+
+    it("should return false when payment method is not a bank account", () => {
+      const paymentMethod = {
+        type: "card",
+        brand: "visa",
+        last4: "4242",
+        expiration: "12/2025",
+      } as any;
+
+      expect(service.isUnverifiedBankAccount(paymentMethod)).toBe(false);
+    });
+
+    it("should return false when payment method is null", () => {
+      expect(service.isUnverifiedBankAccount(null)).toBe(false);
+    });
+  });
 });
