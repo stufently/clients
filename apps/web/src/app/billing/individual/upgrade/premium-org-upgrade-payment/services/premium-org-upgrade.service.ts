@@ -132,8 +132,7 @@ export class PremiumOrgUpgradeService {
   isUnverifiedBankAccount(paymentMethod: MaskedPaymentMethod | null): boolean {
     return (
       paymentMethod?.type === TokenizablePaymentMethods.bankAccount &&
-      paymentMethod.hostedVerificationUrl != null &&
-      paymentMethod.hostedVerificationUrl !== ""
+      !!paymentMethod.hostedVerificationUrl
     );
   }
 
