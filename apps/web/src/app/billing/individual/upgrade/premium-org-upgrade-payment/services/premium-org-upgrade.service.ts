@@ -106,8 +106,8 @@ export class PremiumOrgUpgradeService {
       data: account,
     });
 
-    if (paymentMethod?.type === TokenizablePaymentMethods.bankAccount) {
-      throw new Error(BANK_ACCOUNT_NOT_SUPPORTED_MESSAGE);
+    if (this.isUnverifiedBankAccount(paymentMethod)) {
+      throw new Error(UNVERIFIED_BANK_ACCOUNT_MESSAGE);
     }
 
     const productTier: ProductTierType = this.ProductTierTypeFromSubscriptionTierId(tier);
@@ -129,8 +129,16 @@ export class PremiumOrgUpgradeService {
     return orgId;
   }
 
+  isUnverifiedBankAccount(paymentMethod: MaskedPaymentMethod | null): boolean {
+    return (
+      paymentMethod?.type === TokenizablePaymentMethods.bankAccount &&
+      paymentMethod.hostedVerificationUrl != null &&
+      paymentMethod.hostedVerificationUrl !== ""
+    );
+  }
+
   isBankAccountNotSupportedError(error: unknown): boolean {
-    return error instanceof Error && error.message === BANK_ACCOUNT_NOT_SUPPORTED_MESSAGE;
+    return error instanceof Error && error.message === UNVERIFIED_BANK_ACCOUNT_MESSAGE;
   }
 
   private ProductTierTypeFromSubscriptionTierId(
