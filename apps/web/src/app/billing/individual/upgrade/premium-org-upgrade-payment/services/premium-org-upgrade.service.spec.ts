@@ -137,11 +137,12 @@ describe("PremiumOrgUpgradeService", () => {
       expect(result).toBe("new-org-id");
     });
 
-    it("should throw an error when payment method is a bank account", async () => {
+    it("should throw an error when payment method is an unverified bank account", async () => {
       subscriberBillingClient.getPaymentMethod.mockResolvedValue({
         type: "bankAccount",
         bankName: "Chase",
         last4: "1234",
+        hostedVerificationUrl: "https://stripe.com/verify",
       } as any);
 
       await expect(
@@ -151,9 +152,27 @@ describe("PremiumOrgUpgradeService", () => {
           mockPlanDetails.tier,
           mockBillingAddress,
         ),
-      ).rejects.toThrow(BANK_ACCOUNT_NOT_SUPPORTED_MESSAGE);
+      ).rejects.toThrow(UNVERIFIED_BANK_ACCOUNT_MESSAGE);
 
       expect(accountBillingClient.upgradePremiumToOrganization).not.toHaveBeenCalled();
+    });
+
+    it("should proceed when payment method is a verified bank account", async () => {
+      subscriberBillingClient.getPaymentMethod.mockResolvedValue({
+        type: "bankAccount",
+        bankName: "Chase",
+        last4: "1234",
+      } as any);
+
+      const result = await service.upgradeToOrganization(
+        mockAccount,
+        "Test Organization",
+        mockPlanDetails.tier,
+        mockBillingAddress,
+      );
+
+      expect(result).toBe("new-org-id");
+      expect(accountBillingClient.upgradePremiumToOrganization).toHaveBeenCalled();
     });
 
     it("should proceed when payment method is null", async () => {
