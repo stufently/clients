@@ -9,7 +9,6 @@ import { WebAuthnLoginPrfKeyServiceAbstraction } from "@bitwarden/common/auth/ab
 import { ClientType } from "@bitwarden/common/enums";
 import { EncryptService } from "@bitwarden/common/key-management/crypto/abstractions/encrypt.service";
 import { EncString } from "@bitwarden/common/key-management/crypto/models/enc-string";
-import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
 import { EnvironmentService } from "@bitwarden/common/platform/abstractions/environment.service";
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
@@ -17,7 +16,6 @@ import { Utils } from "@bitwarden/common/platform/misc/utils";
 import { Fido2Utils } from "@bitwarden/common/platform/services/fido2/fido2-utils";
 import { UserId } from "@bitwarden/common/types/guid";
 import { PrfKey, UserKey } from "@bitwarden/common/types/key";
-import { KeyService } from "@bitwarden/key-management";
 
 import { WebAuthnPrfUnlockService } from "./webauthn-prf-unlock.service";
 
@@ -26,14 +24,12 @@ export class DefaultWebAuthnPrfUnlockService implements WebAuthnPrfUnlockService
 
   constructor(
     private webAuthnLoginPrfKeyService: WebAuthnLoginPrfKeyServiceAbstraction,
-    private keyService: KeyService,
     private userDecryptionOptionsService: UserDecryptionOptionsServiceAbstraction,
     private encryptService: EncryptService,
     private environmentService: EnvironmentService,
     private platformUtilsService: PlatformUtilsService,
     private window: Window,
     private logService: LogService,
-    private configService: ConfigService,
   ) {
     this.navigatorCredentials = this.window.navigator.credentials;
   }
