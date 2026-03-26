@@ -29,4 +29,29 @@
     />
     <bit-label>{{ "disableHideEmail" | i18n }}</bit-label>
   </bit-form-control>
+
+  <bit-form-field>
+    <bit-label>{{ "whoCanView" | i18n }}</bit-label>
+    <bit-select formControlName="whoCanAccess" id="whoCanAccess">
+      <bit-option
+        *ngFor="let o of whoCanAccessOptions"
+        [value]="o.value"
+        [label]="o.name"
+      ></bit-option>
+    </bit-select>
+  </bit-form-field>
+
+  @if (showDomains()) {
+    <bit-form-field>
+      <bit-label>{{ "allowedDomains" | i18n }}</bit-label>
+      <textarea
+        bitInput
+        formControlName="allowedDomains"
+        id="allowedDomains"
+        rows="3"
+        [placeholder]="'allowedDomainsPlaceholder' | i18n"
+      ></textarea>
+      <bit-hint>{{ "allowedDomainsHint" | i18n }}</bit-hint>
+    </bit-form-field>
+  }
 </div>

@@ -13149,5 +13149,14 @@
         "example": "4"
       }
     }
+  },
+  "allowedDomains": {
+    "message": "Allowed domains"
+  },
+  "allowedDomainsHint": {
+    "message": "Enter allowed email domains, separated by commas."
+  },
+  "allowedDomainsPlaceholder": {
+    "message": "bitwarden.com, acme.com"
   }
 }
