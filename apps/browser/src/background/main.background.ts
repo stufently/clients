@@ -1576,6 +1576,7 @@ export default class MainBackground {
       this.keyService,
       this.platformUtilsService,
       this.vaultTimeoutSettingsService,
+      this.environmentService,
     );
     this.sharedUnlockFollowerService = new DefaultSharedUnlockFollowerService(
       this.ipcService,
@@ -1584,6 +1585,7 @@ export default class MainBackground {
       this.keyService,
       this.platformUtilsService,
       this.vaultTimeoutSettingsService,
+      this.environmentService,
     );
     this.sharedUnlockSettingsService = new DefaultSharedUnlockSettingsService(this.stateProvider);
 

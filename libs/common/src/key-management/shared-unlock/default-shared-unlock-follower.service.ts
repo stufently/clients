@@ -6,6 +6,7 @@ import { KeyService } from "@bitwarden/key-management";
 import { SharedUnlockFollower } from "@bitwarden/sdk-internal";
 
 import { AccountService } from "../../auth/abstractions/account.service";
+import { EnvironmentService } from "../../platform/abstractions/environment.service";
 import { asUuid } from "../../platform/abstractions/sdk/sdk.service";
 import { IpcService } from "../../platform/ipc";
 import { SymmetricCryptoKey } from "../../platform/models/domain/symmetric-crypto-key";
@@ -23,6 +24,7 @@ export class DefaultSharedUnlockFollowerService implements SharedUnlockFollowerS
     private keyService: KeyService,
     private platformUtilsService: PlatformUtilsService,
     private vaultTimeoutSettingsService: VaultTimeoutSettingsService,
+    private environmentService: EnvironmentService,
   ) {}
 
   async start(): Promise<void> {
@@ -32,6 +34,7 @@ export class DefaultSharedUnlockFollowerService implements SharedUnlockFollowerS
       this.keyService,
       this.platformUtilsService,
       this.vaultTimeoutSettingsService,
+      this.environmentService,
     );
 
     const follower = await SharedUnlockFollower.try_new(

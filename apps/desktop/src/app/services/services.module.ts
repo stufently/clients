@@ -395,6 +395,7 @@ const safeProviders: SafeProvider[] = [
       KeyServiceAbstraction,
       PlatformUtilsServiceAbstraction,
       VaultTimeoutSettingsService,
+      EnvironmentService,
     ],
   }),
   safeProvider({

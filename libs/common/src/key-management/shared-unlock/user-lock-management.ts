@@ -8,6 +8,7 @@ import { KeyService } from "@bitwarden/key-management";
 import { UserId, UserLockManagement } from "@bitwarden/sdk-internal";
 
 import { AccountService } from "../../auth/abstractions/account.service";
+import { EnvironmentService } from "../../platform/abstractions/environment.service";
 import { asUuid, uuidAsString } from "../../platform/abstractions/sdk/sdk.service";
 import { SymmetricCryptoKey } from "../../platform/models/domain/symmetric-crypto-key";
 import { UserKey } from "../../types/key";
@@ -19,6 +20,7 @@ export function createUserLockManagement(
   keyService: KeyService,
   platformUtilsService: PlatformUtilsService,
   vaultTimeoutSettingsService: VaultTimeoutSettingsService,
+  environmentService: EnvironmentService,
 ): UserLockManagement {
   return {
     async lock_user(user_id: UserId): Promise<void> {
@@ -43,6 +45,12 @@ export function createUserLockManagement(
     },
     async get_client_name(): Promise<ClientType> {
       return platformUtilsService.getClientType();
+    },
+    async get_vault_url(user_id) {
+      const environment = await firstValueFrom(
+        environmentService.getEnvironment$(uuidAsString(user_id) as TSUserId),
+      );
+      return environment.getWebVaultUrl();
     },
   };
 }

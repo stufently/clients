@@ -7,6 +7,7 @@ import { KeyService } from "@bitwarden/key-management";
 import { SharedUnlockLeader } from "@bitwarden/sdk-internal";
 
 import { AccountService } from "../../auth/abstractions/account.service";
+import { EnvironmentService } from "../../platform/abstractions/environment.service";
 import { IpcService } from "../../platform/ipc";
 import { SymmetricCryptoKey } from "../../platform/models/domain/symmetric-crypto-key";
 import { UserId } from "../../types/guid";
@@ -23,6 +24,7 @@ export class DefaultSharedUnlockLeaderService implements SharedUnlockLeaderServi
     private keyService: KeyService,
     private platformUtilsService: PlatformUtilsService,
     private vaultTimeoutSettingsService: VaultTimeoutSettingsService,
+    private environmentService: EnvironmentService,
   ) {}
 
   async start(): Promise<void> {
@@ -32,6 +34,7 @@ export class DefaultSharedUnlockLeaderService implements SharedUnlockLeaderServi
       this.keyService,
       this.platformUtilsService,
       this.vaultTimeoutSettingsService,
+      this.environmentService,
     );
 
     const leader = await SharedUnlockLeader.try_new(this.ipcService.client, unlockManagementDriver);
