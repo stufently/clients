@@ -19,6 +19,7 @@ import {
 } from "rxjs";
 
 import { UserNamePipe } from "@bitwarden/angular/pipes/user-name.pipe";
+import { ApiService } from "@bitwarden/common/abstractions/api.service";
 import { OrganizationService } from "@bitwarden/common/admin-console/abstractions/organization/organization.service.abstraction";
 import { PolicyApiServiceAbstraction } from "@bitwarden/common/admin-console/abstractions/policy/policy-api.service.abstraction";
 import { PolicyService } from "@bitwarden/common/admin-console/abstractions/policy/policy.service.abstraction";
@@ -93,6 +94,7 @@ export class MembersComponent {
   private memberDialogManager = inject(MemberDialogManagerService);
   protected billingConstraint = inject(BillingConstraintService);
   protected memberService = inject(OrganizationMembersService);
+  private apiService = inject(ApiService);
   private organizationService = inject(OrganizationService);
   private accountService = inject(AccountService);
   private policyService = inject(PolicyService);
@@ -115,6 +117,7 @@ export class MembersComponent {
   );
   protected readonly organization: Signal<Organization | undefined>;
   protected readonly firstLoaded: WritableSignal<boolean> = signal(false);
+  protected readonly providerUserIds: WritableSignal<Set<string>> = signal(new Set());
 
   protected bulkMenuOptions$ = this.dataSource()
     .usersUpdated()
@@ -238,6 +241,11 @@ export class MembersComponent {
     const response = await this.memberService.loadUsers(organization);
     this.dataSource().data = response;
     this.firstLoaded.set(true);
+
+    if (organization.providerId) {
+      const userIds = await this.apiService.getProviderUserIds(organization.providerId);
+      this.providerUserIds.set(new Set(userIds));
+    }
   }
 
   async remove(user: OrganizationUserView, organization: Organization) {
@@ -456,7 +464,6 @@ export class MembersComponent {
         message: this.i18nService.t("orgUserDetailsNotFound"),
       });
       this.logService.error("Org user details not found when attempting account recovery");
-
       return;
     }
 
@@ -464,8 +471,6 @@ export class MembersComponent {
     if (result === AccountRecoveryDialogResultType.Ok) {
       await this.load(organization);
     }
-
-    return;
   }
 
   async deleteUser(user: OrganizationUserView, organization: Organization) {

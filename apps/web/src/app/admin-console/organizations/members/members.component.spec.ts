@@ -588,6 +588,28 @@ describe("MembersComponent", () => {
     });
   });
 
+  describe("load", () => {
+    it("should populate providerUserIds when org has a providerId", async () => {
+      const orgWithProvider = { ...mockOrg, providerId: "provider-123" } as Organization;
+      mockApiService.getProviderUserIds.mockResolvedValue(["provider-user-id"]);
+      mockMemberService.loadUsers.mockResolvedValue([mockUser]);
+
+      await component.load(orgWithProvider);
+
+      expect(mockApiService.getProviderUserIds).toHaveBeenCalledWith("provider-123");
+      expect(component["providerUserIds"]().has("provider-user-id")).toBe(true);
+    });
+
+    it("should not call getProviderUserIds when org has no providerId", async () => {
+      mockMemberService.loadUsers.mockResolvedValue([mockUser]);
+
+      await component.load(mockOrg);
+
+      expect(mockApiService.getProviderUserIds).not.toHaveBeenCalled();
+      expect(component["providerUserIds"]().size).toBe(0);
+    });
+  });
+
   describe("resetPassword", () => {
     it("should open account recovery dialog", async () => {
       mockMemberDialogManager.openAccountRecoveryDialog.mockResolvedValue(

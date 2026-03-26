@@ -433,7 +433,10 @@
                   }
 
                   <!-- Account recovery is available to all users with appropriate permissions -->
-                  @if (allowResetPassword(u, organization, resetPasswordPolicyEnabled)) {
+                  @if (
+                    allowResetPassword(u, organization, resetPasswordPolicyEnabled) &&
+                    !providerUserIds().has(u.userId)
+                  ) {
                     <button
                       type="button"
                       bitMenuItem

@@ -845,6 +845,10 @@ export class ApiService implements ApiServiceAbstraction {
     return new ListResponse(r, ProviderUserUserDetailsResponse);
   }
 
+  async getProviderUserIds(providerId: string): Promise<string[]> {
+    return this.send("GET", "/providers/" + providerId + "/users/user-ids", null, true, true);
+  }
+
   async getProviderUser(providerId: string, id: string): Promise<ProviderUserResponse> {
     const r = await this.send("GET", "/providers/" + providerId + "/users/" + id, null, true, true);
     return new ProviderUserResponse(r);
