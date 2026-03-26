@@ -930,7 +930,7 @@ describe("NotificationBackground", () => {
         expectSkippedCheckingNotification();
       });
 
-      it("skips checking if a notification should trigger if the vault is locked and there is no value for the `newPassword` field", async () => {
+      it("triggers an add login notification if the vault is locked and there is no value for the `newPassword` field but username and password are set", async () => {
         const formEntryData: ModifyLoginCipherFormData = {
           newPassword: "",
           password: "Beeblebrox4Prez",
@@ -938,16 +938,18 @@ describe("NotificationBackground", () => {
           username: "ADent",
         };
 
-        const storedCiphersForURL = [
-          mock<CipherView>({ login: { username: "ADent", password: "I<3VogonPoetry" } }),
-        ];
-
         activeAccountStatusMock$.next(AuthenticationStatus.Locked);
-        getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
 
         await notificationBackground.triggerCipherNotification(formEntryData, tab);
 
-        expectSkippedCheckingNotification();
+        expect(getAllDecryptedForUrlSpy).not.toHaveBeenCalled();
+        expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+        expect(pushAddLoginToQueueSpy).toHaveBeenCalledWith(
+          mockFormattedURI,
+          { username: "ADent", password: "Beeblebrox4Prez", url: mockFormURI },
+          tab,
+          true,
+        );
       });
 
       describe("when `username` and `password` and `newPassword` fields are filled, ", () => {
