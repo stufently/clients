@@ -19,8 +19,8 @@
           type="button"
           class="tw-my-4 tw-font-bold tw-block"
           (click)="downloadAtRiskMembers()"
+          startIcon="bwi-download"
         >
-          <i class="bwi bwi-download tw-mr-1"></i>
           {{ "downloadCSV" | i18n }}
         </button>
         <ng-container>
@@ -34,7 +34,7 @@
           </div>
           @for (member of drawerDetails.atRiskMemberDetails; track member.email) {
             <div class="tw-flex tw-justify-between tw-mt-2">
-              <div>{{ member.email }}</div>
+              <div class="tw-pr-4 tw-truncate" title="{{ member.email }}">{{ member.email }}</div>
               <div>{{ member.atRiskPasswordCount }}</div>
             </div>
           }
@@ -91,8 +91,8 @@
             type="button"
             class="tw-my-4 tw-font-bold tw-block"
             (click)="downloadAtRiskApplications()"
+            startIcon="bwi-download"
           >
-            <i class="bwi bwi-download tw-mr-1"></i>
             {{ "downloadCSV" | i18n }}
           </button>
           <div class="tw-flex tw-justify-between tw-mt-2 tw-text-muted">
@@ -105,7 +105,9 @@
           </div>
           @for (app of drawerDetails.atRiskAppDetails; track app.applicationName) {
             <div class="tw-flex tw-justify-between tw-mt-2">
-              <div>{{ app.applicationName }}</div>
+              <div class="tw-pr-4 tw-truncate" title="{{ app.applicationName }}">
+                {{ app.applicationName }}
+              </div>
               <div>{{ app.atRiskPasswordCount }}</div>
             </div>
           }
