@@ -1,9 +1,6 @@
 //! IPC server for handling multiple client connections.
 
-use std::{
-    error::Error,
-    path::PathBuf,
-};
+use std::{error::Error, path::PathBuf};
 
 use anyhow::Result;
 use futures::{SinkExt, StreamExt, TryFutureExt};
@@ -73,14 +70,14 @@ impl Server {
             // we remove it first. Any processes that were using the old socket should
             // remain connected to it but any new connections will use the new socket.
             if !cfg!(windows) && path.exists() {
-                println!("Removing existing IPC socket at: {}", path.display());
+                info!("Removing existing IPC socket at: {}", path.display());
                 std::fs::remove_file(path)?;
             }
 
             let name = path.as_os_str().to_fs_name::<GenericFilePath>()?;
             let opts = ListenerOptions::new().name(name);
             let Ok(listener) = opts.create_tokio() else {
-                println!("Failed to create IPC listener for path: {}", path.display());
+                info!("Failed to create IPC listener for path: {}", path.display());
                 continue;
             };
 

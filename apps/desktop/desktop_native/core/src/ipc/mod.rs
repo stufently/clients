@@ -23,6 +23,7 @@ pub const NATIVE_MESSAGING_BUFFER_SIZE: usize = 1024 * 1024;
 /// but ideally the messages should be processed as quickly as possible.
 pub const MESSAGE_CHANNEL_BUFFER: usize = 32;
 
+/// The paths to where the native messaging files live on flatpak environments.
 #[cfg(target_os = "linux")]
 pub const FLATPAK_PATHS: [&str; 4] = [
     "org.mozilla.firefox/.mozilla/native-messaging-hosts",
@@ -31,6 +32,8 @@ pub const FLATPAK_PATHS: [&str; 4] = [
     "com.microsoft.Edge/config/microsoft-edge/NativeMessagingHosts",
 ];
 
+/// The paths to where the native messaging files live on unsandboxed (deb, rpm, appimage)
+/// environments.
 #[cfg(target_os = "linux")]
 pub const UNSANDBOXED_PATHS: [&str; 4] = [
     ".config/chromium/NativeMessagingHosts",
@@ -96,7 +99,7 @@ pub fn path(name: &str) -> std::path::PathBuf {
     #[cfg(any(target_os = "linux", target_os = "macos"))]
     {
         // On Linux and unsandboxed Mac, we use the user's cache directory.
-        let home = dirs::cache_dir().unwrap();
+        let home = dirs::cache_dir().expect("Could not find user cache directory");
         let path_dir = home.join("com.bitwarden.desktop");
 
         // The cache directory might not exist, so create it
@@ -113,7 +116,7 @@ pub fn all_paths(name: &str) -> Vec<std::path::PathBuf> {
         use std::env;
 
         // On Linux, in flatpak, we mount sockets in each app's sandboxed directory.
-        let user_home = dirs::home_dir().unwrap();
+        let user_home = dirs::home_dir().expect("Could not find user home directory");
         let flatpak_path = user_home.join(".var/app/");
         let flatpak_paths = FLATPAK_PATHS
             .iter()
