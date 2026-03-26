@@ -49,6 +49,7 @@ type NotificationBarIframeInitData = {
   theme?: Theme;
   /** The notification discriminant. Determines which component renders. */
   type?: NotificationType;
+  showAnimations?: boolean;
   /**
    * Type-erased payload for the notification.
    * Use type guards like `isAtRiskPasswordNotification` to read this field.
