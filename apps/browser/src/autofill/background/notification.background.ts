@@ -737,6 +737,16 @@ export default class NotificationBackground {
      */
     if (authStatus === AuthenticationStatus.Locked) {
       if (!newPasswordFieldHasValue) {
+        // If the vault is locked and there is no new password value, the best we can do is prompt to add a new login if the username field has a value,
+        // since we can't compare against existing ciphers to determine if a change scenario is present.
+        if (newLoginNotificationIsEnabled && usernameFieldHasValue) {
+          await this.pushAddLoginToQueue(
+            loginDomain,
+            { username: usernameFieldValue, password: currentPasswordFieldValue, url: data.uri },
+            tab,
+            true,
+          );
+        }
         return false;
       }
       // This needs to be the call that includes the full form data
@@ -899,9 +909,12 @@ export default class NotificationBackground {
     const currentPasswordFieldValue = data.password || null;
     const newPasswordFieldValue = data.newPassword || null;
 
-    if (authStatus === AuthenticationStatus.Locked && newPasswordFieldValue !== null) {
-      await this.pushChangePasswordToQueue(null, loginDomain, newPasswordFieldValue, tab, true);
-      return true;
+    if (authStatus === AuthenticationStatus.Locked) {
+      if (newPasswordFieldValue !== null) {
+        await this.pushChangePasswordToQueue(null, loginDomain, newPasswordFieldValue, tab, true);
+        return true;
+      }
+      return false;
     }
 
     let ciphers: CipherView[] = await this.cipherService.getAllDecryptedForUrl(
