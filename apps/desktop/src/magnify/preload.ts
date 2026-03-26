@@ -1,4 +1,6 @@
-import { contextBridge } from "electron";
+import { contextBridge, ipcRenderer } from "electron";
+
+import { MagnifyResponse } from "../autofill/models/magnify-command";
 
 /**
  * Bitwarden Preload script.
@@ -10,6 +12,13 @@ import { contextBridge } from "electron";
  * https://www.electronjs.org/docs/latest/api/context-bridge
  */
 
-contextBridge.exposeInMainWorld("ipc", {
+const ipc = {
+  /**
+   * Send a command to the Bitwarden renderer and get results back.
+   */
+  sendCommand: (command: string, input: string): Promise<MagnifyResponse> =>
+    ipcRenderer.invoke("autofill.magnifyCommand", { command, input }),
   chrome: () => process.versions.chrome,
-});
+};
+
+contextBridge.exposeInMainWorld("ipc", ipc);
