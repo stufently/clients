@@ -121,6 +121,7 @@ export const DefaultFeatureFlagValue = {
   [FeatureFlag.WindowsDesktopAutotypeGA]: FALSE,
   [FeatureFlag.SSHAgentV2]: FALSE,
   [FeatureFlag.EnableAutofillTriage]: FALSE,
+  [FeatureFlag.EnableAutofillIssueReporting]: FALSE,
   [FeatureFlag.PM31039ItemActionInExtension]: FALSE,
 
   /* Tools */
