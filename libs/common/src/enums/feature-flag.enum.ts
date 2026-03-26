@@ -20,6 +20,8 @@ export enum FeatureFlag {
   PM30811_ChangeEmailNewAuthenticationApis = "pm-30811-change-email-new-authentication-apis",
   PM31088_MasterPasswordServiceEmitSalt = "pm-31088-master-password-service-emit-salt",
   PM32413_MultiClientPasswordManagement = "pm-32413-multi-client-password-management",
+  // TODO: PM-34091 - Remove this flag and its DefaultFeatureFlagValue entry below.
+  PM4516_DevicesLastActivityDate = "pm-4516-devices-add-last-activity-date",
 
   /* Autofill */
   UseUndeterminedCipherScenarioTriggeringLogic = "undetermined-cipher-scenario-logic",
@@ -154,6 +156,8 @@ export const DefaultFeatureFlagValue = {
   [FeatureFlag.PM30811_ChangeEmailNewAuthenticationApis]: FALSE,
   [FeatureFlag.PM31088_MasterPasswordServiceEmitSalt]: FALSE,
   [FeatureFlag.PM32413_MultiClientPasswordManagement]: FALSE,
+  // TODO: PM-34091 - Remove this default value entry.
+  [FeatureFlag.PM4516_DevicesLastActivityDate]: FALSE,
 
   /* Billing */
   [FeatureFlag.PM29108_EnablePersonalDiscounts]: FALSE,
