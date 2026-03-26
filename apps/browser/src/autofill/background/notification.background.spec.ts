@@ -1919,14 +1919,22 @@ describe("NotificationBackground", () => {
           expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
         });
 
-        it("and no ciphers are saved for the URL, do not trigger a notification", async () => {
+        it("and no ciphers are saved for the URL, trigger a new cipher notification", async () => {
           activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
           getAllDecryptedForUrlSpy.mockResolvedValueOnce([]);
 
           await notificationBackground.triggerCipherNotification(formEntryData, tab);
 
           expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
-          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).toHaveBeenCalledWith(
+            mockFormattedURI,
+            {
+              username: formEntryData.username,
+              url: formEntryData.uri,
+              password: formEntryData.password,
+            },
+            sender.tab,
+          );
         });
       });
 
@@ -2258,14 +2266,22 @@ describe("NotificationBackground", () => {
           expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
         });
 
-        it("and no ciphers are saved for the URL, do not trigger a notification", async () => {
+        it("and no ciphers are saved for the URL, trigger a new cipher notification", async () => {
           activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
           getAllDecryptedForUrlSpy.mockResolvedValueOnce([]);
 
           await notificationBackground.triggerCipherNotification(formEntryData, tab);
 
           expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
-          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).toHaveBeenCalledWith(
+            mockFormattedURI,
+            {
+              username: formEntryData.username,
+              url: formEntryData.uri,
+              password: formEntryData.newPassword,
+            },
+            sender.tab,
+          );
         });
       });
     });
