@@ -326,7 +326,7 @@ export class NativeMessagingMain {
 
         for (const [, value] of Object.entries(this.getFlatpakNMHS())) {
           await this.removeIfExists(path.join(value, "com.8bit.bitwarden.json"));
-          await this.removeIfExists(path.join(value, "bitwarden_desktop_proxy"));
+          await this.removeIfExists(path.join(value, ".bitwarden_desktop_proxy"));
         }
 
         break;
