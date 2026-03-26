@@ -17,11 +17,20 @@ import {
   ButtonModule,
   IconModule,
   LinkModule,
+  SortFn,
   TableDataSource,
   TableModule,
 } from "@bitwarden/components";
 
 import { DeviceDisplayData } from "./device-management.component";
+
+// Unlike sortDevicesWithActivity (which pins the current device/pending requests),
+// this is a pure chronological sort for when a user explicitly clicks the column header.
+const recentlyActiveSortFn: SortFn = (a: DeviceDisplayData, b: DeviceDisplayData): number => {
+  const dateA = (a.lastActivityDate ?? a.firstLogin).getTime();
+  const dateB = (b.lastActivityDate ?? b.firstLogin).getTime();
+  return dateA - dateB;
+};
 
 /** Displays user devices in a sortable table view */
 // FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
@@ -58,6 +67,7 @@ export class DeviceManagementTableComponent implements OnChanges, OnInit {
     title: string;
     headerClass: string;
     sortable: boolean;
+    sortFn?: SortFn;
   }[] = [];
 
   constructor(private i18nService: I18nService) {}
@@ -78,6 +88,9 @@ export class DeviceManagementTableComponent implements OnChanges, OnInit {
         title: this.i18nService.t(this.showRecentlyActive ? "recentlyActive" : "loginStatus"),
         headerClass: "tw-w-1/3",
         sortable: true,
+        // recentlyActiveText is a localized display string ("Today", "Yesterday", etc.) so
+        // alphabetical sorting is nonsensical. Sort by the underlying date value instead.
+        sortFn: this.showRecentlyActive ? recentlyActiveSortFn : undefined,
       },
       {
         name: "firstLogin",
