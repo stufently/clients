@@ -7,7 +7,6 @@ import {
 } from "@bitwarden/auth/common";
 import { WebAuthnLoginPrfKeyServiceAbstraction } from "@bitwarden/common/auth/abstractions/webauthn/webauthn-login-prf-key.service.abstraction";
 import { ClientType } from "@bitwarden/common/enums";
-import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
 import { EncryptService } from "@bitwarden/common/key-management/crypto/abstractions/encrypt.service";
 import { EncString } from "@bitwarden/common/key-management/crypto/models/enc-string";
 import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
@@ -41,14 +40,6 @@ export class DefaultWebAuthnPrfUnlockService implements WebAuthnPrfUnlockService
 
   async isPrfUnlockAvailable(userId: UserId): Promise<boolean> {
     try {
-      // Check if feature flag is enabled
-      const passkeyUnlockEnabled = await this.configService.getFeatureFlag(
-        FeatureFlag.PasskeyUnlock,
-      );
-      if (!passkeyUnlockEnabled) {
-        return false;
-      }
-
       // Check if browser supports WebAuthn
       if (!this.navigatorCredentials || !this.navigatorCredentials.get) {
         return false;
