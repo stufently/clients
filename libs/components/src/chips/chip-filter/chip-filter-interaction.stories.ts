@@ -1,6 +1,6 @@
 import { FormsModule } from "@angular/forms";
 import { Meta, StoryObj, moduleMetadata } from "@storybook/angular";
-import { expect } from "storybook/test";
+import { expect, waitFor } from "storybook/test";
 
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 
@@ -82,17 +82,17 @@ export const FocusUnselected: Story = {
     ],
   },
   play: async ({ canvas }) => {
-    const chipFilterFocus = await canvas.findByTestId("chip-filter-focus");
+    await waitFor(async () => {
+      const chipFilterFocus = await canvas.findByTestId("chip-filter-focus");
 
-    const chipFilterBtn = chipFilterFocus.querySelector<HTMLButtonElement>("[bit-chip-content]");
+      const chipFilterBtn = chipFilterFocus.querySelector<HTMLButtonElement>("[bit-chip-content]");
 
-    if (chipFilterBtn) {
-      chipFilterBtn.focus();
+      await expect(chipFilterBtn).toBeInTheDocument();
+
+      chipFilterBtn?.focus();
+
       await expect(chipFilterBtn).toHaveFocus();
-    } else {
-      // eslint-disable-next-line
-      console.error("Cannot find [bit-chip-content]");
-    }
+    });
   },
   parameters: {
     chromatic: {
@@ -142,17 +142,17 @@ export const FocusSelected: Story = {
     value: "foo",
   },
   play: async ({ canvas }) => {
-    const chipFilterFocus = await canvas.findByTestId("chip-filter-focus");
+    await waitFor(async () => {
+      const chipFilterFocus = await canvas.findByTestId("chip-filter-focus");
 
-    const chipFilterBtn = chipFilterFocus.querySelector<HTMLButtonElement>("[bit-chip-content]");
+      const chipFilterBtn = chipFilterFocus.querySelector<HTMLButtonElement>("[bit-chip-content]");
 
-    if (chipFilterBtn) {
-      chipFilterBtn.focus();
+      await expect(chipFilterBtn).toBeInTheDocument();
+
+      chipFilterBtn?.focus();
+
       await expect(chipFilterBtn).toHaveFocus();
-    } else {
-      // eslint-disable-next-line
-      console.error("Cannot find [bit-chip-content]");
-    }
+    });
   },
   parameters: {
     chromatic: {
