@@ -11,5 +11,5 @@ import { I18nPipe } from "@bitwarden/ui-common";
 })
 export class ReceiveAddEditComponent {
   protected readonly name = "";
-  protected readonly expirationDays = "";
+  protected readonly expirationDays = 7;
 }
