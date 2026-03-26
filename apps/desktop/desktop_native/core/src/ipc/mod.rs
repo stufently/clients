@@ -1,6 +1,7 @@
 //! Inter-process communication for native messaging and IPC server/client.
 
 use std::vec;
+
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
@@ -120,9 +121,11 @@ pub fn all_paths(name: &str) -> Vec<std::path::PathBuf> {
         let mut paths = vec![path(name)];
         paths.extend(flatpak_paths);
 
-        // Additionally, we add the host home directory path, to mount sockets into the unsandboxed apps.
+        // Additionally, we add the host home directory path, to mount sockets into the unsandboxed
+        // apps.
         let username = env::var("USER").unwrap_or_else(|_| "unknown".to_string());
-        // The HOME env variable is changed / mapped inside of snap sandbox but we need the host home directory here.
+        // The HOME env variable is changed / mapped inside of snap sandbox but we need the host
+        // home directory here.
         let host_home = homedir::home(username.clone()).ok().flatten();
         if let Some(host_home) = host_home {
             // Add the host home directory paths for unsandboxed apps.

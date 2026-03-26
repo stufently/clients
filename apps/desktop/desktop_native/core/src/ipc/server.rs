@@ -2,7 +2,7 @@
 
 use std::{
     error::Error,
-    path::{Path, PathBuf},
+    path::PathBuf,
 };
 
 use anyhow::Result;
@@ -39,6 +39,7 @@ pub enum MessageType {
 
 /// IPC server that listens for client connections.
 pub struct Server {
+    /// The paths that the server is listening on
     pub paths: Vec<PathBuf>,
     cancel_token: CancellationToken,
     server_to_clients_send: broadcast::Sender<String>,
@@ -57,17 +58,6 @@ impl Server {
         paths: Vec<PathBuf>,
         client_to_server_send: mpsc::Sender<Message>,
     ) -> Result<Self, Box<dyn Error>> {
-        // If the unix socket file already exists, we get an error when trying to bind to it. So we
-        // remove it first. Any processes that were using the old socket should remain
-        // connected to it but any new connections will use the new socket.
-        if !cfg!(windows) {
-            let _ = std::fs::remove_file(path);
-        }
-
-        let name = path.as_os_str().to_fs_name::<GenericFilePath>()?;
-        let opts = ListenerOptions::new().name(name);
-        let listener = opts.create_tokio()?;
-
         // This broadcast channel is used for sending messages to all connected clients, and so the
         // sender will be stored in the server while the receiver will be cloned and passed
         // to each client handler.
@@ -79,8 +69,9 @@ impl Server {
         let cancel_token = CancellationToken::new();
 
         for path in paths.iter() {
-            // If the unix socket file already exists, we get an error when trying to bind to it. So we remove it first.
-            // Any processes that were using the old socket should remain connected to it but any new connections will use the new socket.
+            // If the unix socket file already exists, we get an error when trying to bind to it. So
+            // we remove it first. Any processes that were using the old socket should
+            // remain connected to it but any new connections will use the new socket.
             if !cfg!(windows) && path.exists() {
                 println!("Removing existing IPC socket at: {}", path.display());
                 std::fs::remove_file(path)?;
