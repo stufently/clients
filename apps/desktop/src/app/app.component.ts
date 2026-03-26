@@ -84,6 +84,7 @@ import { SSO_COOKIE_VENDOR_CALLBACK_COMMAND } from "../platform/services/server-
 
 import { SettingsComponent } from "./accounts/settings.component";
 import { ChangePasswordDialogComponent } from "./auth/change-password-dialog.component";
+import { DeviceManagementDialogComponent } from "./auth/device-management-dialog.component";
 import { ExportDesktopComponent } from "./tools/export/export-desktop.component";
 import { CredentialGeneratorComponent } from "./tools/generator/credential-generator.component";
 import { ImportDesktopComponent } from "./tools/import/import-desktop.component";
@@ -295,6 +296,9 @@ export class AppComponent implements OnInit, OnDestroy {
             break;
           case "openChangePasswordDialog":
             this.dialogService.open(ChangePasswordDialogComponent);
+            break;
+          case "openDevicesDialog":
+            this.dialogService.open(DeviceManagementDialogComponent);
             break;
           case "showFingerprintPhrase": {
             const activeUserId = await firstValueFrom(
@@ -586,6 +590,10 @@ export class AppComponent implements OnInit, OnDestroy {
             // TODO: PM-32419 - remove multiClientPasswordManagement flag and logic once the feature is fully rolled out
             multiClientPasswordManagement: await firstValueFrom(
               this.configService.getFeatureFlag$(FeatureFlag.PM32413_MultiClientPasswordManagement),
+            ),
+            // TODO: PM-34210 - remove desktopAddDevices flag read and MenuAccount field population
+            desktopAddDevices: await firstValueFrom(
+              this.configService.getFeatureFlag$(FeatureFlag.PM34210_DesktopAddDevices),
             ),
           };
         }
