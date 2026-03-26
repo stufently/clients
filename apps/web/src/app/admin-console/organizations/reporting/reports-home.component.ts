@@ -23,6 +23,8 @@ import {
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { getUserId } from "@bitwarden/common/auth/services/account.service";
 import { ProductTierType } from "@bitwarden/common/billing/enums";
+import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
+import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
 
 import { ReportVariant, reports, ReportType, ReportEntry } from "../../../dirt/reports";
 
@@ -49,6 +51,7 @@ export class ReportsHomeComponent implements OnInit, AfterViewInit, OnDestroy {
     private organizationService: OrganizationService,
     private accountService: AccountService,
     private router: Router,
+    private configService: ConfigService,
   ) {
     this.router.events
       .pipe(
@@ -66,6 +69,9 @@ export class ReportsHomeComponent implements OnInit, AfterViewInit, OnDestroy {
     );
 
     const userId = await firstValueFrom(getUserId(this.accountService.activeAccount$));
+    const passkeyReportEnabled = await this.configService.getFeatureFlag(
+      FeatureFlag.PasskeyLoginReport,
+    );
 
     this.reports$ = this.route.params.pipe(
       concatMap((params) =>
@@ -73,7 +79,7 @@ export class ReportsHomeComponent implements OnInit, AfterViewInit, OnDestroy {
           .organizations$(userId)
           .pipe(getOrganizationById(params.organizationId)),
       ),
-      map((org) => this.buildReports(org.productTierType)),
+      map((org) => this.buildReports(org.productTierType, passkeyReportEnabled)),
     );
   }
 
@@ -117,7 +123,7 @@ export class ReportsHomeComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  private buildReports(productType: ProductTierType): ReportEntry[] {
+  private buildReports(productType: ProductTierType, passkeyReportEnabled: boolean): ReportEntry[] {
     const reportRequiresUpgrade =
       productType == ProductTierType.Free ? ReportVariant.RequiresUpgrade : ReportVariant.Enabled;
 
@@ -150,6 +156,13 @@ export class ReportsHomeComponent implements OnInit, AfterViewInit, OnDestroy {
             : ReportVariant.RequiresEnterprise,
       },
     ];
+
+    if (passkeyReportEnabled) {
+      reportsArray.push({
+        ...reports[ReportType.PasskeyLogin],
+        variant: reportRequiresUpgrade,
+      });
+    }
 
     return reportsArray;
   }
