@@ -1,7 +1,6 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
 import {
-  BehaviorSubject,
   catchError,
   combineLatest,
   distinctUntilChanged,
@@ -43,14 +42,19 @@ import {
   VaultTimeoutStringType,
 } from "../types/vault-timeout.type";
 
-import { VAULT_TIMEOUT, VAULT_TIMEOUT_ACTION } from "./vault-timeout-settings.state";
+import {
+  VAULT_TIMEOUT,
+  VAULT_TIMEOUT_ACTION,
+  VAULT_TIMEOUT_SUPPRESSED_UNTIL,
+} from "./vault-timeout-settings.state";
 
 export class VaultTimeoutSettingsService implements VaultTimeoutSettingsServiceAbstraction {
-  private _vaultTimeoutSuppressedUntil$ = new BehaviorSubject<number | null>(null);
-  readonly vaultTimeoutSuppressedUntil$ = this._vaultTimeoutSuppressedUntil$.asObservable();
+  readonly vaultTimeoutSuppressedUntil$: Observable<number | null>;
 
   suppressVaultTimeout(until: number): void {
-    this._vaultTimeoutSuppressedUntil$.next(until);
+    void this.stateProvider
+      .getGlobal(VAULT_TIMEOUT_SUPPRESSED_UNTIL)
+      .update(() => until);
   }
 
   constructor(
@@ -65,7 +69,11 @@ export class VaultTimeoutSettingsService implements VaultTimeoutSettingsServiceA
     private logService: LogService,
     private defaultVaultTimeout: VaultTimeout,
     private sessionTimeoutTypeService: SessionTimeoutTypeService,
-  ) {}
+  ) {
+    this.vaultTimeoutSuppressedUntil$ = this.stateProvider
+      .getGlobal(VAULT_TIMEOUT_SUPPRESSED_UNTIL)
+      .state$;
+  }
 
   async setVaultTimeoutOptions(
     userId: UserId,

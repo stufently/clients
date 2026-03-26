@@ -81,6 +81,10 @@ export const VAULT_TIMEOUT_SETTINGS_DISK_LOCAL = new StateDefinition(
     web: "disk-local",
   },
 );
+export const VAULT_TIMEOUT_SETTINGS_MEMORY = new StateDefinition(
+  "vaultTimeoutSettings",
+  "memory",
+);
 
 // Autofill
 

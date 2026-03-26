@@ -14,8 +14,11 @@ import {
   IpcClient,
   IpcCommunicationBackend,
   ipcRegisterDiscoverHandler,
+  ipcRequestDiscover,
   OutgoingMessage,
 } from "@bitwarden/sdk-internal";
+
+const DISCOVER_MESSAGE_TIMEOUT_MS = 1_000;
 
 export class WebIpcService extends IpcService {
   private logService = inject(LogService);
@@ -25,14 +28,15 @@ export class WebIpcService extends IpcService {
 
   override async init() {
     try {
-      console.log("Initializing WebIpcService...");
       // This function uses classes and functions defined in the SDK, so we need to wait for the SDK to load.
       await SdkLoadService.Ready;
-      console.log("SDK is ready, setting up communication backend...");
 
       this.communicationBackend = new IpcCommunicationBackend({
         async send(message: OutgoingMessage): Promise<void> {
-          if (message.destination === "BrowserBackground") {
+          if (
+            typeof message.destination === "object" &&
+            "BrowserBackground" in message.destination
+          ) {
             window.postMessage(
               {
                 type: "bitwarden-ipc-message",
@@ -47,7 +51,7 @@ export class WebIpcService extends IpcService {
             return;
           }
 
-          throw new Error(`Destination not supported: ${message.destination}`);
+          throw new Error(`Destination not supported: ${JSON.stringify(message.destination)}`);
         },
       });
 
@@ -63,7 +67,7 @@ export class WebIpcService extends IpcService {
 
         if (
           typeof message.message.destination !== "object" ||
-          message.message.destination.Web == undefined
+          !("Web" in message.message.destination)
         ) {
           return;
         }
@@ -72,7 +76,7 @@ export class WebIpcService extends IpcService {
           new IncomingMessage(
             new Uint8Array(message.message.payload),
             message.message.destination,
-            "BrowserBackground",
+            { BrowserBackground: { id: "Own" } },
             message.message.topic,
           ),
         );
@@ -85,6 +89,16 @@ export class WebIpcService extends IpcService {
       await ipcRegisterDiscoverHandler(this.client, {
         version: await this.platformUtilsService.getApplicationVersion(),
       });
+
+      // Ensure the browser extension is present
+      const version = await ipcRequestDiscover(
+        this.client,
+        { BrowserBackground: { id: "Own" } },
+        AbortSignal.timeout(DISCOVER_MESSAGE_TIMEOUT_MS),
+      );
+      this.logService.info(
+        `[IPC] Connected to Bitwarden Browser Extension with version ${version.version}`,
+      );
     } catch (e) {
       this.logService.error("[IPC] Initialization failed", e);
     }

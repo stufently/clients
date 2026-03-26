@@ -73,7 +73,7 @@ export class InitService {
         // block 2 seconds
         await new Promise((resolve) => setTimeout(resolve, 2000));
         await this.ipcService.init();
-        if (await this.configService.getFeatureFlag(FeatureFlag.SharedUnlockSession)) {
+        if (await this.configService.getFeatureFlag(FeatureFlag.SharedUnlockBrowserWeb)) {
           await this.sharedUnlockFollowerService.start();
         }
       })();

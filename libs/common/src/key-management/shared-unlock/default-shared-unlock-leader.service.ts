@@ -1,17 +1,20 @@
-import { LockService } from "@bitwarden/auth/common";
-import { SharedUnlockLeader } from "@bitwarden/sdk-internal";
-import { KeyService } from "@bitwarden/key-management";
 import { firstValueFrom } from "rxjs";
 
+import { LockService } from "@bitwarden/auth/common";
+import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
+import { asUuid } from "@bitwarden/common/platform/abstractions/sdk/sdk.service";
+import { KeyService } from "@bitwarden/key-management";
+import { SharedUnlockLeader } from "@bitwarden/sdk-internal";
+
 import { AccountService } from "../../auth/abstractions/account.service";
+import { EnvironmentService } from "../../platform/abstractions/environment.service";
 import { IpcService } from "../../platform/ipc";
 import { SymmetricCryptoKey } from "../../platform/models/domain/symmetric-crypto-key";
 import { UserId } from "../../types/guid";
-import { SharedUnlockLeaderService } from "./shared-unlock-leader.service";
-import { createUnlockManagementDriver } from "./unlock-management-driver";
-import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
-import { asUuid } from "@bitwarden/common/platform/abstractions/sdk/sdk.service";
 import { VaultTimeoutSettingsService } from "../vault-timeout/abstractions/vault-timeout-settings.service";
+
+import { SharedUnlockLeaderService } from "./shared-unlock-leader.service";
+import { createUserLockManagement } from "./user-lock-management";
 
 export class DefaultSharedUnlockLeaderService implements SharedUnlockLeaderService {
   constructor(
@@ -21,27 +24,27 @@ export class DefaultSharedUnlockLeaderService implements SharedUnlockLeaderServi
     private keyService: KeyService,
     private platformUtilsService: PlatformUtilsService,
     private vaultTimeoutSettingsService: VaultTimeoutSettingsService,
+    private environmentService: EnvironmentService,
   ) {}
 
   async start(): Promise<void> {
-    const unlockManagementDriver = createUnlockManagementDriver(
+    const unlockManagementDriver = createUserLockManagement(
       this.accountService,
       this.lockService,
       this.keyService,
       this.platformUtilsService,
       this.vaultTimeoutSettingsService,
+      this.environmentService,
     );
 
     const leader = await SharedUnlockLeader.try_new(this.ipcService.client, unlockManagementDriver);
     leader.start();
     this.lockService.registerOnLockAction(async (userId) => {
-      await leader.handle_device_event(
-        {
-          ManualLock: {
-            user_id: asUuid(userId),
-          },
+      leader.handle_device_event({
+        ManualLock: {
+          user_id: asUuid(userId),
         },
-      );
+      });
     });
 
     const previousUserKeys = new Map<UserId, SymmetricCryptoKey | null>();
@@ -58,14 +61,12 @@ export class DefaultSharedUnlockLeaderService implements SharedUnlockLeaderServi
         const previousUserKey = previousUserKeys.get(accountId) ?? null;
 
         if (previousUserKey == null && accountUserKey != null) {
-          await leader.handle_device_event(
-            {
-              ManualUnlock: {
-                user_id: asUuid(accountId),
-                user_key: Array.from(new Uint8Array(accountUserKey.toEncoded().buffer.slice(0))),
-              },
+          leader.handle_device_event({
+            ManualUnlock: {
+              user_id: asUuid(accountId),
+              user_key: Array.from(new Uint8Array(accountUserKey.toEncoded().buffer.slice(0))),
             },
-          );
+          });
         }
 
         previousUserKeys.set(accountId, accountUserKey);
