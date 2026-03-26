@@ -14,6 +14,7 @@ import { GlobalStateProvider } from "@bitwarden/state";
 
 import { AvatarModule } from "../avatar";
 import { BadgeModule } from "../badge";
+import { ChipActionComponent } from "../chips/chip-action";
 import { IconButtonModule } from "../icon-button";
 import { LayoutComponent } from "../layout";
 import { TypographyModule } from "../typography";
@@ -35,6 +36,7 @@ export default {
         AvatarModule,
         IconButtonModule,
         BadgeModule,
+        ChipActionComponent,
         TypographyModule,
         ItemActionComponent,
         ItemContentComponent,
@@ -90,7 +92,7 @@ export const Default: Story = {
 
         <ng-container slot="end">
           <bit-item-action>
-            <button type="button" bitBadge variant="primary">Fill</button>
+            <button type="button" bit-chip-action variant="primary" label="Fill"></button>
           </bit-item-action>
           <bit-item-action>
             <button type="button" bitIconButton="bwi-clone" size="small" label="Clone"></button>
@@ -212,7 +214,7 @@ const multipleActionListTemplate = /*html*/ `
 
       <ng-container slot="end">
         <bit-item-action>
-          <button type="button" bitBadge variant="primary">Fill</button>
+          <button type="button" bit-chip-action variant="primary" label="Fill"></button>
         </bit-item-action>
         <bit-item-action>
           <button type="button" bitIconButton="bwi-clone" size="small" label="Clone"></button>
@@ -231,7 +233,7 @@ const multipleActionListTemplate = /*html*/ `
 
       <ng-container slot="end">
         <bit-item-action>
-          <button type="button" bitBadge variant="primary">Fill</button>
+          <button type="button" bit-chip-action variant="primary" label="Fill"></button>
         </bit-item-action>
         <bit-item-action>
           <button type="button" bitIconButton="bwi-clone" size="small" label="Clone"></button>
@@ -250,7 +252,7 @@ const multipleActionListTemplate = /*html*/ `
 
       <ng-container slot="end">
         <bit-item-action>
-          <button type="button" bitBadge variant="primary">Fill</button>
+          <button type="button" bit-chip-action variant="primary" label="Fill"></button>
         </bit-item-action>
         <bit-item-action>
           <button type="button" bitIconButton="bwi-clone" size="small" label="Clone"></button>
@@ -269,7 +271,7 @@ const multipleActionListTemplate = /*html*/ `
 
       <ng-container slot="end">
         <bit-item-action>
-          <button type="button" bitBadge variant="primary">Fill</button>
+          <button type="button" bit-chip-action variant="primary" label="Fill"></button>
         </bit-item-action>
         <bit-item-action>
           <button type="button" bitIconButton="bwi-clone" size="small" label="Clone"></button>
@@ -288,7 +290,7 @@ const multipleActionListTemplate = /*html*/ `
 
       <ng-container slot="end">
         <bit-item-action>
-          <button type="button" bitBadge variant="primary">Fill</button>
+          <button type="button" bit-chip-action variant="primary" label="Fill"></button>
         </bit-item-action>
         <bit-item-action>
           <button type="button" bitIconButton="bwi-clone" size="small" label="Clone"></button>
@@ -307,7 +309,7 @@ const multipleActionListTemplate = /*html*/ `
 
       <ng-container slot="end">
         <bit-item-action>
-          <button type="button" bitBadge variant="primary">Fill</button>
+          <button type="button" bit-chip-action variant="primary" label="Fill"></button>
         </bit-item-action>
         <bit-item-action>
           <button type="button" bitIconButton="bwi-clone" size="small" label="Clone"></button>
@@ -424,7 +426,7 @@ export const VirtualScrolling: Story = {
 
             <ng-container slot="end">
               <bit-item-action>
-                <button type="button" bitBadge variant="primary">Fill</button>
+                <button type="button" bit-chip-action variant="primary" label="Fill"></button>
               </bit-item-action>
               <bit-item-action>
                 <button type="button" bitIconButton="bwi-clone" size="small" label="Clone"></button>
@@ -454,7 +456,7 @@ export const WithoutBorderRadius: Story = {
 
         <ng-container slot="end">
           <bit-item-action>
-            <button type="button" bitBadge variant="primary">Fill</button>
+            <button type="button" bit-chip-action variant="primary" label="Fill"></button>
           </bit-item-action>
           <bit-item-action>
             <button type="button" bitIconButton="bwi-clone" label="Clone"></button>
