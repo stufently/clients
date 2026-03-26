@@ -4,7 +4,7 @@ The Passkey Login Report identifies vault items that could benefit from passkey 
 
 ## Server-Side Reference
 
-> Server-side implementation details: [Link to server README]
+> Server-side implementation details: [Link to server README](https://github.com/bitwarden/server/blob/0d4dfd85c56f1b230d00f420859a4c30a26c6659/src/Core/Dirt/Reports/ReportFeatures/PasskeyDirectoryReport/README.md)
 
 ## How It Works
 
