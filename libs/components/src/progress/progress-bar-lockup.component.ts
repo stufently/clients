@@ -18,13 +18,8 @@ export class ProgressBarLockupComponent implements AfterViewInit {
   private readonly progressBar = contentChild.required(ProgressBarComponent);
 
   ngAfterViewInit() {
-    if (!this.progressBar()) {
-      // This is only here so Angular throws a compilation error if no progress bar is provided.
-      // the `this.progressBar()` value must try to be accessed for the required content child check to throw
-      // eslint-disable-next-line no-console
-      console.error(
-        "No progress bar component provided. <bit-progress-bar-lockup> must be used with a <bit-progress-bar>.",
-      );
-    }
+    // Access the required content child signal to trigger Angular's runtime validation.
+    // If no <bit-progress-bar> is projected, Angular throws a runtime error.
+    this.progressBar();
   }
 }
