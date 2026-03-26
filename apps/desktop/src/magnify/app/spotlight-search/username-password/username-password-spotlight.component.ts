@@ -41,12 +41,15 @@ export class UsernamePasswordSpotlightComponent implements OnInit {
     const cipher = item as MagnifyCipherResult;
     const modKey = this.isMac ? event.metaKey : event.ctrlKey;
 
-    if (event.key === "Enter") {
+    if (event.key === "c" && modKey && !event.shiftKey) {
       event.preventDefault();
       this.copyPassword(cipher);
-    } else if (event.key === "c" && modKey) {
+    } else if (event.key === "c" && modKey && event.shiftKey) {
       event.preventDefault();
       this.copyUsername(cipher);
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      this.copyPassword(cipher);
     } else if (modKey && /^[1-9]$/.test(event.key)) {
       // Shell already updated selectedIndex; execute copy-password for the forwarded item
       this.copyPassword(cipher);
