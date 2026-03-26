@@ -4442,6 +4442,24 @@
   "loginStatus": {
     "message": "Login status"
   },
+  "recentlyActive": {
+    "message": "Recently active"
+  },
+  "recentlyActiveToday": {
+    "message": "Today"
+  },
+  "recentlyActiveThisWeek": {
+    "message": "This week"
+  },
+  "recentlyActiveLastWeek": {
+    "message": "Last week"
+  },
+  "recentlyActiveThisMonth": {
+    "message": "This month"
+  },
+  "recentlyActiveOverThirtyDays": {
+    "message": "Over 30 days ago"
+  },
   "firstLogin": {
     "message": "First login"
   },

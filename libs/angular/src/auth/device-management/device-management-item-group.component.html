@@ -51,6 +51,11 @@
             <br />
           }
 
+          <!-- TODO: PM-34091 - Remove the showRecentlyActive condition; always show the recently active row. -->
+          <div *ngIf="showRecentlyActive && !device.isCurrentDevice && device.recentlyActiveText">
+            <span class="tw-font-medium">{{ "recentlyActive" | i18n }}: </span>
+            <span>{{ device.recentlyActiveText }}</span>
+          </div>
           <div>
             <span class="tw-font-medium">{{ "firstLogin" | i18n }}: </span>
             <span>{{ device.firstLogin | date: "medium" }}</span>
