@@ -72,7 +72,7 @@ pub fn path(name: &str) -> std::path::PathBuf {
         // When running in an unsandboxed environment, path is: /Users/<user>/
         // While running sandboxed, it's different:
         // /Users/<user>/Library/Containers/com.bitwarden.desktop/Data
-        let mut home = dirs::home_dir().unwrap();
+        let mut home = dirs::home_dir().expect("Could not find user home directory");
 
         // Check if the app is sandboxed by looking for the Containers directory
         let containers_position = home

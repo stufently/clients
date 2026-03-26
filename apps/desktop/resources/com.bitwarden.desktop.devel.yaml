@@ -38,7 +38,7 @@ finish-args:
   - --filesystem=home/.mozilla
   # Flatpak-sandboxed
   - --filesystem=~/.var/app/org.chromium.Chromium/config/chromium/NativeMessagingHosts/
-  - --filesystem=~/.var/app/com.google.Chrome/config/chrome/NativeMessagingHosts/
+  - --filesystem=~/.var/app/com.google.Chrome/config/google-chrome/NativeMessagingHosts/
   - --filesystem=~/.var/app/com.microsoft.Edge/config/microsoft-edge/NativeMessagingHosts/
   # Firefox does not create NMHS directory by default
   - --filesystem=~/.var/app/org.mozilla.firefox/.mozilla/
