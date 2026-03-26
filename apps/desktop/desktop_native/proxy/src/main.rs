@@ -61,7 +61,7 @@ fn init_logging(log_path: &Path, console_level: LevelFilter, file_level: LevelFi
 #[allow(clippy::unwrap_used)]
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
-    let sock_paths = desktop_core::ipc::all_paths("bitwarden");
+    let sock_paths = desktop_core::ipc::all_paths("bw");
     let sock_path = sock_paths
         .into_iter()
         .find(|p| p.exists())
