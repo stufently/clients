@@ -13,7 +13,7 @@
           <span class="tw-text-base">{{ device.displayName }}</span>
 
           <!-- Secondary Content -->
-          <div slot="secondary" class="tw-flex tw-flex-col tw-gap-1">
+          <div slot="secondary" class="tw-flex tw-flex-col tw-gap-1 tw-mt-1">
             <div>
               <span bitBadge variant="warning">{{ "requestPending" | i18n }}</span>
             </div>
@@ -29,7 +29,7 @@
           <span class="tw-text-base">{{ device.displayName }}</span>
 
           <!-- Secondary Content -->
-          <div slot="secondary" class="tw-flex tw-flex-col tw-gap-1">
+          <div slot="secondary" class="tw-flex tw-flex-col tw-gap-1 tw-mt-1">
             @if (device.isTrusted) {
               <span>{{ "trusted" | i18n }}</span>
             }
