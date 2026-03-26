@@ -224,7 +224,12 @@ export class SendAddEditComponent {
     const isEditMode = mode === "edit" || mode === "partial-edit";
     const translation = {
       [SendType.Text]: isEditMode ? "editItemHeaderTextSend" : "newItemHeaderTextSend",
-      [SendType.File]: isEditMode ? "editItemHeaderFileSend" : "newItemHeaderFileSend",
+      [SendType.File]:
+        this.config?.isFolderMode && !isEditMode
+          ? "newItemHeaderFolderSend"
+          : isEditMode
+            ? "editItemHeaderFileSend"
+            : "newItemHeaderFileSend",
     };
     return this.i18nService.t(translation[type]);
   }

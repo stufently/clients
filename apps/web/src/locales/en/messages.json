@@ -1085,6 +1085,10 @@
     "message": "New File Send",
     "description": "Header for new file send"
   },
+  "newItemHeaderFolderSend": {
+    "message": "New Folder Send",
+    "description": "Header for new folder send"
+  },
   "editItemHeaderLogin": {
     "message": "Edit Login",
     "description": "Header for edit login item type"

@@ -151,6 +151,10 @@
     "message": "New File Send",
     "description": "Header for new file send"
   },
+  "newItemHeaderFolderSend": {
+    "message": "New Folder Send",
+    "description": "Header for new folder send"
+  },
   "editItemHeaderTextSend": {
     "message": "Edit Text Send",
     "description": "Header for edit text send"
