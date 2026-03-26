@@ -57,14 +57,6 @@ export class ProgressBarComponent {
     return this.i18nService.t("percentageCompleted", this.clampedValue().toString());
   });
 
-  protected readonly outerBarStyles = [
-    "tw-overflow-hidden",
-    "tw-rounded",
-    "tw-bg-secondary-100",
-    "tw-h-2",
-    "tw-my-1",
-  ];
-
   protected readonly innerBarStyles = computed(() => {
     return ["tw-transition-all", "tw-h-2", "tw-rounded"].concat(VariantClasses[this.variant()]);
   });
