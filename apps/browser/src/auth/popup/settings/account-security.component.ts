@@ -3,7 +3,7 @@
 import { CommonModule } from "@angular/common";
 import { Component, OnDestroy, OnInit, signal } from "@angular/core";
 import { FormBuilder, FormsModule, ReactiveFormsModule } from "@angular/forms";
-import { RouterModule } from "@angular/router";
+import { Router, RouterModule } from "@angular/router";
 import {
   BehaviorSubject,
   concatMap,
@@ -20,7 +20,6 @@ import {
 
 import { JslibModule } from "@bitwarden/angular/jslib.module";
 import { NudgesService, NudgeType } from "@bitwarden/angular/vault";
-import { SpotlightComponent } from "@bitwarden/angular/vault/components/spotlight/spotlight.component";
 import { FingerprintDialogComponent } from "@bitwarden/auth/angular";
 import { LockService } from "@bitwarden/auth/common";
 import { PolicyService } from "@bitwarden/common/admin-console/abstractions/policy/policy.service.abstraction";
@@ -57,6 +56,7 @@ import {
   TypographyModule,
   ToastService,
   SwitchComponent,
+  CalloutModule,
   SpinnerComponent,
 } from "@bitwarden/components";
 import {
@@ -74,6 +74,7 @@ import { PopOutComponent } from "../../../platform/popup/components/pop-out.comp
 import { PopupHeaderComponent } from "../../../platform/popup/layout/popup-header.component";
 import { PopupPageComponent } from "../../../platform/popup/layout/popup-page.component";
 import { SetPinComponent } from "../components/set-pin.component";
+import { AuthExtensionRoute } from "../constants/auth-extension-route.constant";
 
 import { AwaitDesktopDialogComponent } from "./await-desktop-dialog.component";
 
@@ -101,9 +102,9 @@ import { AwaitDesktopDialogComponent } from "./await-desktop-dialog.component";
     SectionHeaderComponent,
     SelectModule,
     SessionTimeoutSettingsComponent,
-    SpotlightComponent,
     TypographyModule,
     SwitchComponent,
+    CalloutModule,
     SpinnerComponent,
   ],
 })
@@ -134,6 +135,7 @@ export class AccountSecurityComponent implements OnInit, OnDestroy {
 
   protected readonly phishingDetectionAvailable$: Observable<boolean>;
   protected readonly sharedUnlockEnabled$: Observable<boolean>;
+  protected readonly multiClientPasswordManagement$: Observable<boolean>;
 
   protected refreshTimeoutSettings$ = new BehaviorSubject<void>(undefined);
   private destroy$ = new Subject<void>();
@@ -142,6 +144,8 @@ export class AccountSecurityComponent implements OnInit, OnDestroy {
   constructor(
     private accountService: AccountService,
     private pinService: PinServiceAbstraction,
+    private configService: ConfigService,
+    private router: Router,
     private policyService: PolicyService,
     private formBuilder: FormBuilder,
     private platformUtilsService: PlatformUtilsService,
@@ -163,6 +167,10 @@ export class AccountSecurityComponent implements OnInit, OnDestroy {
     private sharedUnlockSettingsService: SharedUnlockSettingsService,
     private configService: ConfigService,
   ) {
+    this.multiClientPasswordManagement$ = this.configService.getFeatureFlag$(
+      FeatureFlag.PM32413_MultiClientPasswordManagement,
+    );
+
     // Check if user phishing detection available
     this.phishingDetectionAvailable$ = this.phishingDetectionSettingsService.available$;
     this.sharedUnlockEnabled$ = this.configService.getFeatureFlag$(
@@ -571,6 +579,15 @@ export class AccountSecurityComponent implements OnInit, OnDestroy {
   }
 
   async changePassword() {
+    const multiClientPasswordManagementFlagEnabled = await this.configService.getFeatureFlag(
+      FeatureFlag.PM32413_MultiClientPasswordManagement,
+    );
+
+    if (multiClientPasswordManagementFlagEnabled) {
+      await this.router.navigate(["/" + AuthExtensionRoute.ChangePassword]);
+      return;
+    }
+
     const confirmed = await this.dialogService.openSimpleDialog({
       title: { key: "continueToWebApp" },
       content: { key: "changeMasterPasswordOnWebConfirmation" },
