@@ -60,7 +60,7 @@ pub fn path(name: &str) -> std::path::PathBuf {
         // Hashing prevents problems with reserved characters and file length limitations.
         use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
         use sha2::Digest;
-        let home = dirs::home_dir().unwrap();
+        let home = dirs::home_dir().expect("Could not find user home directory");
         let hash = sha2::Sha256::digest(home.as_os_str().as_encoded_bytes());
         let hash_b64 = URL_SAFE_NO_PAD.encode(hash.as_slice());
 
