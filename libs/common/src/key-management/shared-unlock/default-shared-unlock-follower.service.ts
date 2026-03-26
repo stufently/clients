@@ -1,17 +1,19 @@
-import { LockService } from "@bitwarden/auth/common";
-import { SharedUnlockFollower } from "@bitwarden/sdk-internal";
-import { KeyService } from "@bitwarden/key-management";
 import { firstValueFrom } from "rxjs";
+
+import { LockService } from "@bitwarden/auth/common";
+import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
+import { KeyService } from "@bitwarden/key-management";
+import { SharedUnlockFollower } from "@bitwarden/sdk-internal";
 
 import { AccountService } from "../../auth/abstractions/account.service";
 import { asUuid } from "../../platform/abstractions/sdk/sdk.service";
 import { IpcService } from "../../platform/ipc";
 import { SymmetricCryptoKey } from "../../platform/models/domain/symmetric-crypto-key";
 import { UserId } from "../../types/guid";
-import { SharedUnlockFollowerService } from "./shared-unlock-follower.service";
-import { createUnlockManagementDriver } from "./unlock-management-driver";
-import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
 import { VaultTimeoutSettingsService } from "../vault-timeout/abstractions/vault-timeout-settings.service";
+
+import { SharedUnlockFollowerService } from "./shared-unlock-follower.service";
+import { createUserLockManagement } from "./user-lock-management";
 
 export class DefaultSharedUnlockFollowerService implements SharedUnlockFollowerService {
   constructor(
@@ -24,7 +26,7 @@ export class DefaultSharedUnlockFollowerService implements SharedUnlockFollowerS
   ) {}
 
   async start(): Promise<void> {
-    const unlockManagementDriver = createUnlockManagementDriver(
+    const unlockManagementDriver = createUserLockManagement(
       this.accountService,
       this.lockService,
       this.keyService,
@@ -32,17 +34,18 @@ export class DefaultSharedUnlockFollowerService implements SharedUnlockFollowerS
       this.vaultTimeoutSettingsService,
     );
 
-    const follower = await SharedUnlockFollower.try_new(this.ipcService.client, unlockManagementDriver);
+    const follower = await SharedUnlockFollower.try_new(
+      this.ipcService.client,
+      unlockManagementDriver,
+    );
     follower.start();
 
     this.lockService.registerOnLockAction(async (userId) => {
-      await follower.handle_device_event(
-        {
-          ManualLock: {
-            user_id: asUuid(userId),
-          },
+      await follower.handle_device_event({
+        ManualLock: {
+          user_id: asUuid(userId),
         },
-      );
+      });
     });
 
     const previousUserKeys = new Map<UserId, SymmetricCryptoKey | null>();
@@ -59,14 +62,12 @@ export class DefaultSharedUnlockFollowerService implements SharedUnlockFollowerS
         const previousUserKey = previousUserKeys.get(accountId) ?? null;
 
         if (previousUserKey == null && accountUserKey != null) {
-          await follower.handle_device_event(
-            {
-              ManualUnlock: {
-                user_id: asUuid(accountId),
-                user_key: Array.from(new Uint8Array(accountUserKey.toEncoded().buffer.slice(0))),
-              },
+          await follower.handle_device_event({
+            ManualUnlock: {
+              user_id: asUuid(accountId),
+              user_key: Array.from(new Uint8Array(accountUserKey.toEncoded().buffer.slice(0))),
             },
-          );
+          });
         }
 
         previousUserKeys.set(accountId, accountUserKey);
