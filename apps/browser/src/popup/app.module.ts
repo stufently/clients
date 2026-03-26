@@ -25,6 +25,7 @@ import { AccountComponent } from "../auth/popup/account-switching/account.compon
 import { CurrentAccountComponent } from "../auth/popup/account-switching/current-account.component";
 import { AccountSecurityComponent } from "../auth/popup/settings/account-security.component";
 import { AutofillTriageComponent } from "../autofill/popup/autofill-triage/autofill-triage.component";
+import { ReportAutofillIssueComponent } from "../autofill/popup/report-autofill-issue/report-autofill-issue.component";
 import { AutofillComponent } from "../autofill/popup/settings/autofill.component";
 import { NotificationsSettingsComponent } from "../autofill/popup/settings/notifications.component";
 import { PopOutComponent } from "../platform/popup/components/pop-out.component";
@@ -47,6 +48,7 @@ import "../platform/popup/locales";
     A11yModule,
     AppRoutingModule,
     AutofillTriageComponent,
+    ReportAutofillIssueComponent,
     AutofillComponent,
     AccountSecurityComponent,
     ToastModule.forRoot({

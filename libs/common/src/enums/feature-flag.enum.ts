@@ -28,6 +28,7 @@ export enum FeatureFlag {
   WindowsDesktopAutotypeGA = "windows-desktop-autotype-ga",
   SSHAgentV2 = "ssh-agent-v2",
   EnableAutofillTriage = "enable-autofill-triage",
+  EnableAutofillIssueReporting = "enable-autofill-issue-reporting",
 
   /* Billing */
   TrialPaymentOptional = "PM-8163-trial-payment",

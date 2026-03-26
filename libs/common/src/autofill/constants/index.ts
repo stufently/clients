@@ -79,6 +79,7 @@ export const AUTOFILL_ID = "autofill";
 export const SHOW_AUTOFILL_BUTTON = "show-autofill-button";
 export const AUTOFILL_IDENTITY_ID = "autofill-identity";
 export const AUTOFILL_TRIAGE_ID = "autofill-triage";
+export const REPORT_AUTOFILL_ISSUE_ID = "report-autofill-issue";
 export const COPY_IDENTIFIER_ID = "copy-identifier";
 export const COPY_PASSWORD_ID = "copy-password";
 export const COPY_USERNAME_ID = "copy-username";

@@ -58,6 +58,7 @@ import { AccountSecurityComponent } from "../auth/popup/settings/account-securit
 import { ExtensionDeviceManagementComponent } from "../auth/popup/settings/extension-device-management.component";
 import { AutofillTriageComponent } from "../autofill/popup/autofill-triage/autofill-triage.component";
 import { Fido2Component } from "../autofill/popup/fido2/fido2.component";
+import { ReportAutofillIssueComponent } from "../autofill/popup/report-autofill-issue/report-autofill-issue.component";
 import { AutofillComponent } from "../autofill/popup/settings/autofill.component";
 import { BlockedDomainsComponent } from "../autofill/popup/settings/blocked-domains.component";
 import { ExcludedDomainsComponent } from "../autofill/popup/settings/excluded-domains.component";
@@ -369,6 +370,12 @@ const routes: Routes = [
   {
     path: "autofill-triage",
     component: AutofillTriageComponent,
+    data: { elevation: 1 } satisfies RouteDataProperties,
+  },
+  {
+    path: "report-autofill-issue",
+    component: ReportAutofillIssueComponent,
+    canActivate: [authGuard],
     data: { elevation: 1 } satisfies RouteDataProperties,
   },
   {

@@ -1,0 +1,125 @@
+<popup-page>
+  <popup-header slot="header" [pageTitle]="'autofillReportTitle' | i18n" [showBackButton]="true" />
+
+  @if (!triageResult()) {
+    <div class="tw-flex tw-justify-center tw-p-6">
+      <i class="bwi bwi-spinner bwi-spin tw-text-2xl" aria-hidden="true"></i>
+    </div>
+  } @else {
+    <div class="tw-p-4">
+      <p class="tw-mb-3">{{ "autofillReportDescription" | i18n }}</p>
+
+      <ul class="tw-mb-3 tw-list-disc tw-pl-5">
+        <li>
+          <strong>{{ "autofillReportThisPage" | i18n }}</strong>
+          {{ triageResult()?.pageUrl }}
+        </li>
+        <li>{{ "autofillReportDebugInfo" | i18n }}</li>
+        <li>
+          <strong>{{ "autofillReportNoConfidential" | i18n }}</strong>
+        </li>
+      </ul>
+
+      @if (triageResult()?.targetElementRef) {
+        <p class="tw-mb-3">
+          {{ "autofillReportTargetField" | i18n }}
+          <strong>{{ triageResult()?.targetElementRef }}</strong>
+        </p>
+      }
+
+      <bit-form-field class="tw-mb-3">
+        <bit-label>{{ "autofillReportUserMessageLabel" | i18n }}</bit-label>
+        <textarea
+          bitInput
+          [maxlength]="MAX_USER_MESSAGE_LENGTH"
+          rows="3"
+          (input)="onUserMessageInput($event)"
+        ></textarea>
+        <bit-hint>{{
+          "charactersCurrentAndMaximum" | i18n: userMessage().length : MAX_USER_MESSAGE_LENGTH
+        }}</bit-hint>
+      </bit-form-field>
+
+      <div class="tw-mb-3">
+        <button type="button" bitButton buttonType="secondary" (click)="toggleDetail()">
+          @if (showDetail()) {
+            {{ "autofillReportHideDetail" | i18n }}
+          } @else {
+            {{ "autofillReportShowDetail" | i18n }}
+          }
+        </button>
+
+        @if (showDetail()) {
+          <div class="tw-mt-3 tw-overflow-auto">
+            <table class="tw-w-full tw-text-sm tw-border-collapse">
+              <thead>
+                <tr class="tw-bg-secondary-100">
+                  <th class="tw-p-2 tw-text-left tw-border tw-border-secondary-300">
+                    {{ "field" | i18n }}
+                  </th>
+                  <th class="tw-p-2 tw-text-left tw-border tw-border-secondary-300">
+                    {{ "type" | i18n }}
+                  </th>
+                  <th class="tw-p-2 tw-text-left tw-border tw-border-secondary-300">
+                    {{ "eligible" | i18n }}
+                  </th>
+                  <th class="tw-p-2 tw-text-left tw-border tw-border-secondary-300">
+                    {{ "qualifiedAs" | i18n }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (field of triageResult()?.fields; track $index) {
+                  <tr>
+                    <td class="tw-p-2 tw-border tw-border-secondary-300">
+                      {{ field.htmlId || field.htmlName || "(unnamed)" }}
+                    </td>
+                    <td class="tw-p-2 tw-border tw-border-secondary-300">{{ field.htmlType }}</td>
+                    <td class="tw-p-2 tw-border tw-border-secondary-300">
+                      @if (field.eligible) {
+                        <i class="bwi bwi-check tw-text-success-600" aria-hidden="true"></i>
+                      } @else {
+                        <i class="bwi bwi-close tw-text-muted" aria-hidden="true"></i>
+                      }
+                    </td>
+                    <td class="tw-p-2 tw-border tw-border-secondary-300">
+                      {{ field.qualifiedAs }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+
+      @if (isSuccess()) {
+        <p class="tw-text-success-600 tw-font-medium tw-mb-3">
+          {{ "autofillReportSuccess" | i18n }}
+        </p>
+      } @else {
+        @if (errorMessage()) {
+          <p class="tw-text-danger-600 tw-mb-3">{{ errorMessage() | i18n }}</p>
+        }
+
+        <div class="tw-flex tw-gap-2">
+          <button
+            type="button"
+            bitButton
+            buttonType="primary"
+            [disabled]="isSending()"
+            (click)="sendReport()"
+          >
+            @if (isSending()) {
+              <i class="bwi bwi-spinner bwi-spin" aria-hidden="true"></i>
+            }
+            {{ "sendReport" | i18n }}
+          </button>
+          <button type="button" bitButton buttonType="secondary" (click)="cancel()">
+            {{ "cancel" | i18n }}
+          </button>
+        </div>
+      }
+    </div>
+  }
+</popup-page>

@@ -46,6 +46,12 @@ export default class ContextMenusBackground {
           sendResponse(this.contextMenuClickedHandler.latestTriageResult ?? null);
           return true;
         }
+
+        // the report autofill issue popout component calls this to fetch the issue report result
+        if (msg.command === "getAutofillIssueReportResult") {
+          sendResponse(this.contextMenuClickedHandler.latestIssueReportResult ?? null);
+          return true;
+        }
       },
     );
   }

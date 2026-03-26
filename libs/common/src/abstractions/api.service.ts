@@ -53,6 +53,7 @@ import { IdentityTwoFactorResponse } from "../auth/models/response/identity-two-
 import { KeyConnectorUserKeyResponse } from "../auth/models/response/key-connector-user-key.response";
 import { PreloginResponse } from "../auth/models/response/prelogin.response";
 import { SsoPreValidateResponse } from "../auth/models/response/sso-pre-validate.response";
+import { AutofillTriageReportRequest } from "../autofill/models/request/autofill-triage-report.request";
 import { BitPayInvoiceRequest } from "../billing/models/request/bit-pay-invoice.request";
 import { BillingHistoryResponse } from "../billing/models/response/billing-history.response";
 import { PaymentResponse } from "../billing/models/response/payment.response";
@@ -494,4 +495,6 @@ export abstract class ApiService {
     request: KeyConnectorUserKeyRequest,
   ): Promise<void>;
   abstract getKeyConnectorAlive(keyConnectorUrl: string): Promise<void>;
+
+  abstract postAutofillTriageReport(request: AutofillTriageReportRequest): Promise<void>;
 }

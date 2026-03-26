@@ -20,6 +20,7 @@ import {
   ExtensionCommand,
   GENERATE_PASSWORD_ID,
   NOOP_COMMAND_SUFFIX,
+  REPORT_AUTOFILL_ISSUE_ID,
 } from "@bitwarden/common/autofill/constants";
 import { EventCollectionService, EventType } from "@bitwarden/common/dirt/event-logs";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
@@ -52,6 +53,7 @@ export type GeneratePasswordToClipboardAction = (tab: chrome.tabs.Tab) => Promis
 
 export class ContextMenuClickedHandler {
   latestTriageResult: AutofillTriagePageResult | undefined;
+  latestIssueReportResult: AutofillTriagePageResult | undefined;
 
   constructor(
     private copyToClipboard: CopyToClipboardAction,
@@ -84,6 +86,9 @@ export class ContextMenuClickedHandler {
         break;
       case AUTOFILL_TRIAGE_ID:
         await this.autofillTriageAction(info, tab);
+        break;
+      case REPORT_AUTOFILL_ISSUE_ID:
+        await this.reportAutofillIssueAction(info, tab);
         break;
       default:
         await this.cipherAction(info, tab);
@@ -277,6 +282,37 @@ export class ContextMenuClickedHandler {
 
     await BrowserPopupUtils.openPopout("popup/index.html#/autofill-triage", {
       singleActionKey: AUTOFILL_TRIAGE_ID,
+      senderWindowId: tab.windowId,
+    });
+  }
+
+  private async reportAutofillIssueAction(
+    info: chrome.contextMenus.OnClickData,
+    tab: chrome.tabs.Tab,
+  ) {
+    if (!tab.id) {
+      return;
+    }
+
+    const response = await this.collectPageDetailsForTriage(tab, info);
+    if (!response) {
+      return;
+    }
+
+    const fields = response.pageDetails.fields.map((field) =>
+      this.triageService.triageField(field, response.pageDetails),
+    );
+
+    this.latestIssueReportResult = {
+      tabId: tab.id,
+      pageUrl: tab.url ?? "",
+      analyzedAt: new Date().toISOString(),
+      targetElementRef: response.targetFieldRef,
+      fields,
+    };
+
+    await BrowserPopupUtils.openPopout("popup/index.html#/report-autofill-issue", {
+      singleActionKey: REPORT_AUTOFILL_ISSUE_ID,
       senderWindowId: tab.windowId,
     });
   }

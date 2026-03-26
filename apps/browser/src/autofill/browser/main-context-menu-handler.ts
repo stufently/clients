@@ -16,6 +16,7 @@ import {
   CREATE_LOGIN_ID,
   GENERATE_PASSWORD_ID,
   NOOP_COMMAND_SUFFIX,
+  REPORT_AUTOFILL_ISSUE_ID,
   ROOT_ID,
   SEPARATOR_ID,
 } from "@bitwarden/common/autofill/constants";
@@ -107,6 +108,12 @@ export class MainContextMenuHandler {
       parentId: ROOT_ID,
       title: this.i18nService.t("triageAutofill"),
       requiresFeatureFlagKey: FeatureFlag.EnableAutofillTriage,
+    },
+    {
+      id: REPORT_AUTOFILL_ISSUE_ID,
+      parentId: ROOT_ID,
+      title: this.i18nService.t("reportAutofillIssue"),
+      requiresFeatureFlagKey: FeatureFlag.EnableAutofillIssueReporting,
     },
   ];
   private noCardsContextMenuItems: chrome.contextMenus.CreateProperties[] = [

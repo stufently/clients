@@ -6226,5 +6226,54 @@
   },
   "triageReportCopied": {
     "message": "Triage report copied to clipboard"
+  },
+  "reportAutofillIssue": {
+    "message": "Report Autofill Issue"
+  },
+  "autofillReportTitle": {
+    "message": "Report Autofill Problem"
+  },
+  "autofillReportDescription": {
+    "message": "This will send a report to Bitwarden that you are having an issue with autofill on this page. This information will contain:"
+  },
+  "autofillReportThisPage": {
+    "message": "This page:"
+  },
+  "autofillReportDebugInfo": {
+    "message": "Autofill debug information (see detail below)"
+  },
+  "autofillReportNoConfidential": {
+    "message": "NO confidential or user information will be sent."
+  },
+  "autofillReportTargetField": {
+    "message": "You right-clicked on field:"
+  },
+  "autofillReportUserMessageLabel": {
+    "message": "Describe the issue (optional):"
+  },
+  "charactersCurrentAndMaximum": {
+    "message": "$CURRENT$/$MAX$ character maximum",
+    "placeholders": {
+      "current": { "content": "$1", "example": "0" },
+      "max": { "content": "$2", "example": "200" }
+    }
+  },
+  "autofillReportShowDetail": {
+    "message": "Click here to see all data sent to Bitwarden"
+  },
+  "autofillReportHideDetail": {
+    "message": "Hide data details"
+  },
+  "sendReport": {
+    "message": "Send Report"
+  },
+  "autofillReportSuccess": {
+    "message": "Report sent. Thank you!"
+  },
+  "autofillReportError": {
+    "message": "Failed to send report. Please try again."
+  },
+  "autofillReportTooLarge": {
+    "message": "This page has too many fields to include in a report."
   }
 }
