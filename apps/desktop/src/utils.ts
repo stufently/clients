@@ -69,10 +69,10 @@ export function isWindowsPortable() {
   return isWindows() && process.env.PORTABLE_EXECUTABLE_DIR != null;
 }
 
-/*s
- * We block the browser integration on some unsupported platforms, which also
- * blocks partially supported platforms / prevents experimenting with the feature
- * for QA. So this env var allows overriding the block.
+/**
+ * We block the browser integration on some unsupported platforms prevents
+ * experimenting with the feature for QA. So this env var allows overriding
+ * the block.
  */
 export function allowBrowserintegrationOverride() {
   return process.env.ALLOW_BROWSER_INTEGRATION_OVERRIDE === "true";
