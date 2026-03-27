@@ -27,7 +27,7 @@ import { SpinnerComponent } from "../../spinner";
 import { TypographyDirective } from "../../typography/typography.directive";
 import { hasScrollableContent$ } from "../../utils/";
 import { hasScrolledFrom } from "../../utils/has-scrolled-from";
-import { DialogRef } from "../dialog.service";
+import { DialogRef, DialogService } from "../dialog.service";
 import { DialogCloseDirective } from "../directives/dialog-close.directive";
 import { DialogTitleContainerDirective } from "../directives/dialog-title-container.directive";
 import { DrawerService } from "../drawer.service";
@@ -80,6 +80,7 @@ export class DialogComponent implements AfterViewInit {
   private readonly ngZone = inject(NgZone);
   private readonly el = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly drawerService = inject(DrawerService);
+  private readonly dialogService = inject(DialogService, { optional: true });
 
   constructor() {
     effect(() => {
@@ -178,6 +179,15 @@ export class DialogComponent implements AfterViewInit {
 
     return [...baseClasses, this.width(), ...sizeClasses, ...animationClasses];
   });
+
+  /** True when this dialog is a drawer and there is a previous entry in the stack to go back to. */
+  protected readonly showBackButton = computed(
+    () => this.dialogRef?.isDrawer === true && this.drawerService.stackDepth() > 1,
+  );
+
+  goBack(): void {
+    this.dialogService?.popDrawer();
+  }
 
   handleEsc(event: Event) {
     if (!this.dialogRef?.disableClose) {

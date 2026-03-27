@@ -19,6 +19,16 @@
       'tw-border-transparent': !showHeaderBorder,
     }"
   >
+    @if (showBackButton()) {
+      <button
+        type="button"
+        bitIconButton="bwi-angle-left"
+        buttonType="primaryGhost"
+        size="default"
+        (click)="goBack()"
+        [label]="'back' | i18n"
+      ></button>
+    }
     <h2
       bitDialogTitleContainer
       bitTypography="h3"
