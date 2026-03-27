@@ -68,6 +68,8 @@ import { SSOLocalhostCallbackService } from "./platform/services/sso-localhost-c
 import { ElectronMainMessagingService } from "./services/electron-main-messaging.service";
 import { MainSdkLoadService } from "./services/main-sdk-load-service";
 import { isMacAppStore } from "./utils";
+import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
+import { DefaultConfigService } from "@bitwarden/common/platform/services/config/default-config.service";
 
 export class Main {
   logService: ElectronLogMainService;
@@ -103,6 +105,7 @@ export class Main {
   mainDesktopAutotypeService: MainDesktopAutotypeService;
   ssoCookieMain: SsoCookieMain;
   ipcService: IpcService;
+  configService: ConfigService;
 
   constructor() {
     // Set paths for portable builds
@@ -305,14 +308,10 @@ export class Main {
       app.getPath("exe"),
       app.getAppPath(),
     );
+
     // TODO: Rewrite this to use an observable pattern instead of a callback, to avoid potential issues with multiple listeners and to better handle async operations
     this.nativeMessagingMain.shouldKeepListening = async () => {
-      const [browserIntegration, ddg, sharedUnlock] = await Promise.all([
-        firstValueFrom(this.desktopSettingsService.browserIntegrationEnabled$),
-        firstValueFrom(this.desktopAutofillSettingsService.enableDuckDuckGoBrowserIntegration$),
-        firstValueFrom(this.sharedUnlockSettingsService.allowIntegrateWithBrowserExtension$),
-      ]);
-      return browserIntegration || ddg || sharedUnlock;
+      return Promise.resolve(true);
     };
 
     this.ipcService = new IpcMainService(
@@ -382,49 +381,25 @@ export class Main {
         this.powerMonitorMain.init();
         await this.updaterMain.init();
 
-        const [browserIntegrationEnabled, ddgIntegrationEnabled, sharedUnlockEnabled] =
+        const [browserIntegrationEnabled, ddgIntegrationEnabled] =
           await Promise.all([
             firstValueFrom(this.desktopSettingsService.browserIntegrationEnabled$),
             firstValueFrom(this.desktopAutofillSettingsService.enableDuckDuckGoBrowserIntegration$),
-            firstValueFrom(this.sharedUnlockSettingsService.allowIntegrateWithBrowserExtension$),
           ]);
 
-        if (browserIntegrationEnabled || ddgIntegrationEnabled || sharedUnlockEnabled) {
+        try {
           // Re-register the native messaging host integrations on startup, in case they are not present
-          if (browserIntegrationEnabled || sharedUnlockEnabled) {
-            this.nativeMessagingMain
-              .generateManifests()
-              .catch((err) => this.logService.error("Error while generating manifests", err));
-          }
           if (ddgIntegrationEnabled) {
-            this.nativeMessagingMain
+            await this.nativeMessagingMain
               .generateDdgManifests()
-              .catch((err) => this.logService.error("Error while generating DDG manifests", err));
           }
 
-          this.nativeMessagingMain
-            .listen()
-            .catch((err) =>
-              this.logService.error("Error while starting native message listener", err),
-            );
+          // Start native messaging when shared unlock is enabled at runtime
+          await this.nativeMessagingMain.generateManifests();
+          await this.nativeMessagingMain.listen();
+        } catch (err) {
+          this.logService.error("Error while setting up native messaging:", err);
         }
-
-        // Start native messaging when shared unlock is enabled at runtime
-        this.sharedUnlockSettingsService.allowIntegrateWithBrowserExtension$
-          .pipe(
-            skip(1),
-            concatMap(async (enabled) => {
-              if (enabled) {
-                try {
-                  await this.nativeMessagingMain.generateManifests();
-                  await this.nativeMessagingMain.listen();
-                } catch (err) {
-                  this.logService.error("Error starting native messaging for shared unlock", err);
-                }
-              }
-            }),
-          )
-          .subscribe();
 
         app.removeAsDefaultProtocolClient("bitwarden");
         if (process.env.NODE_ENV === "development" && process.platform === "win32") {

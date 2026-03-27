@@ -808,19 +808,19 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   private async checkForSystemTimeout(timeout: VaultTimeout): Promise<void> {
-    // Skip if vault timeout is suppressed by shared unlock
-    const suppressedUntil = await firstValueFrom(
-      this.vaultTimeoutSettingsService.vaultTimeoutSuppressedUntil$,
-    );
-    if (suppressedUntil != null && Date.now() < suppressedUntil) {
-      return;
-    }
-
     const accounts = await firstValueFrom(this.accountService.accounts$);
     for (const userId in accounts) {
       if (userId == null) {
         continue;
       }
+      // Skip if vault timeout is suppressed by shared unlock
+      const suppressedUntil = await firstValueFrom(
+        this.vaultTimeoutSettingsService.vaultTimeoutSuppressedUntil$(userId as UserId),
+      );
+      if (suppressedUntil != null && Date.now() < suppressedUntil) {
+        return;
+      }
+
       const options = await this.getVaultTimeoutOptions(userId);
       if (options[0] === timeout) {
         options[1] === "logOut"

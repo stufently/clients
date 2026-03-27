@@ -323,7 +323,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
       openAtLogin: await firstValueFrom(this.desktopSettingsService.openAtLogin$),
       alwaysShowDock: await firstValueFrom(this.desktopSettingsService.alwaysShowDock$),
       allowIntegrateWithBrowserExtension: await firstValueFrom(
-        this.sharedUnlockSettingsService.allowIntegrateWithBrowserExtension$,
+        this.sharedUnlockSettingsService.allowIntegrateWithBrowserExtension$(activeAccount.id),
       ),
       enableDuckDuckGoBrowserIntegration: await firstValueFrom(
         this.desktopAutofillSettingsService.enableDuckDuckGoBrowserIntegration$,
