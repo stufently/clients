@@ -72,7 +72,7 @@ export class vNextOrganizationDataOwnershipPolicyComponent
   readonly policySteps: PolicyStep[] = [
     {
       disableSave: this.saveDisabled$,
-      sideEffect: this.savePolicy,
+      sideEffect: () => this.savePolicy(),
     },
   ];
 
