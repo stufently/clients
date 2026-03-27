@@ -1,5 +1,5 @@
 <popup-page>
-  <popup-header slot="header" [pageTitle]="'autofillReportTitle' | i18n" [showBackButton]="true" />
+  <popup-header slot="header" [pageTitle]="'autofillReportTitle' | i18n" [showBackButton]="false" />
 
   @if (!triageResult()) {
     <div class="tw-flex tw-justify-center tw-p-6">
@@ -51,11 +51,12 @@
 
         @if (showDetail()) {
           <div class="tw-mt-3 tw-overflow-auto">
+            <p class="tw-mb-2 tw-font-semibold">{{ "autofillReportFieldsDetected" | i18n }}</p>
             <table class="tw-w-full tw-text-sm tw-border-collapse">
               <thead>
                 <tr class="tw-bg-secondary-100">
                   <th class="tw-p-2 tw-text-left tw-border tw-border-secondary-300">
-                    {{ "field" | i18n }}
+                    {{ "autofillFieldColumnHeader" | i18n }}
                   </th>
                   <th class="tw-p-2 tw-text-left tw-border tw-border-secondary-300">
                     {{ "type" | i18n }}
@@ -64,7 +65,7 @@
                     {{ "eligible" | i18n }}
                   </th>
                   <th class="tw-p-2 tw-text-left tw-border tw-border-secondary-300">
-                    {{ "qualifiedAs" | i18n }}
+                    {{ "autofillIdentifiedAsColumnHeader" | i18n }}
                   </th>
                 </tr>
               </thead>

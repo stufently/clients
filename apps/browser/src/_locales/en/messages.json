@@ -6210,7 +6210,7 @@
     "message": "Analyzed"
   },
   "eligible": {
-    "message": "Eligible"
+    "message": "Eligible for Autofill"
   },
   "targetElement": {
     "message": "Target Element"
@@ -6257,6 +6257,15 @@
       "current": { "content": "$1", "example": "0" },
       "max": { "content": "$2", "example": "200" }
     }
+  },
+  "autofillReportFieldsDetected": {
+    "message": "Fields detected:"
+  },
+  "autofillFieldColumnHeader": {
+    "message": "Field"
+  },
+  "autofillIdentifiedAsColumnHeader": {
+    "message": "Identified as"
   },
   "autofillReportShowDetail": {
     "message": "Click here to see all data sent to Bitwarden"
