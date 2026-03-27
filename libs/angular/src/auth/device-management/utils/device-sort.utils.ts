@@ -8,6 +8,11 @@ export function clearAuthRequestAndSortDevices(
   // TODO: PM-34091 - Remove the sortFn parameter; always call sortDevicesWithActivity (will be renamed to sortDevices) directly.
   sortFn: (a: DeviceDisplayData, b: DeviceDisplayData) => number = sortDevices,
 ): DeviceDisplayData[] {
+  // TODO: Tech debt - .map() mutates the original device objects in-place instead of returning new
+  // object references. Callers holding refs to the original items will see silent side effects, and
+  // any child component receiving an individual device as @Input() will not detect the change under
+  // OnPush change detection. Fix by spreading the matched device into a new object:
+  // `return { ...device, pendingAuthRequest: null, loginStatus: "" }`
   return devices
     .map((device) => {
       if (device.pendingAuthRequest?.id === pendingAuthRequest.id) {
