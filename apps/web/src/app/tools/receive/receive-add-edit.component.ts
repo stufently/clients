@@ -30,6 +30,7 @@ export class ReceiveAddEditComponent {
     private readonly i18nService: I18nService,
   ) {
     this.expirationDayOptions = [
+      { label: this.i18nService.t("oneHour"), value: 1 / 24 },
       { label: this.i18nService.t("oneDay"), value: 1 },
       { label: this.i18nService.t("days", "2"), value: 2 },
       { label: this.i18nService.t("days", "3"), value: 3 },
