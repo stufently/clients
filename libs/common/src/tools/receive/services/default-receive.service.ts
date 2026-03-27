@@ -5,20 +5,22 @@ import { EncryptService } from "@bitwarden/common/key-management/crypto/abstract
 import { EncString } from "@bitwarden/common/key-management/crypto/models/enc-string";
 import { Utils } from "@bitwarden/common/platform/misc/utils";
 import { SymmetricCryptoKey } from "@bitwarden/common/platform/models/domain/symmetric-crypto-key";
-import { Guid } from "@bitwarden/common/types/guid";
-import { newGuid } from "@bitwarden/guid";
 // eslint-disable-next-line no-restricted-imports
 import { KeyService } from "@bitwarden/key-management";
 import { UserId } from "@bitwarden/user-core";
 
-import { Receive, ReceiveFile } from "../models/receive";
+import { ReceiveData } from "../models/data/receive.data";
+import { Receive } from "../models/domain/receive";
+import { ReceiveFile } from "../models/domain/receive-file";
 import { ReceiveCreateInput } from "../models/receive-create-input";
 import { ReceiveSharedData } from "../models/receive-shared-data";
 import { ReceiveUrlData } from "../models/receive-url-data";
-import { ReceiveFileView, ReceiveView } from "../models/receive.view";
 import { CreateReceiveRequest } from "../models/requests/create-receive.request";
 import { ReceiveSharedDataResponse } from "../models/response/receive-shared-data.response";
+import { ReceiveFileView } from "../models/view/receive-file.view";
+import { ReceiveView } from "../models/view/receive.view";
 
+import { ReceiveApiService } from "./receive-api.service.abstraction";
 import { ReceiveService } from "./receive.service";
 
 interface ReceiveKeys {
@@ -33,32 +35,23 @@ export class DefaultReceiveService implements ReceiveService {
     private encryptService: EncryptService,
     private keyService: KeyService,
     private keyGenerationService: KeyGenerationService,
+    private receiveApiService: ReceiveApiService,
   ) {}
 
   async create(input: ReceiveCreateInput, userId: UserId): Promise<Receive> {
     const receiveKeys = await this.makeReceiveKeys(userId);
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const requestPayload = await this.getCreateReceiveRequest(input, receiveKeys);
 
-    // TODO call an API endpoint to create the receive and return the result.
-
-    // TODO return the created receive from the API instead of making a fake one here.
-    const receive: Receive = {
-      id: newGuid() as Guid,
-    } as Receive;
-    return receive;
+    const response = await this.receiveApiService.postReceive(requestPayload);
+    const data = new ReceiveData(response);
+    return new Receive(data);
   }
 
   async getSharedData(urlData: ReceiveUrlData): Promise<ReceiveSharedData> {
-    // TODO call an API endpoint to get receive shared data.
-    // const response = this.receiveApiService.getReceiveSharedData(urlData.receiveId);
-
-    // Fake response for now
-    const response = new ReceiveSharedDataResponse({
-      name: "encryptedName",
-      scekWrappedPublicKey: "scekWrappedPublicKey",
-    });
+    const response = await this.receiveApiService.postReceiveAccess(
+      urlData.receiveId,
+      urlData.secretB64,
+    );
 
     return await this.decryptResponse(response, urlData);
   }
@@ -156,12 +149,12 @@ export class DefaultReceiveService implements ReceiveService {
       sharedContentEncryptionKey,
     };
 
-    if (receive.fileData) {
+    if (receive.files.length > 0) {
       const privateKey = await this.encryptService.unwrapDecapsulationKey(
         receive.userKeyWrappedPrivateKey,
         userKey,
       );
-      view.fileData = await this.decryptReceiveFiles(receive.fileData, privateKey);
+      view.fileData = await this.decryptReceiveFiles(receive.files, privateKey);
     }
 
     return view;
