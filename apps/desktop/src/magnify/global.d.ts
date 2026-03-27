@@ -7,3 +7,11 @@ declare const BIT_ENVIRONMENT: string;
 declare interface Window {
   ipc: typeof import("./preload").ipc;
 }
+
+interface MagnifyCipherResult {
+  id: string;
+  name: string;
+  username: string;
+  faviconUrl?: string;
+  hasUri?: boolean;
+}

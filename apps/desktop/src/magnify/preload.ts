@@ -15,7 +15,8 @@ import { MagnifyCommandRequest, MagnifyCommandResponse } from "../autofill/model
  * https://www.electronjs.org/docs/latest/api/context-bridge
  */
 
-const ipc = {
+export const ipc = {
+  platform: process.platform,
   sendCommand: async (command: MagnifyCommandRequest): Promise<MagnifyCommandResponse> => {
     return await ipcRenderer.invoke(MAGNIFY_IPC_CHANNELS.MAGNIFY_COMMAND, command);
   },

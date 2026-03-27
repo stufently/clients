@@ -1,16 +1,13 @@
-import { ChangeDetectionStrategy, Component, OnInit } from "@angular/core";
+import { ChangeDetectionStrategy, Component } from "@angular/core";
 
-import { CommandService } from "../services/command-service";
+import { UsernamePasswordSpotlightComponent } from "./spotlight-search/username-password/username-password-spotlight.component";
 
 @Component({
   selector: "magnify-root",
-  template: `<p>Magnify</p>`,
+  template: `<app-username-password-spotlight />`,
+  standalone: true,
+  imports: [UsernamePasswordSpotlightComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: "tw-block tw-h-full" },
 })
-export class AppComponent implements OnInit {
-  constructor(private readonly commandService: CommandService) {}
-
-  async ngOnInit(): Promise<void> {
-    await this.commandService.searchVault("Netfli");
-  }
-}
+export class AppComponent {}
