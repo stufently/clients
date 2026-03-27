@@ -150,11 +150,11 @@ describe("PasskeyReportComponent", () => {
       await component.setCiphers();
 
       expect(component.ciphers().length).toEqual(2);
-      expect(component.ciphers()[0].id).toEqual("cipher-1");
-      expect(component.ciphers()[1].id).toEqual("cipher-3");
+      expect(component.ciphers()[0].cipher.id).toEqual("cipher-1");
+      expect(component.ciphers()[1].cipher.id).toEqual("cipher-3");
     });
 
-    it("should populate cipherDocs for entries with instructions URLs", async () => {
+    it("should populate instructions for entries with instructions URLs", async () => {
       passkeyDirectoryApiServiceMock.getPasskeyDirectory.mockResolvedValue([
         { domainName: "example.com", instructions: "https://example.com/passkey-setup" } as any,
         { domainName: "test.com", instructions: "" } as any,
@@ -175,12 +175,12 @@ describe("PasskeyReportComponent", () => {
 
       await component.setCiphers();
 
-      expect((component as any).cipherDocs().has("cipher-1")).toBe(true);
-      expect((component as any).cipherDocs().get("cipher-1")).toEqual(
-        "https://example.com/passkey-setup",
-      );
-      // Empty instructions should not be stored in docs
-      expect((component as any).cipherDocs().has("cipher-2")).toBe(false);
+      const rows = component.ciphers();
+      const row1 = rows.find((r) => r.cipher.id === "cipher-1");
+      const row2 = rows.find((r) => r.cipher.id === "cipher-2");
+      expect(row1?.instructions).toEqual("https://example.com/passkey-setup");
+      // Empty instructions should be null
+      expect(row2?.instructions).toBeNull();
     });
 
     it("should log error when loadPasskeyServices fails", async () => {
@@ -370,7 +370,7 @@ describe("PasskeyReportComponent", () => {
       expect(result).toBeNull();
     });
 
-    it("should return cipher and update docs when cipher still matches", async () => {
+    it("should return row when cipher still matches", async () => {
       const cipher = createCipherView({
         id: "cipher-1",
         login: { uris: [{ uri: "https://example.com" }] },
@@ -384,10 +384,9 @@ describe("PasskeyReportComponent", () => {
         cipher,
       );
 
-      expect(result).toEqual(cipher);
-      expect((component as any).cipherDocs().get("cipher-1")).toEqual(
-        "https://example.com/passkey-doc",
-      );
+      expect(result).not.toBeNull();
+      expect(result!.cipher).toEqual(cipher);
+      expect(result!.instructions).toEqual("https://example.com/passkey-doc");
     });
 
     it("should return null when updated cipher no longer matches directory", async () => {

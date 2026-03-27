@@ -28,11 +28,11 @@ import {
 } from "../../../vault/components/vault-item-dialog/vault-item-dialog.component";
 
 import {
+  PasskeyCipherRow,
   PasskeyServiceEntry,
-  PasskeyTypeInfo,
+  buildPasskeyCipherRow,
   getPasskeyServiceMatch,
   processPasskeyCiphers,
-  updateCipherMatchSignals,
 } from "./passkey-report.utils";
 
 @Component({
@@ -57,10 +57,9 @@ export class PasskeyReportComponent {
   // Reactive state
   protected readonly loading = signal(false);
   protected readonly hasLoaded = signal(false);
-  protected readonly ciphers = signal<CipherView[]>([]);
-  protected readonly allCiphers = signal<CipherView[]>([]);
-  protected readonly cipherDocs = signal<Map<string, string>>(new Map());
-  protected readonly dataSource = new TableDataSource<CipherView>();
+  protected readonly ciphers = signal<PasskeyCipherRow[]>([]);
+  protected readonly allCiphers = signal<PasskeyCipherRow[]>([]);
+  protected readonly dataSource = new TableDataSource<PasskeyCipherRow>();
 
   // Filter state
   protected readonly filterStatus = signal<(number | string)[]>([0]);
@@ -77,9 +76,6 @@ export class PasskeyReportComponent {
     getUserId,
     switchMap((userId) => this.organizationService.organizations$(userId)),
   );
-
-  // Passkey type info exposed to template
-  protected readonly cipherPasskeyTypes = signal<Map<string, PasskeyTypeInfo>>(new Map());
 
   // Private state
   private readonly passkeyServices = signal<Map<string, PasskeyServiceEntry>>(new Map());
@@ -117,18 +113,16 @@ export class PasskeyReportComponent {
     }
 
     const allCiphers = await this.getAllCiphers();
-    const result = processPasskeyCiphers(allCiphers, this.passkeyServices());
+    const rows = processPasskeyCiphers(allCiphers, this.passkeyServices());
 
     this.filterStatus.set([0]);
-    this.filterCiphersByOrg(result.ciphers);
-    this.cipherDocs.set(result.docs);
-    this.cipherPasskeyTypes.set(result.passkeyTypes);
+    this.filterCiphersByOrg(rows);
   }
 
   async determinedUpdatedCipherReportStatus(
     result: VaultItemDialogResult,
     updatedCipherView: CipherView,
-  ): Promise<CipherView | null> {
+  ): Promise<PasskeyCipherRow | null> {
     if (result === VaultItemDialogResult.Deleted) {
       return null;
     }
@@ -136,13 +130,7 @@ export class PasskeyReportComponent {
     const match = getPasskeyServiceMatch(updatedCipherView, this.passkeyServices());
 
     if (match != null) {
-      updateCipherMatchSignals(
-        updatedCipherView.id,
-        match,
-        this.cipherDocs,
-        this.cipherPasskeyTypes,
-      );
-      return updatedCipherView;
+      return buildPasskeyCipherRow(updatedCipherView, match);
     }
 
     return null;
@@ -188,18 +176,18 @@ export class PasskeyReportComponent {
       return this.allCiphers().length;
     }
     if (filterId === 1) {
-      return this.allCiphers().filter((c) => !c.organizationId).length;
+      return this.allCiphers().filter((r) => !r.cipher.organizationId).length;
     }
-    return this.allCiphers().filter((c) => c.organizationId === filterId).length;
+    return this.allCiphers().filter((r) => r.cipher.organizationId === filterId).length;
   }
 
   protected async filterOrgToggle(status: number | string) {
     this.currentFilterStatus.set(status);
     if (typeof status === "number" && status === 1) {
-      this.dataSource.filter = (c: CipherView) => !c.organizationId;
+      this.dataSource.filter = (r: PasskeyCipherRow) => !r.cipher.organizationId;
     } else if (typeof status === "string") {
       const orgId = status as OrganizationId;
-      this.dataSource.filter = (c: CipherView) => c.organizationId === orgId;
+      this.dataSource.filter = (r: PasskeyCipherRow) => r.cipher.organizationId === orgId;
     } else {
       this.dataSource.filter = () => true;
     }
@@ -261,7 +249,7 @@ export class PasskeyReportComponent {
   private async refresh(result: VaultItemDialogResult, cipher: CipherView) {
     if (result === VaultItemDialogResult.Deleted) {
       await this.determinedUpdatedCipherReportStatus(result, cipher);
-      this.ciphers.update((current) => current.filter((c) => c.id !== cipher.id));
+      this.ciphers.update((current) => current.filter((r) => r.cipher.id !== cipher.id));
       this.filterCiphersByOrg(this.ciphers());
       return;
     }
@@ -274,40 +262,37 @@ export class PasskeyReportComponent {
         await this.cipherService.getKeyForCipherKeyDecryption(updatedCipher, activeUserId),
       );
 
-      const updatedReportResult = await this.determinedUpdatedCipherReportStatus(
-        result,
-        updatedCipherView,
-      );
+      const updatedRow = await this.determinedUpdatedCipherReportStatus(result, updatedCipherView);
 
-      const currentCiphers = [...this.ciphers()];
-      const index = currentCiphers.findIndex((c) => c.id === updatedCipherView.id);
+      const currentRows = [...this.ciphers()];
+      const index = currentRows.findIndex((r) => r.cipher.id === updatedCipherView.id);
 
-      if (updatedReportResult === null && index > -1) {
-        currentCiphers.splice(index, 1);
+      if (updatedRow === null && index > -1) {
+        currentRows.splice(index, 1);
       }
 
-      if (updatedReportResult !== null && index > -1) {
-        currentCiphers[index] = updatedReportResult;
+      if (updatedRow !== null && index > -1) {
+        currentRows[index] = updatedRow;
       }
 
-      this.filterCiphersByOrg(currentCiphers);
+      this.filterCiphersByOrg(currentRows);
     }
   }
 
-  private filterCiphersByOrg(ciphersList: CipherView[]) {
+  private filterCiphersByOrg(rows: PasskeyCipherRow[]) {
     const statuses: (number | string)[] = [0];
 
-    for (const cipher of ciphersList) {
-      if (cipher.organizationId != null && !statuses.includes(cipher.organizationId)) {
-        statuses.push(cipher.organizationId);
-      } else if (cipher.organizationId == null && !statuses.includes(1)) {
+    for (const row of rows) {
+      if (row.cipher.organizationId != null && !statuses.includes(row.cipher.organizationId)) {
+        statuses.push(row.cipher.organizationId);
+      } else if (row.cipher.organizationId == null && !statuses.includes(1)) {
         statuses.splice(1, 0, 1);
       }
     }
 
-    this.ciphers.set(ciphersList);
-    this.allCiphers.set([...ciphersList]);
-    this.dataSource.data = ciphersList;
+    this.ciphers.set(rows);
+    this.allCiphers.set([...rows]);
+    this.dataSource.data = rows;
     this.filterStatus.set(statuses);
 
     if (statuses.length > 2) {

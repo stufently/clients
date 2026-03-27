@@ -43,11 +43,11 @@ import {
 } from "../../../../vault/components/vault-item-dialog/vault-item-dialog.component";
 import { AdminConsoleCipherFormConfigService } from "../../../../vault/org-vault/services/admin-console-cipher-form-config.service";
 import {
+  PasskeyCipherRow,
   PasskeyServiceEntry,
-  PasskeyTypeInfo,
+  buildPasskeyCipherRow,
   getPasskeyServiceMatch,
   processPasskeyCiphers,
-  updateCipherMatchSignals,
 } from "../passkey-report.utils";
 
 @Component({
@@ -92,12 +92,8 @@ export class OrgPasskeyReportComponent {
   // Reactive state
   protected readonly loading = signal(false);
   protected readonly hasLoaded = signal(false);
-  protected readonly ciphers = signal<CipherView[]>([]);
-  protected readonly cipherDocs = signal<Map<string, string>>(new Map());
-  protected readonly dataSource = new TableDataSource<CipherView>();
-
-  // Passkey type info exposed to the template
-  protected readonly cipherPasskeyTypes = signal<Map<string, PasskeyTypeInfo>>(new Map());
+  protected readonly ciphers = signal<PasskeyCipherRow[]>([]);
+  protected readonly dataSource = new TableDataSource<PasskeyCipherRow>();
 
   // Private state
   private readonly manageableCiphers = signal<Cipher[]>([]);
@@ -191,12 +187,10 @@ export class OrgPasskeyReportComponent {
     }
 
     const allCiphers = await this.cipherService.getAllFromApiForOrganization(org.id, true);
-    const result = processPasskeyCiphers(allCiphers, this.passkeyServices());
+    const rows = processPasskeyCiphers(allCiphers, this.passkeyServices());
 
-    this.ciphers.set(result.ciphers);
-    this.dataSource.data = result.ciphers;
-    this.cipherDocs.set(result.docs);
-    this.cipherPasskeyTypes.set(result.passkeyTypes);
+    this.ciphers.set(rows);
+    this.dataSource.data = rows;
   }
 
   private async openVaultItemDialog(
@@ -230,7 +224,7 @@ export class OrgPasskeyReportComponent {
     }
 
     if (result === VaultItemDialogResult.Deleted) {
-      this.ciphers.update((current) => current.filter((c) => c.id !== cipher.id));
+      this.ciphers.update((current) => current.filter((r) => r.cipher.id !== cipher.id));
       this.dataSource.data = this.ciphers();
       return;
     }
@@ -246,24 +240,21 @@ export class OrgPasskeyReportComponent {
       );
 
       const match = getPasskeyServiceMatch(updatedCipherView, this.passkeyServices());
-      const index = this.ciphers().findIndex((c) => c.id === updatedCipherView.id);
+      const index = this.ciphers().findIndex((r) => r.cipher.id === updatedCipherView.id);
 
       if (match != null) {
-        updateCipherMatchSignals(
-          updatedCipherView.id,
-          match,
-          this.cipherDocs,
-          this.cipherPasskeyTypes,
-        );
+        const updatedRow = buildPasskeyCipherRow(updatedCipherView, match);
         if (index > -1) {
           this.ciphers.update((current) => {
             const updated = [...current];
-            updated[index] = updatedCipherView;
+            updated[index] = updatedRow;
             return updated;
           });
         }
       } else if (index > -1) {
-        this.ciphers.update((current) => current.filter((c) => c.id !== updatedCipherView.id));
+        this.ciphers.update((current) =>
+          current.filter((r) => r.cipher.id !== updatedCipherView.id),
+        );
       }
 
       this.dataSource.data = this.ciphers();

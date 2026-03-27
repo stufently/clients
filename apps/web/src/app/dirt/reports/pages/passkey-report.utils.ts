@@ -1,8 +1,4 @@
-import { WritableSignal } from "@angular/core";
-
-import { PasskeyDirectoryApiServiceAbstraction } from "@bitwarden/common/dirt/services/abstractions/passkey-directory-api.service.abstraction";
 import { Utils } from "@bitwarden/common/platform/misc/utils";
-import { UserId } from "@bitwarden/common/types/guid";
 import { CipherType } from "@bitwarden/common/vault/enums";
 import { CipherView } from "@bitwarden/common/vault/models/view/cipher.view";
 
@@ -12,32 +8,11 @@ export interface PasskeyServiceEntry {
   supportsPasskeyMfa: boolean;
 }
 
-export interface PasskeyTypeInfo {
+export interface PasskeyCipherRow {
+  cipher: CipherView;
+  instructions: string | null;
   supportsPasskeyLogin: boolean;
   supportsPasskeyMfa: boolean;
-}
-
-export interface ProcessedPasskeyCiphers {
-  ciphers: CipherView[];
-  docs: Map<string, string>;
-  passkeyTypes: Map<string, PasskeyTypeInfo>;
-}
-
-/**
- * Loads passkey directory entries and builds a domain-to-entry lookup map.
- */
-export async function loadPasskeyServices(
-  passkeyDirectoryApiService: PasskeyDirectoryApiServiceAbstraction,
-  userId: UserId,
-): Promise<Map<string, PasskeyServiceEntry>> {
-  const entries = await passkeyDirectoryApiService.getPasskeyDirectory(userId);
-
-  return entries
-    .filter((x) => x.domainName != null)
-    .reduce(
-      (services, entry) => services.set(entry.domainName, entry),
-      new Map<string, PasskeyServiceEntry>(),
-    );
 }
 
 /**
@@ -78,55 +53,37 @@ export function getPasskeyServiceMatch(
 }
 
 /**
- * Processes a list of ciphers against the passkey directory, returning the filtered ciphers
- * along with their instruction docs and passkey type info.
+ * Processes a list of ciphers against the passkey directory, returning matching ciphers
+ * as unified row objects with their passkey metadata.
  */
 export function processPasskeyCiphers(
   allCiphers: CipherView[],
   passkeyServices: Map<string, PasskeyServiceEntry>,
-): ProcessedPasskeyCiphers {
-  const ciphers: CipherView[] = [];
-  const docs = new Map<string, string>();
-  const passkeyTypes = new Map<string, PasskeyTypeInfo>();
+): PasskeyCipherRow[] {
+  const rows: PasskeyCipherRow[] = [];
 
   for (const cipher of allCiphers) {
     const match = getPasskeyServiceMatch(cipher, passkeyServices);
 
     if (match != null) {
-      ciphers.push(cipher);
-      if (match.instructions !== "") {
-        docs.set(cipher.id, match.instructions);
-      }
-      passkeyTypes.set(cipher.id, {
-        supportsPasskeyLogin: match.supportsPasskeyLogin,
-        supportsPasskeyMfa: match.supportsPasskeyMfa,
-      });
+      rows.push(buildPasskeyCipherRow(cipher, match));
     }
   }
 
-  return { ciphers, docs, passkeyTypes };
+  return rows;
 }
 
 /**
- * Updates the cipherDocs and cipherPasskeyTypes signals for a cipher that matched a passkey service.
+ * Builds a PasskeyCipherRow from a cipher and its matching passkey service entry.
  */
-export function updateCipherMatchSignals(
-  cipherId: string,
+export function buildPasskeyCipherRow(
+  cipher: CipherView,
   match: PasskeyServiceEntry,
-  cipherDocs: WritableSignal<Map<string, string>>,
-  cipherPasskeyTypes: WritableSignal<Map<string, PasskeyTypeInfo>>,
-): void {
-  cipherDocs.update((docs) => {
-    const updated = new Map(docs);
-    updated.set(cipherId, match.instructions);
-    return updated;
-  });
-  cipherPasskeyTypes.update((types) => {
-    const updated = new Map(types);
-    updated.set(cipherId, {
-      supportsPasskeyLogin: match.supportsPasskeyLogin,
-      supportsPasskeyMfa: match.supportsPasskeyMfa,
-    });
-    return updated;
-  });
+): PasskeyCipherRow {
+  return {
+    cipher,
+    instructions: match.instructions !== "" ? match.instructions : null,
+    supportsPasskeyLogin: match.supportsPasskeyLogin,
+    supportsPasskeyMfa: match.supportsPasskeyMfa,
+  };
 }
