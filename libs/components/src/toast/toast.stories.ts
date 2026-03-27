@@ -119,6 +119,18 @@ export const LongContent: Story = {
   },
 };
 
+/**
+ * Callers that still pass the deprecated `title` field will have it prepended as the first line of the message.
+ */
+export const DeprecatedTitle: Story = {
+  ...Default,
+  args: {
+    title: "Vault locked",
+    message: "Your session has timed out.",
+    variant: "info",
+  } as ToastOptions,
+};
+
 export const Service: Story = {
   render: (args) => ({
     props: {

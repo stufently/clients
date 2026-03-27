@@ -20,12 +20,8 @@ type DeprecatedToastOptions = {
 };
 
 /** Internal state for a single active toast. */
-export type ToastData = {
+type ToastData = (ToastOptions | DeprecatedToastOptions) & {
   id: string;
-  message: string | string[];
-  variant: ToastVariant;
-  /** Resolved auto-dismiss duration, used to (re)start the timer when this toast reaches the top. */
-  timeout: number;
 };
 
 const defaultTimeout = 5000;
@@ -62,6 +58,7 @@ export class ToastService {
       message: options.message,
       variant: options.variant ?? "info",
       timeout: resolvedTimeout,
+      title: (options as DeprecatedToastOptions).title,
     };
 
     this._toasts.update((toasts) => [...toasts, toast]);
