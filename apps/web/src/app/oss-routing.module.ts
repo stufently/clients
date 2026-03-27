@@ -87,6 +87,7 @@ import { SMLandingComponent } from "./secrets-manager/secrets-manager-landing/sm
 import { AppearanceComponent } from "./settings/appearance.component";
 import { DomainRulesComponent } from "./settings/domain-rules.component";
 import { CredentialGeneratorComponent } from "./tools/credential-generator/credential-generator.component";
+import { ReceiveComponent } from "./tools/receive/receive.component";
 import { ReceiveFileUploadComponent } from "./tools/receive/receive-file-upload.component";
 import { AccessComponent, SendAccessExplainerComponent } from "./tools/send/send-access";
 import { SendComponent } from "./tools/send/send.component";
@@ -664,6 +665,11 @@ const routes: Routes = [
               .pipe(map((policyApplies) => !policyApplies)),
           ),
         ],
+      },
+      {
+        path: "receives",
+        component: ReceiveComponent,
+        data: { titleId: "receive" } satisfies RouteDataProperties,
       },
       {
         path: "sm-landing",

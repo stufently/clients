@@ -6360,6 +6360,27 @@
     "message": "Send",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
+  "receive": {
+    "message": "Receive"
+  },
+  "allReceives": {
+    "message": "All Receives"
+  },
+  "copyReceiveLink": {
+    "message": "Copy Receive link"
+  },
+  "receivesTitleNoItems": {
+    "message": "Receive encrypted data safely"
+  },
+  "receivesBodyNoItems": {
+    "message": "Access files and data shared with you securely. Your information remains end-to-end encrypted."
+  },
+  "receivesTitleNoSearchResults": {
+    "message": "No search results returned"
+  },
+  "receivesBodyNoSearchResults": {
+    "message": "Clear filters or try another search term"
+  },
   "sendAccessTaglineProductDesc": {
     "message": "Bitwarden Send transmits sensitive, temporary information to others easily and securely.",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
