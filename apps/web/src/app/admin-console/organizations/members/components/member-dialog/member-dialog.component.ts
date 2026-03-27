@@ -50,6 +50,7 @@ import {
   OrganizationUserAdminView,
   UserAdminService,
 } from "../../../core";
+import { OrganizationUserView } from "../../../core/views/organization-user.view";
 import {
   AccessItemType,
   AccessItemValue,
@@ -63,6 +64,7 @@ import { DeleteManagedMemberWarningService } from "../../services/delete-managed
 import { commaSeparatedEmails } from "./validators/comma-separated-emails.validator";
 import { inputEmailLimitValidator } from "./validators/input-email-limit.validator";
 import { orgSeatLimitReachedValidator } from "./validators/org-seat-limit-reached.validator";
+import { revokedEmailsValidator } from "./validators/revoked-emails.validator";
 
 // FIXME: update to use a const object instead of a typescript enum
 // eslint-disable-next-line @bitwarden/platform/no-enums
@@ -81,6 +83,7 @@ export interface AddMemberDialogParams extends CommonMemberDialogParams {
   kind: "Add";
   occupiedSeatCount: number;
   allOrganizationUserEmails: string[];
+  allOrganizationUsers: OrganizationUserView[];
 }
 
 export interface EditMemberDialogParams extends CommonMemberDialogParams {
@@ -350,6 +353,10 @@ export class MemberDialogComponent implements OnDestroy {
       commaSeparatedEmails,
       inputEmailLimitValidator(organization, (maxEmailsCount: number) =>
         this.i18nService.t("tooManyEmails", maxEmailsCount),
+      ),
+      revokedEmailsValidator(
+        this.params.allOrganizationUsers,
+        this.i18nService.t("revokedEmailError"),
       ),
       orgSeatLimitReachedValidator(
         organization,
