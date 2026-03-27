@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, signal } from "@angular/core";
 
-import { MagnifyCommand } from "../../../../../autofill/models/magnify-commands";
+import { MagnifyCommand } from "../../../../autofill/models/magnify-commands";
 import { MagnifySpotlightSearchType } from "../../../constants";
 import { SpotlightItemAction, SpotlightSearchComponent } from "../spotlight-search.component";
 

@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input, signal } from "@angular/core";
 
-import { MagnifyCommand } from "../../../../../autofill/models/magnify-commands";
+import { MagnifyCommand } from "../../../../autofill/models/magnify-commands";
 
 const MAX_RESULTS = 7;
 const COPY_FEEDBACK_MS = 2000;
