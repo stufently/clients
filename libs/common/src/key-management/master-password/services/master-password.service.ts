@@ -124,7 +124,7 @@ export class MasterPasswordService implements InternalMasterPasswordServiceAbstr
               }
               // No unlock data. Determine whether this is a hydration failure
               // or a user who legitimately has no master password yet
-              // (e.g., TDE offboarding, JIT provisioning).
+              // (e.g., TDE offboarding).
               return from(this.userHasMasterPassword(userId)).pipe(
                 switchMap((hasMp) => {
                   if (hasMp) {
