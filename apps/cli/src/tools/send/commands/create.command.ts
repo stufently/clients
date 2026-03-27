@@ -5,9 +5,13 @@ import * as path from "path";
 
 import { firstValueFrom, switchMap } from "rxjs";
 
+import { PolicyService } from "@bitwarden/common/admin-console/abstractions/policy/policy.service.abstraction";
+import { PolicyType } from "@bitwarden/common/admin-console/enums";
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { getUserId } from "@bitwarden/common/auth/services/account.service";
 import { BillingAccountProfileStateService } from "@bitwarden/common/billing/abstractions/account/billing-account-profile-state.service";
+import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
+import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
 import { EnvironmentService } from "@bitwarden/common/platform/abstractions/environment.service";
 import { SendApiService } from "@bitwarden/common/tools/send/services/send-api.service.abstraction";
 import { SendService } from "@bitwarden/common/tools/send/services/send.service.abstraction";
@@ -26,6 +30,8 @@ export class SendCreateCommand {
     private sendApiService: SendApiService,
     private accountProfileService: BillingAccountProfileStateService,
     private accountService: AccountService,
+    private policyService: PolicyService,
+    private configService: ConfigService,
   ) {}
 
   async run(requestJson: any, cmdOptions: Record<string, any>) {
@@ -100,6 +106,11 @@ export class SendCreateCommand {
       req.authType = AuthType.None;
     }
 
+    const policyError = await this.enforceSendPolicy(req.authType, emails);
+    if (policyError) {
+      return policyError;
+    }
+
     const hasPremium$ = this.accountService.activeAccount$.pipe(
       switchMap(({ id }) => this.accountProfileService.hasPremiumFromAnySource$(id)),
     );
@@ -158,6 +169,63 @@ export class SendCreateCommand {
     } catch (e) {
       return Response.error(e);
     }
+  }
+
+  private async enforceSendPolicy(
+    authType: AuthType,
+    emails: string[] | undefined,
+  ): Promise<Response | null> {
+    const sendControlsEnabled = await this.configService.getFeatureFlag(FeatureFlag.SendControls);
+    if (!sendControlsEnabled) {
+      return null;
+    }
+
+    const userId = await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
+    const policies = await firstValueFrom(
+      this.policyService.policiesByType$(PolicyType.SendControls, userId),
+    );
+    const policy = policies?.find((p) => p.data?.whoCanAccess);
+    if (!policy) {
+      return null;
+    }
+
+    const whoCanAccess = policy.data.whoCanAccess as string;
+
+    if (whoCanAccess === "specificPeople") {
+      if (authType !== AuthType.Email || !emails?.length) {
+        return Response.error(
+          "Organization policy requires Send access to be restricted to specific people. Use --emails to specify recipients.",
+        );
+      }
+
+      const rawDomains = policy.data.allowedDomains as string;
+      if (rawDomains) {
+        const allowedDomains = rawDomains
+          .split(",")
+          .map((d: string) => d.trim().toLowerCase())
+          .filter((d: string) => d.length > 0);
+
+        if (allowedDomains.length > 0) {
+          const disallowed = emails.filter((email) => {
+            const domain = email.split("@")[1]?.toLowerCase();
+            return !allowedDomains.includes(domain);
+          });
+          if (disallowed.length > 0) {
+            return Response.error(
+              `Organization policy restricts email domains. The following emails are not allowed: ${disallowed.join(", ")}. Allowed domains: ${allowedDomains.join(", ")}.`,
+            );
+          }
+        }
+      }
+    } else if (whoCanAccess === "passwordProtected") {
+      if (authType !== AuthType.Password) {
+        return Response.error(
+          "Organization policy requires Send access to be password protected. Use --password to set a password.",
+        );
+      }
+    }
+
+    return null;
   }
 }
 

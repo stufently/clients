@@ -1,5 +1,5 @@
 import { inject, Injectable } from "@angular/core";
-import { combineLatest, map, Observable, shareReplay, switchMap } from "rxjs";
+import { combineLatest, map, Observable, of, shareReplay, switchMap } from "rxjs";
 
 import { PolicyService } from "@bitwarden/common/admin-console/abstractions/policy/policy.service.abstraction";
 import { PolicyType } from "@bitwarden/common/admin-console/enums";
@@ -70,6 +70,41 @@ export class SendPolicyService {
         : this.policyService
             .policiesByType$(PolicyType.SendOptions, userId)
             .pipe(map((policies) => policies?.some((p) => p.data?.disableHideEmail) ?? false)),
+    ),
+    shareReplay({ bufferSize: 1, refCount: true }),
+  );
+
+  readonly whoCanAccess$: Observable<string | null> = this.flagAndUser$.pipe(
+    switchMap(([sendControlsEnabled, userId]) =>
+      sendControlsEnabled
+        ? this.policyService.policiesByType$(PolicyType.SendControls, userId).pipe(
+            map((policies) => {
+              const policy = policies?.find((p) => p.data?.whoCanAccess);
+              return (policy?.data?.whoCanAccess as string) ?? null;
+            }),
+          )
+        : of(null),
+    ),
+    shareReplay({ bufferSize: 1, refCount: true }),
+  );
+
+  readonly allowedDomains$: Observable<string[] | null> = this.flagAndUser$.pipe(
+    switchMap(([sendControlsEnabled, userId]) =>
+      sendControlsEnabled
+        ? this.policyService.policiesByType$(PolicyType.SendControls, userId).pipe(
+            map((policies) => {
+              const policy = policies?.find((p) => p.data?.allowedDomains);
+              const raw = policy?.data?.allowedDomains as string;
+              if (!raw) {
+                return null;
+              }
+              return raw
+                .split(",")
+                .map((d: string) => d.trim().toLowerCase())
+                .filter((d: string) => d.length > 0);
+            }),
+          )
+        : of(null),
     ),
     shareReplay({ bufferSize: 1, refCount: true }),
   );

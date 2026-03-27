@@ -1,7 +1,7 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
 import { CommonModule, DatePipe } from "@angular/common";
-import { Component, OnInit, Input } from "@angular/core";
+import { Component, OnInit, Input, inject } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import {
   FormBuilder,
@@ -40,7 +40,7 @@ import {
   DialogService,
 } from "@bitwarden/components";
 import { CredentialGeneratorService } from "@bitwarden/generator-core";
-import { SendFormConfig, SendFormGenerationService } from "@bitwarden/send-ui";
+import { SendFormConfig, SendFormGenerationService, SendPolicyService } from "@bitwarden/send-ui";
 
 import { SendFormContainer } from "../../send-form-container";
 import { SendOptionsComponent } from "../options/send-options.component";
@@ -133,6 +133,7 @@ export class SendDetailsComponent implements OnInit {
   customDeletionDateOption: DatePresetSelectOption | null = null;
   datePresetOptions: DatePresetSelectOption[] = [];
   passwordRemoved = false;
+  policyAllowedDomains: string[] | null = null;
 
   emailVerificationFeatureFlag$ = this.configService.getFeatureFlag$(FeatureFlag.SendEmailOTP);
   hasPremium$ = this.accountService.activeAccount$.pipe(
@@ -147,8 +148,20 @@ export class SendDetailsComponent implements OnInit {
     { name: this.i18nService.t("anyOneWithPassword"), value: AuthType.Password },
   ];
 
-  availableAuthTypes$ = combineLatest([this.emailVerificationFeatureFlag$, this.hasPremium$]).pipe(
-    map(([enabled, hasPremium]) => {
+  private sendPolicyService = inject(SendPolicyService);
+
+  availableAuthTypes$ = combineLatest([
+    this.emailVerificationFeatureFlag$,
+    this.hasPremium$,
+    this.sendPolicyService.whoCanAccess$,
+  ]).pipe(
+    map(([enabled, hasPremium, whoCanAccess]) => {
+      if (whoCanAccess === "specificPeople") {
+        return this.authTypes.filter((t) => t.value === AuthType.Email);
+      }
+      if (whoCanAccess === "passwordProtected") {
+        return this.authTypes.filter((t) => t.value === AuthType.Password);
+      }
       if (!enabled || !hasPremium) {
         return this.authTypes.filter((t) => t.value !== AuthType.Email);
       }
@@ -236,6 +249,28 @@ export class SendDetailsComponent implements OnInit {
       });
 
     this.sendFormContainer.registerChildForm("sendDetailsForm", this.sendDetailsForm);
+
+    this.sendPolicyService.whoCanAccess$.pipe(takeUntilDestroyed()).subscribe((whoCanAccess) => {
+      if (whoCanAccess === "specificPeople") {
+        this.sendDetailsForm.get("authType").setValue(AuthType.Email);
+        this.sendDetailsForm.get("authType").disable();
+      } else if (whoCanAccess === "passwordProtected") {
+        this.sendDetailsForm.get("authType").setValue(AuthType.Password);
+        this.sendDetailsForm.get("authType").disable();
+      }
+    });
+
+    this.sendPolicyService.allowedDomains$
+      .pipe(takeUntilDestroyed())
+      .subscribe((allowedDomains) => {
+        const emailsControl = this.sendDetailsForm.get("emails");
+        if (allowedDomains && allowedDomains.length > 0) {
+          this.policyAllowedDomains = allowedDomains;
+        } else {
+          this.policyAllowedDomains = null;
+        }
+        emailsControl.updateValueAndValidity();
+      });
   }
 
   async ngOnInit() {
@@ -317,7 +352,21 @@ export class SendDetailsComponent implements OnInit {
       }
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       const invalidEmails = nonEmptyEmails.filter((e: string) => !emailRegex.test(e));
-      return invalidEmails.length > 0 ? { multipleEmails: true } : null;
+      if (invalidEmails.length > 0) {
+        return { multipleEmails: true };
+      }
+
+      if (this.policyAllowedDomains && this.policyAllowedDomains.length > 0) {
+        const disallowedEmails = nonEmptyEmails.filter((email: string) => {
+          const domain = email.split("@")[1]?.toLowerCase();
+          return !this.policyAllowedDomains.includes(domain);
+        });
+        if (disallowedEmails.length > 0) {
+          return { domainNotAllowed: true };
+        }
+      }
+
+      return null;
     };
   }
 
