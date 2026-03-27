@@ -31,7 +31,7 @@
         <bit-label>{{ "autofillReportUserMessageLabel" | i18n }}</bit-label>
         <textarea
           bitInput
-          [maxlength]="MAX_USER_MESSAGE_LENGTH"
+          [attr.maxlength]="MAX_USER_MESSAGE_LENGTH"
           rows="3"
           (input)="onUserMessageInput($event)"
         ></textarea>
