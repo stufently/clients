@@ -1,6 +1,6 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
-import { firstValueFrom, iif, map, Observable, switchMap } from "rxjs";
+import { firstValueFrom, from, iif, map, Observable, of, switchMap } from "rxjs";
 
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { assertNonNullish } from "@bitwarden/common/auth/utils";
@@ -118,11 +118,25 @@ export class MasterPasswordService implements InternalMasterPasswordServiceAbstr
         iif(
           () => enabled,
           this.masterPasswordUnlockData$(userId).pipe(
-            map((unlockData) => {
-              if (unlockData == null) {
-                throw new Error("Master password unlock data not found for user.");
+            switchMap((unlockData) => {
+              if (unlockData != null) {
+                return of(unlockData.salt);
               }
-              return unlockData.salt;
+              // No unlock data. Determine whether this is a hydration failure
+              // or a user who legitimately has no master password yet
+              // (e.g., TDE offboarding, JIT provisioning).
+              return from(this.userHasMasterPassword(userId)).pipe(
+                switchMap((hasMp) => {
+                  if (hasMp) {
+                    throw new Error("Master password unlock data not found for user.");
+                  }
+                  // User does not have a master password — originate salt from email.
+                  return this.accountService.accounts$.pipe(
+                    map((accounts) => accounts[userId].email),
+                    map((email) => this.emailToSalt(email)),
+                  );
+                }),
+              );
             }),
           ),
           this.accountService.accounts$.pipe(
