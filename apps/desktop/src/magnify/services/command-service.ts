@@ -35,6 +35,28 @@ export class CommandService {
     return [];
   }
 
+  async getAuthStatus(): Promise<number> {
+    const request: MagnifyCommandRequest = {
+      type: MagnifyCommand.GetAuthStatus,
+    };
+
+    const response: MagnifyCommandResponse = await window.ipc.sendCommand(request);
+
+    if (
+      response !== undefined &&
+      response !== null &&
+      response.type === MagnifyCommand.GetAuthStatus
+    ) {
+      return response.status;
+    }
+
+    // eslint-disable-next-line no-console
+    console.log(
+      "Error in getAuthStatus(): response was not MagnifyCommand.GetAuthStatus as expected",
+    );
+    return 0; // Default to LoggedOut
+  }
+
   async copyPassword(id: string): Promise<string> {
     const request: MagnifyCommandRequest = {
       type: MagnifyCommand.CopyPassword,

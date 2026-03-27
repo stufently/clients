@@ -11,6 +11,21 @@ export class AppComponent implements OnInit {
   constructor(private readonly commandService: CommandService) {}
 
   async ngOnInit(): Promise<void> {
+    // 0 = LoggedOut, 1 = Locked, 2 = Unlocked
+    const authStatus = await this.commandService.getAuthStatus();
+
+    if (authStatus === 0) {
+      // eslint-disable-next-line no-console
+      console.log("User is logged out");
+      return;
+    }
+
+    if (authStatus === 1) {
+      // eslint-disable-next-line no-console
+      console.log("Vault is locked");
+      return;
+    }
+
     const r = await this.commandService.searchVault("Netfli");
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

@@ -1,6 +1,16 @@
 import { Injectable, OnDestroy } from "@angular/core";
-import { concatMap, distinctUntilChanged, map, Observable, of, Subject, takeUntil } from "rxjs";
+import {
+  concatMap,
+  distinctUntilChanged,
+  firstValueFrom,
+  map,
+  Observable,
+  of,
+  Subject,
+  takeUntil,
+} from "rxjs";
 
+import { AuthService } from "@bitwarden/common/auth/abstractions/auth.service";
 import {
   ActiveUserStateProvider,
   MAGNIFY_SETTINGS_DISK,
@@ -31,7 +41,10 @@ export class DesktopMagnifyService implements OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  constructor(private activeUserStateProvider: ActiveUserStateProvider) {
+  constructor(
+    private activeUserStateProvider: ActiveUserStateProvider,
+    private authService: AuthService,
+  ) {
     this.magnifyEnabledUserSetting$ = this.magnifyEnabledState.state$.pipe(
       map((enabled) => enabled ?? false),
       distinctUntilChanged(), // Only emit when the boolean result changes
@@ -59,6 +72,12 @@ export class DesktopMagnifyService implements OnDestroy {
 
         case MagnifyCommand.CopyPassword: {
           const [error, result] = await this.copyPassword(request.id);
+          callback(error, result);
+          break;
+        }
+
+        case MagnifyCommand.GetAuthStatus: {
+          const [error, result] = await this.getAuthStatus();
           callback(error, result);
           break;
         }
@@ -114,6 +133,11 @@ export class DesktopMagnifyService implements OnDestroy {
     };
 
     return [null, response];
+  }
+
+  private async getAuthStatus(): Promise<Result<MagnifyCommandResponse>> {
+    const status = await firstValueFrom(this.authService.activeAccountStatus$);
+    return [null, { type: MagnifyCommand.GetAuthStatus, status }];
   }
 
   ngOnDestroy() {
