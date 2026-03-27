@@ -5,7 +5,6 @@ import { ipcMain, globalShortcut, BrowserWindow, screen } from "electron";
 import { LogService } from "@bitwarden/logging";
 
 import { WindowMain } from "../../main/window.main";
-import { isMac } from "../../utils";
 import { MAGNIFY_IPC_CHANNELS } from "../models/ipc-channels";
 import { MagnifyCommandRequest, MagnifyCommandResponse } from "../models/magnify-commands";
 
@@ -96,8 +95,7 @@ export class MainDesktopMagnifyService {
       x,
       y,
       frame: false,
-      transparent: isMac(),
-      ...(isMac() ? { vibrancy: "hud" } : {}),
+      backgroundColor: "#0f172b",
       webPreferences: {
         preload: path.join(__dirname, "magnify", "preload.js"),
         sandbox: true,
