@@ -1,5 +1,9 @@
 // API layer
 export * from "./api/access-report.api";
+export * from "./api/access-report-create.api";
+export * from "./api/access-report-update.api";
+export * from "./api/access-report-summary-update.api";
+export * from "./api/access-report-application-data-update.api";
 export * from "./api/access-report-file.api";
 export * from "./api/application-health.api";
 export * from "./api/access-report-settings.api";
