@@ -109,13 +109,13 @@ export class AutoConfirmPolicyEditComponent extends BasePolicyEditComponent {
       bodyContent: this.step0Content,
       footerContent: this.step0Footer,
       disableSave: this.saveDisabled$,
-      sideEffect: this.savePolicy,
+      sideEffect: () => this.savePolicy(),
     },
     {
       titleContent: this.step1Title,
       bodyContent: this.step1Content,
       footerContent: this.step1Footer,
-      sideEffect: this.navigateToExtensionPromptStep,
+      sideEffect: () => this.navigateToExtensionPromptStep(),
     },
   ];
 
