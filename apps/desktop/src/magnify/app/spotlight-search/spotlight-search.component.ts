@@ -100,10 +100,19 @@ export class SpotlightSearchComponent implements OnInit {
       )
       .subscribe((query) => this.queryChange.emit(query));
 
-    setTimeout(() => {
+    const focusInput = () => {
       const input = this.searchHeaderRef()?.nativeElement?.querySelector<HTMLInputElement>("input");
       input?.focus();
-    }, 50);
+    };
+
+    // Wait for OS-level window focus before trying to focus the input.
+    // A plain setTimeout fires during Angular bootstrap, before ready-to-show,
+    // so input.focus() silently fails when the document isn't focused yet.
+    if (document.hasFocus()) {
+      focusInput();
+    } else {
+      window.addEventListener("focus", focusInput, { once: true });
+    }
   }
 
   protected setSelectedIndex(index: number) {

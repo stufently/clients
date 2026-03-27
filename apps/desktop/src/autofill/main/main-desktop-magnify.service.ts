@@ -1,6 +1,6 @@
 import * as path from "path";
 
-import { ipcMain, globalShortcut, BrowserWindow, screen } from "electron";
+import { app, ipcMain, globalShortcut, BrowserWindow, screen } from "electron";
 
 import { LogService } from "@bitwarden/logging";
 
@@ -95,12 +95,24 @@ export class MainDesktopMagnifyService {
       x,
       y,
       frame: false,
+      show: false,
+      alwaysOnTop: true,
       backgroundColor: "#0f172b",
       webPreferences: {
         preload: path.join(__dirname, "magnify", "preload.js"),
         sandbox: true,
         contextIsolation: true,
       },
+    });
+
+    win.once("ready-to-show", () => {
+      app.focus({ steal: true });
+      // setVisibleOnAllWorkspaces bypasses macOS per-display focus tracking,
+      // allowing the window to receive focus even on a secondary screen.
+      win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+      win.show();
+      win.focus();
+      win.setVisibleOnAllWorkspaces(false);
     });
 
     await win.loadFile(path.join(__dirname, "magnify", "index.html"));
