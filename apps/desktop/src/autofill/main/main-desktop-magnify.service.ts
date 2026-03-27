@@ -1,6 +1,6 @@
 import * as path from "path";
 
-import { ipcMain, globalShortcut, BrowserWindow } from "electron";
+import { ipcMain, globalShortcut, BrowserWindow, screen } from "electron";
 
 import { LogService } from "@bitwarden/logging";
 
@@ -86,14 +86,25 @@ export class MainDesktopMagnifyService {
   private async openMagnify() {
     // surface the existing window if the window has already been created
     if (this.magnifyWindow != null && !this.magnifyWindow.isDestroyed()) {
-      this.magnifyWindow.focus();
+      this.magnifyWindow.show();
       return;
     }
+
+    const cursorPos = screen.getCursorScreenPoint();
+    const display = screen.getDisplayNearestPoint(cursorPos);
+    const bounds = display.bounds;
+    const x = bounds.x + (bounds.width - 800) / 2;
+    const y = bounds.y + (bounds.height - 600) / 2;
 
     // otherwise create the window
     const win = new BrowserWindow({
       width: 800,
       height: 600,
+      x: Math.round(x),
+      y: Math.round(y),
+      alwaysOnTop: true,
+      type: "utility",
+      show: false,
       webPreferences: {
         preload: path.join(__dirname, "magnify", "preload.js"),
         sandbox: true,
@@ -105,7 +116,6 @@ export class MainDesktopMagnifyService {
       this.magnifyWindow = null;
     });
 
-    // emitted when the window loses focus
     win.on("blur", () => {
       win.close();
     });
@@ -113,6 +123,7 @@ export class MainDesktopMagnifyService {
     this.magnifyWindow = win;
 
     await win.loadFile(path.join(__dirname, "magnify", "index.html"));
+    win.show();
   }
 
   /*
