@@ -1,4 +1,4 @@
-import { EventUploadService } from "@bitwarden/common/abstractions/event/event-upload.service";
+import { EventUploadService } from "@bitwarden/common/dirt/event-logs/abstractions/event-upload.service";
 import { UserId } from "@bitwarden/common/types/guid";
 
 /**
