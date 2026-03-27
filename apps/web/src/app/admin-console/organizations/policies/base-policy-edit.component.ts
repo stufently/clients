@@ -18,6 +18,7 @@ import { OrgKey } from "@bitwarden/common/types/key";
 import { DialogConfig, DialogRef, DialogService } from "@bitwarden/components";
 import { KeyService } from "@bitwarden/key-management";
 
+import { PolicyCategory } from "./pipes/policy-category";
 import type { PolicyEditDialogData, PolicyEditDialogResult } from "./policy-edit-dialog.component";
 import type { PolicyStep, PolicyStepResult } from "./policy-edit-dialogs/models";
 
@@ -50,6 +51,16 @@ export abstract class BasePolicyEditDefinition {
    * The PolicyType enum that this policy represents.
    */
   abstract type: PolicyType;
+  /**
+   * The category this policy belongs to. Used to group policies on the Policies page.
+   */
+  abstract category: PolicyCategory;
+  /**
+   * The sort order of this policy within its category on the Policies page.
+   * Lower numbers appear first. Values only need to be consistent relative to
+   * other policies in the same category.
+   */
+  abstract priority: number;
   /**
    * The component used to edit this policy. See {@link BasePolicyEditComponent}.
    */

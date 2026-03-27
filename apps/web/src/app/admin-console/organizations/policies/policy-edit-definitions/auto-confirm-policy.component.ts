@@ -15,6 +15,7 @@ import { getById } from "@bitwarden/common/platform/misc";
 
 import { SharedModule } from "../../../../shared";
 import { BasePolicyEditDefinition, BasePolicyEditComponent } from "../base-policy-edit.component";
+import { PolicyCategory } from "../pipes/policy-category";
 import {
   MultiStepPolicyEditDialogComponent,
   PolicyStep,
@@ -25,6 +26,8 @@ export class AutoConfirmPolicy extends BasePolicyEditDefinition {
   name = "automaticUserConfirmation";
   description = "autoConfirmDescription";
   type = PolicyType.AutoConfirm;
+  category = PolicyCategory.VaultManagement;
+  priority = 90;
   component = AutoConfirmPolicyEditComponent;
   showDescription = false;
   editDialogComponent = MultiStepPolicyEditDialogComponent;
