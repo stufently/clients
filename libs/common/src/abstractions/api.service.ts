@@ -315,7 +315,6 @@ export abstract class ApiService {
   abstract getProviderUsers(
     providerId: string,
   ): Promise<ListResponse<ProviderUserUserDetailsResponse>>;
-  abstract getProviderUserIds(providerId: string): Promise<string[]>;
   abstract getProviderUser(providerId: string, id: string): Promise<ProviderUserResponse>;
   abstract postProviderUserInvite(
     providerId: string,

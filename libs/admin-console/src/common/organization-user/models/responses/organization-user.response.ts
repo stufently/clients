@@ -50,6 +50,7 @@ export class OrganizationUserUserDetailsResponse extends OrganizationUserRespons
   twoFactorEnabled: boolean;
   usesKeyConnector: boolean;
   managedByOrganization: boolean;
+  isProviderUser: boolean;
 
   constructor(response: any) {
     super(response);
@@ -59,6 +60,7 @@ export class OrganizationUserUserDetailsResponse extends OrganizationUserRespons
     this.twoFactorEnabled = this.getResponseProperty("TwoFactorEnabled");
     this.usesKeyConnector = this.getResponseProperty("UsesKeyConnector") ?? false;
     this.managedByOrganization = this.getResponseProperty("ManagedByOrganization") ?? false;
+    this.isProviderUser = this.getResponseProperty("IsProviderUser") ?? false;
   }
 }
 

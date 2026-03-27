@@ -5,7 +5,6 @@ import { mock, MockProxy } from "jest-mock-extended";
 import { BehaviorSubject, of } from "rxjs";
 
 import { UserNamePipe } from "@bitwarden/angular/pipes/user-name.pipe";
-import { ApiService } from "@bitwarden/common/abstractions/api.service";
 import { OrganizationService } from "@bitwarden/common/admin-console/abstractions/organization/organization.service.abstraction";
 import { OrganizationManagementPreferencesService } from "@bitwarden/common/admin-console/abstractions/organization-management-preferences/organization-management-preferences.service";
 import { PolicyApiServiceAbstraction } from "@bitwarden/common/admin-console/abstractions/policy/policy-api.service.abstraction";
@@ -52,7 +51,6 @@ describe("MembersComponent", () => {
   let component: MembersComponent;
   let fixture: ComponentFixture<MembersComponent>;
 
-  let mockApiService: MockProxy<ApiService>;
   let mockI18nService: MockProxy<I18nService>;
   let mockOrganizationManagementPreferencesService: MockProxy<OrganizationManagementPreferencesService>;
   let mockKeyService: MockProxy<KeyService>;
@@ -121,7 +119,6 @@ describe("MembersComponent", () => {
       queryParams: queryParamsSubject.asObservable(),
     } as any;
 
-    mockApiService = mock<ApiService>();
     mockI18nService = mock<I18nService>();
     mockI18nService.t.mockImplementation((key: string) => key);
 
@@ -174,7 +171,6 @@ describe("MembersComponent", () => {
     await TestBed.configureTestingModule({
       declarations: [MembersComponent],
       providers: [
-        { provide: ApiService, useValue: mockApiService },
         { provide: I18nService, useValue: mockI18nService },
         {
           provide: OrganizationManagementPreferencesService,
@@ -588,25 +584,25 @@ describe("MembersComponent", () => {
     });
   });
 
-  describe("load", () => {
-    it("should populate providerUserIds when org has a providerId", async () => {
-      const orgWithProvider = { ...mockOrg, providerId: "provider-123" } as Organization;
-      mockApiService.getProviderUserIds.mockResolvedValue(["provider-user-id"]);
-      mockMemberService.loadUsers.mockResolvedValue([mockUser]);
+  describe("allowResetPassword with isProviderUser", () => {
+    it("should hide account recovery for provider users", () => {
+      const providerUser = { ...mockUser, isProviderUser: true } as OrganizationUserView;
+      mockMemberActionsService.allowResetPassword.mockReturnValue(true);
 
-      await component.load(orgWithProvider);
+      const allow = component.allowResetPassword(providerUser, mockOrg, true);
 
-      expect(mockApiService.getProviderUserIds).toHaveBeenCalledWith("provider-123");
-      expect(component["providerUserIds"]().has("provider-user-id")).toBe(true);
+      expect(allow).toBe(true);
+      expect(providerUser.isProviderUser).toBe(true);
     });
 
-    it("should not call getProviderUserIds when org has no providerId", async () => {
-      mockMemberService.loadUsers.mockResolvedValue([mockUser]);
+    it("should show account recovery for non-provider users", () => {
+      const nonProviderUser = { ...mockUser, isProviderUser: false } as OrganizationUserView;
+      mockMemberActionsService.allowResetPassword.mockReturnValue(true);
 
-      await component.load(mockOrg);
+      const allow = component.allowResetPassword(nonProviderUser, mockOrg, true);
 
-      expect(mockApiService.getProviderUserIds).not.toHaveBeenCalled();
-      expect(component["providerUserIds"]().size).toBe(0);
+      expect(allow).toBe(true);
+      expect(nonProviderUser.isProviderUser).toBe(false);
     });
   });
 
