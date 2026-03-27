@@ -38,6 +38,7 @@ export class DefaultSharedUnlockFollowerService implements SharedUnlockFollowerS
       this.platformUtilsService,
       this.vaultTimeoutSettingsService,
       this.environmentService,
+      this.sharedUnlockSettingsService,
       true,
     );
 

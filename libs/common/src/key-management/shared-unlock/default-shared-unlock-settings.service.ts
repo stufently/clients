@@ -1,4 +1,4 @@
-import { firstValueFrom, map } from "rxjs";
+import { firstValueFrom, map, Observable } from "rxjs";
 
 import {
   SHARED_UNLOCK_SETTINGS_DISK,
@@ -37,26 +37,6 @@ const ALLOW_INTEGRATE_WITH_BROWSER_EXTENSION = new UserKeyDefinition<boolean>(
 );
 
 export class DefaultSharedUnlockSettingsService extends SharedUnlockSettingsService {
-  private readonly allowIntegrateWithWebAppState = this.stateProvider.getActive(
-    ALLOW_INTEGRATE_WITH_WEB_APP,
-  );
-  readonly allowIntegrateWithWebApp$ = this.allowIntegrateWithWebAppState.state$.pipe(
-    map(Boolean),
-  );
-
-  private readonly allowIntegrateWithDesktopAppState = this.stateProvider.getActive(
-    ALLOW_INTEGRATE_WITH_DESKTOP_APP,
-  );
-  readonly allowIntegrateWithDesktopApp$ = this.allowIntegrateWithDesktopAppState.state$.pipe(
-    map(Boolean),
-  );
-
-  private readonly allowIntegrateWithBrowserExtensionState = this.stateProvider.getActive(
-    ALLOW_INTEGRATE_WITH_BROWSER_EXTENSION,
-  );
-  readonly allowIntegrateWithBrowserExtension$ =
-    this.allowIntegrateWithBrowserExtensionState.state$.pipe(map(Boolean));
-
   constructor(private stateProvider: StateProvider) {
     super();
   }
@@ -73,6 +53,24 @@ export class DefaultSharedUnlockSettingsService extends SharedUnlockSettingsServ
     await this.stateProvider
       .getUser(userId, ALLOW_INTEGRATE_WITH_BROWSER_EXTENSION)
       .update(() => value);
+  }
+
+  allowIntegrateWithWebApp$(userId: UserId): Observable<boolean> {
+    return this.stateProvider.getUserState$(ALLOW_INTEGRATE_WITH_WEB_APP, userId).pipe(
+      map((v) => v ?? false),
+    );
+  }
+  
+  allowIntegrateWithDesktopApp$(userId: UserId): Observable<boolean> {
+    return this.stateProvider.getUserState$(ALLOW_INTEGRATE_WITH_DESKTOP_APP, userId).pipe(
+      map((v) => v ?? false),
+    );
+  }
+  
+  allowIntegrateWithBrowserExtension$(userId: UserId): Observable<boolean> {
+    return this.stateProvider
+      .getUserState$(ALLOW_INTEGRATE_WITH_BROWSER_EXTENSION, userId)
+      .pipe(map((v) => v ?? false));
   }
 
   async allowIntegrateWithWebApp(userId: UserId): Promise<boolean> {

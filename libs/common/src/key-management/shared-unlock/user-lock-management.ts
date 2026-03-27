@@ -51,8 +51,8 @@ export function createUserLockManagement(
       const accounts = await firstValueFrom(accountService.accounts$);
       return Object.keys(accounts).map(asUuid<UserId>);
     },
-    async suppress_vault_timeout(until: number): Promise<void> {
-      vaultTimeoutSettingsService.suppressVaultTimeout(until);
+    async suppress_vault_timeout(until: number, userId: UserId): Promise<void> {
+      vaultTimeoutSettingsService.suppressVaultTimeout(until, uuidAsString(userId) as TSUserId);
     },
     async get_client_name(): Promise<ClientType> {
       return platformUtilsService.getClientType();

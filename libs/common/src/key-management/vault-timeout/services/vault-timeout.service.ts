@@ -95,7 +95,7 @@ export class VaultTimeoutService implements VaultTimeoutServiceAbstraction {
 
     // Check if vault timeout is suppressed by shared unlock
     const suppressedUntil = await firstValueFrom(
-      this.vaultTimeoutSettingsService.vaultTimeoutSuppressedUntil$,
+      this.vaultTimeoutSettingsService.vaultTimeoutSuppressedUntil$(userId as UserId),
     );
     if (suppressedUntil != null && Date.now() < suppressedUntil) {
       return false;

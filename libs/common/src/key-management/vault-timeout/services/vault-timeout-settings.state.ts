@@ -31,10 +31,11 @@ export const VAULT_TIMEOUT = new UserKeyDefinition<VaultTimeout>(
   },
 );
 
-export const VAULT_TIMEOUT_SUPPRESSED_UNTIL = new KeyDefinition<number | null>(
+export const VAULT_TIMEOUT_SUPPRESSED_UNTIL = new UserKeyDefinition<number | null>(
   VAULT_TIMEOUT_SETTINGS_MEMORY,
   "vaultTimeoutSuppressedUntil",
   {
     deserializer: (value) => value,
+    clearOn: ["logout"], 
   },
 );
