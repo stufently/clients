@@ -1,11 +1,10 @@
 import { ChangeDetectionStrategy, Component, OnInit, signal } from "@angular/core";
 
-import { MagnifyCommand } from "../../../../autofill/models/magnify-commands";
 import { CommandService } from "../../../services/command-service";
 import { SpotlightItemAction, SpotlightSearchComponent } from "../spotlight-search.component";
 
 const MAX_RESULTS = 7;
-const COPY_FEEDBACK_MS = 2000;
+//const COPY_FEEDBACK_MS = 2000;
 
 @Component({
   selector: "app-username-password-spotlight",
@@ -55,18 +54,17 @@ export class UsernamePasswordSpotlightComponent implements OnInit {
   }
 
   protected async copyPassword(cipher: MagnifyCipherResult) {
-    await window.ipc.sendCommand({ type: MagnifyCommand.CopyPassword, id: cipher.id });
-    this.copiedPasswordId.set(cipher.id);
-    setTimeout(() => this.copiedPasswordId.set(null), COPY_FEEDBACK_MS);
+    // TODO: Implement copy password via commandService
+    //setTimeout(() => this.copiedPasswordId.set(null), COPY_FEEDBACK_MS);
   }
 
   protected async copyUsername(cipher: MagnifyCipherResult) {
-    await window.ipc.sendCommand({ type: MagnifyCommand.CopyUsername, id: cipher.id });
-    this.copiedUsernameId.set(cipher.id);
-    setTimeout(() => this.copiedUsernameId.set(null), COPY_FEEDBACK_MS);
+    // TODO: Implement copy username via commandService
+    //setTimeout(() => this.copiedUsernameId.set(null), COPY_FEEDBACK_MS);
   }
 
   protected async launchCipher(cipher: MagnifyCipherResult) {
-    await window.ipc.sendCommand({ type: MagnifyCommand.LaunchUri, id: cipher.id });
+    // TODO: Implement launch cipher via commandService -- MAYBE AFTER POC?
+    //await window.ipc.sendCommand({ type: MagnifyCommand.LaunchUri, id: cipher.id });
   }
 }
