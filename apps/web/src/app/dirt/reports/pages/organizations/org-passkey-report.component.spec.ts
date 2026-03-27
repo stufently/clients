@@ -190,13 +190,17 @@ describe("OrgPasskeyReportComponent", () => {
     it("should return true when cipher is in manageable ciphers list", async () => {
       cipherServiceMock.getAll.mockResolvedValue([{ id: "cipher-1" } as Cipher]);
 
+      // Re-create component so the constructor subscription picks up the new mock
+      fixture = TestBed.createComponent(OrgPasskeyReportComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+      await fixture.whenStable();
+
       const cipher = {
         id: "cipher-1",
         collectionIds: ["col-1"],
       } as unknown as CipherView;
 
-      // Need to wait for the constructor subscription to resolve
-      await fixture.whenStable();
       expect((component as any).canManageCipher(cipher)).toBe(true);
     });
 
