@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, signal } from "@angular/core";
 
 import { MagnifyCommand } from "../../../../autofill/models/magnify-commands";
-import { MagnifySpotlightSearchType } from "../../../constants";
+import { CommandService } from "../../../services/command-service";
 import { SpotlightItemAction, SpotlightSearchComponent } from "../spotlight-search.component";
 
 const MAX_RESULTS = 7;
@@ -15,12 +15,12 @@ const COPY_FEEDBACK_MS = 2000;
   imports: [SpotlightSearchComponent],
 })
 export class UsernamePasswordSpotlightComponent implements OnInit {
-  readonly type = MagnifySpotlightSearchType.UsernamePassword;
-
   protected readonly isMac = window.ipc.platform === "darwin";
   protected readonly results = signal<MagnifyCipherResult[]>([]);
   protected readonly copiedPasswordId = signal<string | null>(null);
   protected readonly copiedUsernameId = signal<string | null>(null);
+
+  constructor(private readonly commandService: CommandService) {}
 
   ngOnInit() {
     // Trigger an empty search on load to populate initial results
@@ -32,10 +32,8 @@ export class UsernamePasswordSpotlightComponent implements OnInit {
   }
 
   private async search(input: string) {
-    const response = await window.ipc.sendCommand({ type: MagnifyCommand.SearchVault, input });
-    if (response.type === MagnifyCommand.SearchVault) {
-      this.results.set(response.results.slice(0, MAX_RESULTS) as MagnifyCipherResult[]);
-    }
+    const response = await this.commandService.searchVault(input);
+    this.results.set(response.slice(0, MAX_RESULTS));
   }
 
   protected onItemAction({ event, item }: SpotlightItemAction) {
