@@ -48,6 +48,7 @@ import {
   getPasskeyServiceMatch,
   loadPasskeyServices,
   processPasskeyCiphers,
+  updateCipherMatchSignals,
 } from "../passkey-report.utils";
 
 @Component({
@@ -96,7 +97,7 @@ export class OrgPasskeyReportComponent {
   protected readonly cipherDocs = signal<Map<string, string>>(new Map());
   protected readonly dataSource = new TableDataSource<CipherView>();
 
-  // Passkey type info exposed to template
+  // Passkey type info exposed to the template
   protected readonly cipherPasskeyTypes = signal<Map<string, PasskeyTypeInfo>>(new Map());
 
   // Private state
@@ -241,19 +242,12 @@ export class OrgPasskeyReportComponent {
       const index = this.ciphers().findIndex((c) => c.id === updatedCipherView.id);
 
       if (match != null) {
-        this.cipherDocs.update((docs) => {
-          const updated = new Map(docs);
-          updated.set(updatedCipherView.id, match.instructions);
-          return updated;
-        });
-        this.cipherPasskeyTypes.update((types) => {
-          const updated = new Map(types);
-          updated.set(updatedCipherView.id, {
-            supportsPasskeyLogin: match.supportsPasskeyLogin,
-            supportsPasskeyMfa: match.supportsPasskeyMfa,
-          });
-          return updated;
-        });
+        updateCipherMatchSignals(
+          updatedCipherView.id,
+          match,
+          this.cipherDocs,
+          this.cipherPasskeyTypes,
+        );
         if (index > -1) {
           this.ciphers.update((current) => {
             const updated = [...current];

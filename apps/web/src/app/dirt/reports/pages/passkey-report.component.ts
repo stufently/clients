@@ -33,6 +33,7 @@ import {
   getPasskeyServiceMatch,
   loadPasskeyServices,
   processPasskeyCiphers,
+  updateCipherMatchSignals,
 } from "./passkey-report.utils";
 
 @Component({
@@ -128,19 +129,12 @@ export class PasskeyReportComponent {
     const match = getPasskeyServiceMatch(updatedCipherView, this.passkeyServices);
 
     if (match != null) {
-      this.cipherDocs.update((docs) => {
-        const updated = new Map(docs);
-        updated.set(updatedCipherView.id, match.instructions);
-        return updated;
-      });
-      this.cipherPasskeyTypes.update((types) => {
-        const updated = new Map(types);
-        updated.set(updatedCipherView.id, {
-          supportsPasskeyLogin: match.supportsPasskeyLogin,
-          supportsPasskeyMfa: match.supportsPasskeyMfa,
-        });
-        return updated;
-      });
+      updateCipherMatchSignals(
+        updatedCipherView.id,
+        match,
+        this.cipherDocs,
+        this.cipherPasskeyTypes,
+      );
       return updatedCipherView;
     }
 

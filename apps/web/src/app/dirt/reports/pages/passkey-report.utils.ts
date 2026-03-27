@@ -1,3 +1,5 @@
+import { WritableSignal } from "@angular/core";
+
 import { PasskeyDirectoryApiServiceAbstraction } from "@bitwarden/common/dirt/services/abstractions/passkey-directory-api.service.abstraction";
 import { Utils } from "@bitwarden/common/platform/misc/utils";
 import { UserId } from "@bitwarden/common/types/guid";
@@ -28,21 +30,14 @@ export async function loadPasskeyServices(
   passkeyDirectoryApiService: PasskeyDirectoryApiServiceAbstraction,
   userId: UserId,
 ): Promise<Map<string, PasskeyServiceEntry>> {
-  const services = new Map<string, PasskeyServiceEntry>();
   const entries = await passkeyDirectoryApiService.getPasskeyDirectory(userId);
 
-  for (const entry of entries) {
-    if (entry.domainName == null) {
-      continue;
-    }
-    services.set(entry.domainName, {
-      instructions: entry.instructions,
-      supportsPasskeyLogin: entry.supportsPasskeyLogin,
-      supportsPasskeyMfa: entry.supportsPasskeyMfa,
-    });
-  }
-
-  return services;
+  return entries
+    .filter((x) => x.domainName != null)
+    .reduce(
+      (services, entry) => services.set(entry.domainName, entry),
+      new Map<string, PasskeyServiceEntry>(),
+    );
 }
 
 /**
@@ -110,4 +105,28 @@ export function processPasskeyCiphers(
   }
 
   return { ciphers, docs, passkeyTypes };
+}
+
+/**
+ * Updates the cipherDocs and cipherPasskeyTypes signals for a cipher that matched a passkey service.
+ */
+export function updateCipherMatchSignals(
+  cipherId: string,
+  match: PasskeyServiceEntry,
+  cipherDocs: WritableSignal<Map<string, string>>,
+  cipherPasskeyTypes: WritableSignal<Map<string, PasskeyTypeInfo>>,
+): void {
+  cipherDocs.update((docs) => {
+    const updated = new Map(docs);
+    updated.set(cipherId, match.instructions);
+    return updated;
+  });
+  cipherPasskeyTypes.update((types) => {
+    const updated = new Map(types);
+    updated.set(cipherId, {
+      supportsPasskeyLogin: match.supportsPasskeyLogin,
+      supportsPasskeyMfa: match.supportsPasskeyMfa,
+    });
+    return updated;
+  });
 }
