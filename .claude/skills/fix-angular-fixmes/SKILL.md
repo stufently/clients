@@ -1,7 +1,7 @@
 ---
 name: fix-angular-fixmes
 description: Resolves eslint-disable suppression comments throughout the Bitwarden clients codebase by fixing the underlying issue. Use when the user asks to "fix FIXMEs", "fix eslint suppressions", "clean up eslint-disable-next-line", "resolve CL-764", "resolve CL-903", "fix OnPush eslint suppressions", "fix Signals eslint suppressions", or reduce linting suppressions.
-allowed-tools: Read, Write, StrReplace, Glob, Grep, Bash(npx ng generate:*), Bash(npm run lint:fix), Bash(npm run test)
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash(npx ng generate:*), Bash(npm run lint:fix), Bash(npm run test)
 ---
 
 ## Key rules
