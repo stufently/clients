@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, input } from "@angular/core";
+import { ChangeDetectionStrategy, Component, inject, signal } from "@angular/core";
 import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
 import { Meta, StoryObj, applicationConfig, moduleMetadata } from "@storybook/angular";
 import { action } from "storybook/actions";
@@ -17,20 +17,44 @@ const docsSourceTemplate = `
   <button bitButton type="button" (click)="toastService.showToast(toastOptions)">Show Toast</button>
 `;
 
+const cyclingToasts = [
+  { variant: "success", message: "Item added to your vault." },
+  {
+    variant: "error",
+    title: "Connection failed",
+    message: "Failed to save changes. Please try again.",
+  },
+  {
+    variant: "warning",
+    message: ["Your session will expire in 5 minutes.", "Save your work before it ends."],
+  },
+  {
+    variant: "info",
+    title: "Update available",
+    message: ["Bitwarden has a new version ready.", "Restart the app to apply the update."],
+  },
+  { variant: "success", title: "Import complete", message: "153 items were added to your vault." },
+  {
+    variant: "error",
+    message: ["An unexpected error occurred.", "If this keeps happening, contact support."],
+  },
+] as ToastOptions[];
+
 @Component({
   selector: "toast-service-example",
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <button bitButton type="button" (click)="toastService.showToast(toastOptions())">
-      Show Toast
-    </button>
-  `,
+  template: ` <button bitButton type="button" (click)="showNext()">Show Toast</button> `,
   imports: [ButtonModule],
 })
 export class ToastServiceExampleComponent {
-  readonly toastOptions = input<ToastOptions>();
-
+  private readonly index = signal(0);
   protected readonly toastService = inject(ToastService);
+
+  showNext() {
+    const i = this.index();
+    this.toastService.showToast(cyclingToasts[i % cyclingToasts.length]);
+    this.index.set(i + 1);
+  }
 }
 
 export default {
@@ -132,22 +156,13 @@ export const DeprecatedTitle: Story = {
 };
 
 export const Service: Story = {
-  render: (args) => ({
-    props: {
-      toastOptions: args,
-    },
+  render: () => ({
     template: /*html*/ `
       <!-- Toast container is used here to more closely align with how toasts are used in the clients, which allows for more accurate SR testing in storybook -->
       <bit-toast-container></bit-toast-container>
-      <toast-service-example [toastOptions]="toastOptions"></toast-service-example>
+      <toast-service-example></toast-service-example>
     `,
   }),
-  args: {
-    title: "",
-    message: "Hello Bitwarden!",
-    variant: "error",
-    timeout: 5000,
-  } as ToastOptions,
   parameters: {
     chromatic: { disableSnapshot: true },
     docs: {

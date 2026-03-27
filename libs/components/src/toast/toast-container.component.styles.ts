@@ -3,7 +3,7 @@ import { tv } from "tailwind-variants";
 export default tv({
   slots: {
     root: [
-      "tw-fixed tw-grid tw-z-50 tw-pointer-events-none",
+      "tw-fixed tw-grid tw-items-end tw-z-50 tw-pointer-events-none",
       "[bottom:var(--bit-toast-bottom)]",
       // Narrow screens: full-width, centred
       "tw-left-0 tw-right-0 tw-justify-items-center",

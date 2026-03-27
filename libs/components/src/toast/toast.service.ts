@@ -20,8 +20,12 @@ type DeprecatedToastOptions = {
 };
 
 /** Internal state for a single active toast. */
-type ToastData = (ToastOptions | DeprecatedToastOptions) & {
+type ToastData = {
   id: string;
+  message: string | string[];
+  variant: ToastVariant;
+  timeout: number;
+  title?: string;
 };
 
 const defaultTimeout = 5000;
