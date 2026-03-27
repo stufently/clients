@@ -73,7 +73,7 @@
                 @for (field of triageResult()?.fields; track $index) {
                   <tr>
                     <td class="tw-p-2 tw-border tw-border-secondary-300">
-                      {{ field.htmlId || field.htmlName || "(unnamed)" }}
+                      {{ field.htmlId || field.htmlName || field.placeholder || "(unnamed)" }}
                     </td>
                     <td class="tw-p-2 tw-border tw-border-secondary-300">{{ field.htmlType }}</td>
                     <td class="tw-p-2 tw-border tw-border-secondary-300">
