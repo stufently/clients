@@ -6,7 +6,7 @@ import { TypographyModule } from "../typography";
 import { ProgressBarComponent } from "./progress-bar.component";
 
 /**
- * The progress bar lockup component consumes the progress bar component with illustration, title, and subtitle.
+ * The progress bar lockup component consumes the progress bar component with illustration, title, and description.
  */
 @Component({
   selector: "bit-progress-bar-lockup",

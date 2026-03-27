@@ -52,7 +52,7 @@ export const Base: Story = {
         <bit-progress-bar-lockup ${formatArgsForCodeSnippet<ProgressBarLockupComponent>(args)}>
           <bit-svg slot="illustration" [content]="illustration" aria-hidden="true" class="tw-w-[120px]" />
           <span slot="title">Uploading file</span>
-          <span slot="subtitle">This might take a few minutes.</span>
+          <span slot="description">This might take a few minutes.</span>
           <bit-progress-bar [value]="50">
             <bit-label slot="label">File name</bit-label>
             <bit-hint slot="end">50MB</bit-hint>  
@@ -72,7 +72,7 @@ export const WithoutIllustration: Story = {
       <div class="tw-w-[552px]">
         <bit-progress-bar-lockup ${formatArgsForCodeSnippet<ProgressBarLockupComponent>(args)}>
           <span slot="title">Uploading file</span>
-          <span slot="subtitle">This might take a few minutes.</span>
+          <span slot="description">This might take a few minutes.</span>
           <bit-progress-bar [value]="50">
             <bit-label slot="label">File name</bit-label>
             <bit-hint slot="end">50MB</bit-hint>  
