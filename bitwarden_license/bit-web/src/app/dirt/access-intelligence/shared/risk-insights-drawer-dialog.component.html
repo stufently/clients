@@ -36,7 +36,10 @@
             </div>
           </div>
           @for (member of drawerDetails.atRiskMemberDetails; track member.email) {
-            <div class="tw-flex tw-justify-between tw-mt-2" data-testid="at-risk-row">
+            <div
+              class="tw-flex tw-justify-between tw-mt-2"
+              [attr.data-testid]="'at-risk-row-' + $index"
+            >
               <div>{{ member.email }}</div>
               <div>{{ member.atRiskPasswordCount }}</div>
             </div>
@@ -66,7 +69,7 @@
       </div>
       <div class="tw-mt-1">
         @for (member of drawerDetails.appAtRiskMembers?.members; track $index) {
-          <div data-testid="at-risk-row">{{ member.email }}</div>
+          <div [attr.data-testid]="'at-risk-row-' + $index">{{ member.email }}</div>
         }
       </div>
     </ng-container>
@@ -110,7 +113,10 @@
             </div>
           </div>
           @for (app of drawerDetails.atRiskAppDetails; track app.applicationName) {
-            <div class="tw-flex tw-justify-between tw-mt-2" data-testid="at-risk-row">
+            <div
+              class="tw-flex tw-justify-between tw-mt-2"
+              [attr.data-testid]="'at-risk-row-' + $index"
+            >
               <div>{{ app.applicationName }}</div>
               <div>{{ app.atRiskPasswordCount }}</div>
             </div>
