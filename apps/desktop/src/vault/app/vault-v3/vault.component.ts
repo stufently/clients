@@ -854,6 +854,7 @@ export class VaultComponent<C extends CipherViewLike> implements OnInit, OnDestr
     this.activeDrawerRef = VaultItemDialogComponent.openDrawer(this.dialogService, {
       mode,
       formConfig,
+      restore: (c) => this.handleRestoreEvent(c as CipherView),
     });
     this.activeDrawerRef.closed.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((result) => {
       this.activeDrawerRef = undefined;
