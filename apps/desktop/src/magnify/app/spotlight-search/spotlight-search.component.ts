@@ -120,10 +120,12 @@ export class SpotlightSearchComponent implements OnInit {
         break;
       case "ArrowDown":
         event.preventDefault();
+        event.stopPropagation();
         this.selectedIndex.update((i) => Math.min(i + 1, items.length - 1));
         break;
       case "ArrowUp":
         event.preventDefault();
+        event.stopPropagation();
         this.selectedIndex.update((i) => Math.max(i - 1, 0));
         break;
       default: {
