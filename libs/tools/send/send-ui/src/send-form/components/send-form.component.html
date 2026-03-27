@@ -2,17 +2,10 @@
   @if (!loading) {
     @if (!editing()) {
       <bit-card>
-        <bit-form-field bitTypography="h4">
-          <bit-label class="tw-text-main">{{ "sendLink" | i18n }}</bit-label>
-          <input
-            class="tw-text-muted"
-            data-testid="send-link"
-            bitInput
-            type="text"
-            [value]="sendLink()"
-            readonly
-          />
-        </bit-form-field>
+        <div bitTypography="h4">{{ "sendLink" | i18n }}</div>
+        <div class="tw-text-muted tw-mt-2 tw-mb-4 tw-truncate" bitTypography="body2">
+          {{ sendLink() }}
+        </div>
         <button
           class="tw-w-full"
           bitButton
