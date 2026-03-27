@@ -52,7 +52,6 @@ export class MemberDialogManagerService {
       data: {
         kind: "Add",
         organizationId: organization.id,
-        allOrganizationUserEmails: allUsers.map((u) => u.email),
         allOrganizationUsers: allUsers,
         occupiedSeatCount: billingMetadata?.organizationOccupiedSeats ?? 0,
         isOnSecretsManagerStandalone: billingMetadata?.isOnSecretsManagerStandalone ?? false,

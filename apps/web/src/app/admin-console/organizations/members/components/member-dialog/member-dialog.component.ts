@@ -82,7 +82,6 @@ interface CommonMemberDialogParams {
 export interface AddMemberDialogParams extends CommonMemberDialogParams {
   kind: "Add";
   occupiedSeatCount: number;
-  allOrganizationUserEmails: string[];
   allOrganizationUsers: OrganizationUserView[];
 }
 
@@ -360,7 +359,7 @@ export class MemberDialogComponent implements OnDestroy {
       ),
       orgSeatLimitReachedValidator(
         organization,
-        this.params.allOrganizationUserEmails,
+        this.params.allOrganizationUsers.map((u) => u.email),
         this.i18nService.t("subscriptionUpgrade", organization.seats),
         this.params.occupiedSeatCount,
       ),
