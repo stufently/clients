@@ -15,6 +15,7 @@ import { AccountService } from "@bitwarden/common/auth/abstractions/account.serv
 import { FakeAccountService, mockAccountServiceWith } from "@bitwarden/common/spec";
 import { OrganizationId, UserId } from "@bitwarden/common/types/guid";
 import { newGuid } from "@bitwarden/guid";
+import { KeyService } from "@bitwarden/key-management";
 
 import { AutoConfirmPolicy, AutoConfirmPolicyEditComponent } from "./auto-confirm-policy.component";
 
@@ -73,6 +74,7 @@ describe("AutoConfirmPolicyEditComponent — policySteps[0].sideEffect", () => {
     await TestBed.configureTestingModule({
       providers: [
         { provide: AccountService, useValue: accountService },
+        { provide: KeyService, useValue: mock<KeyService>() },
         { provide: OrganizationService, useValue: organizationService },
         { provide: PolicyService, useValue: policyService },
         { provide: PolicyApiServiceAbstraction, useValue: policyApiService },

@@ -3,10 +3,13 @@ import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { By } from "@angular/platform-browser";
 import { mock } from "jest-mock-extended";
 
+import { PolicyApiServiceAbstraction } from "@bitwarden/common/admin-console/abstractions/policy/policy-api.service.abstraction";
 import { PolicyType } from "@bitwarden/common/admin-console/enums";
 import { PolicyStatusResponse } from "@bitwarden/common/admin-console/models/response/policy-status.response";
+import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { OrgKey } from "@bitwarden/common/types/key";
+import { KeyService } from "@bitwarden/key-management";
 
 import {
   RemoveUnlockWithPinPolicy,
@@ -34,6 +37,9 @@ describe("RemoveUnlockWithPinPolicyComponent", () => {
       providers: [
         { provide: I18nService, useValue: mock<I18nService>() },
         { provide: I18nService, useValue: i18nService },
+        { provide: AccountService, useValue: mock<AccountService>() },
+        { provide: KeyService, useValue: mock<KeyService>() },
+        { provide: PolicyApiServiceAbstraction, useValue: mock<PolicyApiServiceAbstraction>() },
       ],
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
