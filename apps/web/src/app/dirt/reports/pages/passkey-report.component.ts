@@ -31,7 +31,6 @@ import {
   PasskeyServiceEntry,
   PasskeyTypeInfo,
   getPasskeyServiceMatch,
-  loadPasskeyServices,
   processPasskeyCiphers,
   updateCipherMatchSignals,
 } from "./passkey-report.utils";
@@ -83,9 +82,9 @@ export class PasskeyReportComponent {
   protected readonly cipherPasskeyTypes = signal<Map<string, PasskeyTypeInfo>>(new Map());
 
   // Private state
-  private readonly passkeyServices = new Map<string, PasskeyServiceEntry>();
+  private readonly passkeyServices = signal<Map<string, PasskeyServiceEntry>>(new Map());
   private readonly userId$ = this.accountService.activeAccount$.pipe(getUserId);
-  private readonly currentFilterStatus: number | string = 0;
+  private readonly currentFilterStatus = signal<number | string>(0);
 
   constructor() {
     this.organizations$
@@ -97,20 +96,28 @@ export class PasskeyReportComponent {
 
   async setCiphers() {
     try {
-      if (this.passkeyServices.size === 0) {
+      if (this.passkeyServices().size === 0) {
         const userId = await firstValueFrom(this.userId$);
-        this.passkeyServices = await loadPasskeyServices(this.passkeyDirectoryApiService, userId);
+        const entries = await this.passkeyDirectoryApiService.getPasskeyDirectory(userId);
+        this.passkeyServices.set(
+          entries
+            .filter((x) => x.domainName != null)
+            .reduce(
+              (map, entry) => map.set(entry.domainName, entry),
+              new Map<string, PasskeyServiceEntry>(),
+            ),
+        );
       }
     } catch (e) {
       this.logService.error("[PasskeyReportComponent] Failed to load passkeys", e);
     }
 
-    if (this.passkeyServices.size === 0) {
+    if (this.passkeyServices().size === 0) {
       return;
     }
 
     const allCiphers = await this.getAllCiphers();
-    const result = processPasskeyCiphers(allCiphers, this.passkeyServices);
+    const result = processPasskeyCiphers(allCiphers, this.passkeyServices());
 
     this.filterStatus.set([0]);
     this.filterCiphersByOrg(result.ciphers);
@@ -126,7 +133,7 @@ export class PasskeyReportComponent {
       return null;
     }
 
-    const match = getPasskeyServiceMatch(updatedCipherView, this.passkeyServices);
+    const match = getPasskeyServiceMatch(updatedCipherView, this.passkeyServices());
 
     if (match != null) {
       updateCipherMatchSignals(
@@ -187,7 +194,7 @@ export class PasskeyReportComponent {
   }
 
   protected async filterOrgToggle(status: number | string) {
-    this.currentFilterStatus = status;
+    this.currentFilterStatus.set(status);
     if (typeof status === "number" && status === 1) {
       this.dataSource.filter = (c: CipherView) => !c.organizationId;
     } else if (typeof status === "string") {
@@ -206,10 +213,10 @@ export class PasskeyReportComponent {
     this.loading.set(true);
     await this.syncService.fullSync(false);
 
-    if (this.currentFilterStatus) {
+    if (this.currentFilterStatus()) {
       if (this.ciphers().length > 2) {
-        this.filterOrgStatus$.next(this.currentFilterStatus);
-        await this.filterOrgToggle(this.currentFilterStatus);
+        this.filterOrgStatus$.next(this.currentFilterStatus());
+        await this.filterOrgToggle(this.currentFilterStatus());
       } else {
         this.filterOrgStatus$.next(0);
         await this.filterOrgToggle(0);

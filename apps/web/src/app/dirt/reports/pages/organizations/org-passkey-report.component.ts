@@ -46,7 +46,6 @@ import {
   PasskeyServiceEntry,
   PasskeyTypeInfo,
   getPasskeyServiceMatch,
-  loadPasskeyServices,
   processPasskeyCiphers,
   updateCipherMatchSignals,
 } from "../passkey-report.utils";
@@ -102,7 +101,7 @@ export class OrgPasskeyReportComponent {
 
   // Private state
   private readonly manageableCiphers = signal<Cipher[]>([]);
-  private readonly passkeyServices = new Map<string, PasskeyServiceEntry>();
+  private readonly passkeyServices = signal<Map<string, PasskeyServiceEntry>>(new Map());
 
   // Observable streams
   private readonly userId$ = this.accountService.activeAccount$.pipe(getUserId);
@@ -171,20 +170,28 @@ export class OrgPasskeyReportComponent {
 
   private async setCiphers(org: Organization) {
     try {
-      if (this.passkeyServices.size === 0) {
+      if (this.passkeyServices().size === 0) {
         const userId = await firstValueFrom(this.userId$);
-        this.passkeyServices = await loadPasskeyServices(this.passkeyDirectoryApiService, userId);
+        const entries = await this.passkeyDirectoryApiService.getPasskeyDirectory(userId);
+        this.passkeyServices.set(
+          entries
+            .filter((x) => x.domainName != null)
+            .reduce(
+              (map, entry) => map.set(entry.domainName, entry),
+              new Map<string, PasskeyServiceEntry>(),
+            ),
+        );
       }
     } catch (e) {
       this.logService.error("[OrgPasskeyReportComponent] Failed to load passkeys", e);
     }
 
-    if (this.passkeyServices.size === 0) {
+    if (this.passkeyServices().size === 0) {
       return;
     }
 
     const allCiphers = await this.cipherService.getAllFromApiForOrganization(org.id, true);
-    const result = processPasskeyCiphers(allCiphers, this.passkeyServices);
+    const result = processPasskeyCiphers(allCiphers, this.passkeyServices());
 
     this.ciphers.set(result.ciphers);
     this.dataSource.data = result.ciphers;
@@ -238,7 +245,7 @@ export class OrgPasskeyReportComponent {
         await this.cipherService.getKeyForCipherKeyDecryption(updatedCipher, activeUserId),
       );
 
-      const match = getPasskeyServiceMatch(updatedCipherView, this.passkeyServices);
+      const match = getPasskeyServiceMatch(updatedCipherView, this.passkeyServices());
       const index = this.ciphers().findIndex((c) => c.id === updatedCipherView.id);
 
       if (match != null) {
