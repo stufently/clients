@@ -136,8 +136,10 @@ export class SendAddEditComponent {
   /**
    * Handles the event when the send is updated.
    */
-  async onSendUpdated(_: SendView) {
-    await this.router.navigate(["/tabs/send"]);
+  async onSendUpdated(updatedSendView: SendView) {
+    await this.router.navigate(["/edit-send"], {
+      queryParams: { sendId: updatedSendView.id, type: updatedSendView.type },
+    });
   }
 
   deleteSend = async () => {
