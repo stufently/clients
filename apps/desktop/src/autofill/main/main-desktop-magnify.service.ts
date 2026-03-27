@@ -6,6 +6,7 @@ import { LogService } from "@bitwarden/logging";
 
 import { WindowMain } from "../../main/window.main";
 import { MAGNIFY_IPC_CHANNELS } from "../models/ipc-channels";
+import { MagnifyCommandRequest, MagnifyCommandResponse } from "../models/magnify-commands";
 
 export class MainDesktopMagnifyService {
   private MAGNIFY_KEYBOARD_SHORTCUT = "CommandOrControl+Shift+Space";
@@ -19,7 +20,14 @@ export class MainDesktopMagnifyService {
     await this.registerIpcListeners();
   }
 
+  /*
+    Register various IPC listeners
+
+    Before changing IPC, please read:
+    https://www.electronjs.org/docs/latest/tutorial/ipc
+  */
   async registerIpcListeners() {
+    // BW render process -> main process: toggle magnify on/off
     ipcMain.on(MAGNIFY_IPC_CHANNELS.TOGGLE, async (_event, enable: boolean) => {
       if (enable) {
         await this.enableMagnify();
@@ -27,6 +35,12 @@ export class MainDesktopMagnifyService {
         this.disableMagnify();
       }
     });
+
+    // Magnify render process -> main process -> BW render process ->
+    // main process -> Magnify render process
+    ipcMain.handle(MAGNIFY_IPC_CHANNELS.MAGNIFY_COMMAND, (event, command) =>
+      this.commandHandler(event, command),
+    );
   }
 
   // Deregister the keyboard shortcut if registered.
@@ -41,6 +55,7 @@ export class MainDesktopMagnifyService {
 
   dispose() {
     ipcMain.removeAllListeners(MAGNIFY_IPC_CHANNELS.TOGGLE);
+    ipcMain.removeHandler(MAGNIFY_IPC_CHANNELS.MAGNIFY_COMMAND);
 
     // Also unregister the global shortcut
     this.disableMagnify();
@@ -77,5 +92,35 @@ export class MainDesktopMagnifyService {
     });
 
     await win.loadFile(path.join(__dirname, "magnify", "index.html"));
+  }
+
+  /*
+    Receives a command from the magnify render process, relays it
+    to the BW render process, waits for the response, and returns it
+    back to the magnify render process via the resolved invoke Promise.
+  */
+  private async commandHandler(
+    _event: Electron.IpcMainInvokeEvent,
+    command: MagnifyCommandRequest,
+  ): Promise<MagnifyCommandResponse> {
+    return new Promise<MagnifyCommandResponse>((resolve, reject) => {
+      const onResponse = (
+        _responseEvent: Electron.IpcMainEvent,
+        response: MagnifyCommandResponse,
+      ) => {
+        ipcMain.removeListener(MAGNIFY_IPC_CHANNELS.MAGNIFY_COMMAND_RELAY_ERROR, onError);
+        resolve(response);
+      };
+
+      const onError = (_responseEvent: Electron.IpcMainEvent, errorMessage: string) => {
+        ipcMain.removeListener(MAGNIFY_IPC_CHANNELS.MAGNIFY_COMMAND_RESPONSE, onResponse);
+        reject(new Error(errorMessage));
+      };
+
+      ipcMain.once(MAGNIFY_IPC_CHANNELS.MAGNIFY_COMMAND_RESPONSE, onResponse);
+      ipcMain.once(MAGNIFY_IPC_CHANNELS.MAGNIFY_COMMAND_RELAY_ERROR, onError);
+
+      this.windowMain.win.webContents.send(MAGNIFY_IPC_CHANNELS.MAGNIFY_COMMAND_RELAY, command);
+    });
   }
 }
