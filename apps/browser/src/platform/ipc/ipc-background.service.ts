@@ -22,7 +22,7 @@ import { BrowserApi } from "../browser/browser-api";
 // The interval at which the browser extension in the background tries to reconnect to the desktop app.
 const RECONNECTION_INTERVAL_MS = 10_000;
 // The timeout for the discover message sent to the desktop app when trying to connect. If the desktop app does not respond to the discover message within this time, the connection attempt is considered failed and will be retried after the reconnection interval.
-const DISCOVER_MESSAGE_TIMEOUT_MS = 1_000;
+const DISCOVER_MESSAGE_TIMEOUT_MS = 5_000;
 
 export class IpcBackgroundService extends IpcService {
   private communicationBackend?: IpcCommunicationBackend;
@@ -191,7 +191,8 @@ export class IpcBackgroundService extends IpcService {
         this.nativeMessagingPort = undefined;
         this.scheduleReconnect();
       });
-    } catch {
+    } catch (e) {
+      this.logService.error("[IPC] Failed to connect to Bitwarden Desktop App", e);
       this.nativeMessagingPort = undefined;
       this.scheduleReconnect();
     }
