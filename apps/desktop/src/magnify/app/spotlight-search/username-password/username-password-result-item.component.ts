@@ -38,6 +38,6 @@ export class UsernamePasswordResultItemComponent {
   }
 
   protected async launchCipher() {
-    await window.ipc.sendCommand({ type: MagnifyCommand.LaunchUri, id: this.item().id });
+    //await window.ipc.sendCommand({ type: MagnifyCommand.LaunchUri, id: this.item().id });
   }
 }

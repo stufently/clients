@@ -4,7 +4,7 @@ import { CommandService } from "../../../services/command-service";
 import { SpotlightItemAction, SpotlightSearchComponent } from "../spotlight-search.component";
 
 const MAX_RESULTS = 7;
-//const COPY_FEEDBACK_MS = 2000;
+const COPY_FEEDBACK_MS = 2000;
 
 @Component({
   selector: "app-username-password-spotlight",
@@ -54,13 +54,16 @@ export class UsernamePasswordSpotlightComponent implements OnInit {
   }
 
   protected async copyPassword(cipher: MagnifyCipherResult) {
-    // TODO: Implement copy password via commandService
-    //setTimeout(() => this.copiedPasswordId.set(null), COPY_FEEDBACK_MS);
+    const password = await this.commandService.copyPassword(cipher.id);
+    await navigator.clipboard.writeText(password);
+    this.copiedPasswordId.set(cipher.id);
+    setTimeout(() => this.copiedPasswordId.set(null), COPY_FEEDBACK_MS);
   }
 
   protected async copyUsername(cipher: MagnifyCipherResult) {
-    // TODO: Implement copy username via commandService
-    //setTimeout(() => this.copiedUsernameId.set(null), COPY_FEEDBACK_MS);
+    await navigator.clipboard.writeText(cipher.username);
+    this.copiedUsernameId.set(cipher.id);
+    setTimeout(() => this.copiedUsernameId.set(null), COPY_FEEDBACK_MS);
   }
 
   protected async launchCipher(cipher: MagnifyCipherResult) {
