@@ -1,5 +1,6 @@
 import { firstValueFrom } from "rxjs";
 
+import { ClientType } from "@bitwarden/client-type";
 import { LockService } from "@bitwarden/auth/common";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
 import { asUuid } from "@bitwarden/common/platform/abstractions/sdk/sdk.service";
@@ -14,6 +15,7 @@ import { UserId } from "../../types/guid";
 import { VaultTimeoutSettingsService } from "../vault-timeout/abstractions/vault-timeout-settings.service";
 
 import { SharedUnlockLeaderService } from "./shared-unlock-leader.service";
+import { SharedUnlockSettingsService } from "./shared-unlock-settings.service";
 import { createUserLockManagement } from "./user-lock-management";
 
 export class DefaultSharedUnlockLeaderService implements SharedUnlockLeaderService {
@@ -25,6 +27,7 @@ export class DefaultSharedUnlockLeaderService implements SharedUnlockLeaderServi
     private platformUtilsService: PlatformUtilsService,
     private vaultTimeoutSettingsService: VaultTimeoutSettingsService,
     private environmentService: EnvironmentService,
+    private sharedUnlockSettingsService: SharedUnlockSettingsService,
   ) {}
 
   async start(): Promise<void> {
@@ -40,6 +43,10 @@ export class DefaultSharedUnlockLeaderService implements SharedUnlockLeaderServi
     const leader = await SharedUnlockLeader.try_new(this.ipcService.client, unlockManagementDriver);
     leader.start();
     this.lockService.registerOnLockAction(async (userId) => {
+      if (!(await this.enabled(userId))) {
+        return;
+      }
+
       leader.handle_device_event({
         ManualLock: {
           user_id: asUuid(userId),
@@ -61,6 +68,10 @@ export class DefaultSharedUnlockLeaderService implements SharedUnlockLeaderServi
         const previousUserKey = previousUserKeys.get(accountId) ?? null;
 
         if (previousUserKey == null && accountUserKey != null) {
+          if (!(await this.enabled(accountId))) {
+            continue;
+          }
+
           leader.handle_device_event({
             ManualUnlock: {
               user_id: asUuid(accountId),
@@ -78,5 +89,15 @@ export class DefaultSharedUnlockLeaderService implements SharedUnlockLeaderServi
         }
       }
     }, 100);
+  }
+
+  private async enabled(userId: UserId): Promise<boolean> {
+    if (this.platformUtilsService.getClientType() === ClientType.Desktop) {
+      return await this.sharedUnlockSettingsService.allowIntegrateWithBrowserExtension(userId);
+    }
+    if (this.platformUtilsService.getClientType() === ClientType.Browser) {
+      return await this.sharedUnlockSettingsService.allowIntegrateWithWebApp(userId);
+    }
+    return true;
   }
 }

@@ -1578,6 +1578,7 @@ export default class MainBackground {
       this.logService,
       ipcSessionRepository,
     );
+    this.sharedUnlockSettingsService = new DefaultSharedUnlockSettingsService(this.stateProvider);
     this.sharedUnlockLeaderService = new DefaultSharedUnlockLeaderService(
       this.ipcService,
       this.accountService,
@@ -1586,6 +1587,7 @@ export default class MainBackground {
       this.platformUtilsService,
       this.vaultTimeoutSettingsService,
       this.environmentService,
+      this.sharedUnlockSettingsService,
     );
     this.sharedUnlockFollowerService = new DefaultSharedUnlockFollowerService(
       this.ipcService,
@@ -1595,8 +1597,8 @@ export default class MainBackground {
       this.platformUtilsService,
       this.vaultTimeoutSettingsService,
       this.environmentService,
+      this.sharedUnlockSettingsService,
     );
-    this.sharedUnlockSettingsService = new DefaultSharedUnlockSettingsService(this.stateProvider);
 
     this.endUserNotificationService = new DefaultEndUserNotificationService(
       this.stateProvider,

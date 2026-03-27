@@ -1,6 +1,7 @@
 import { firstValueFrom } from "rxjs";
 
 import { LockService } from "@bitwarden/auth/common";
+import { ClientType } from "@bitwarden/client-type";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
 import { KeyService } from "@bitwarden/key-management";
 import { SharedUnlockFollower } from "@bitwarden/sdk-internal";
@@ -14,6 +15,7 @@ import { UserId } from "../../types/guid";
 import { VaultTimeoutSettingsService } from "../vault-timeout/abstractions/vault-timeout-settings.service";
 
 import { SharedUnlockFollowerService } from "./shared-unlock-follower.service";
+import { SharedUnlockSettingsService } from "./shared-unlock-settings.service";
 import { createUserLockManagement } from "./user-lock-management";
 
 export class DefaultSharedUnlockFollowerService implements SharedUnlockFollowerService {
@@ -25,6 +27,7 @@ export class DefaultSharedUnlockFollowerService implements SharedUnlockFollowerS
     private platformUtilsService: PlatformUtilsService,
     private vaultTimeoutSettingsService: VaultTimeoutSettingsService,
     private environmentService: EnvironmentService,
+    private sharedUnlockSettingsService: SharedUnlockSettingsService,
   ) {}
 
   async start(): Promise<void> {
@@ -44,6 +47,10 @@ export class DefaultSharedUnlockFollowerService implements SharedUnlockFollowerS
     follower.start();
 
     this.lockService.registerOnLockAction(async (userId) => {
+      if (!(await this.enabled(userId))) {
+        return;
+      }
+
       await follower.handle_device_event({
         ManualLock: {
           user_id: asUuid(userId),
@@ -65,6 +72,9 @@ export class DefaultSharedUnlockFollowerService implements SharedUnlockFollowerS
         const previousUserKey = previousUserKeys.get(accountId) ?? null;
 
         if (previousUserKey == null && accountUserKey != null) {
+          if (!(await this.enabled(accountId))) {
+            continue;
+          }
           await follower.handle_device_event({
             ManualUnlock: {
               user_id: asUuid(accountId),
@@ -82,5 +92,15 @@ export class DefaultSharedUnlockFollowerService implements SharedUnlockFollowerS
         }
       }
     }, 100);
+  }
+
+  private async enabled(userId: UserId): Promise<boolean> {
+    if (this.platformUtilsService.getClientType() === ClientType.Desktop) {
+      return await this.sharedUnlockSettingsService.allowIntegrateWithBrowserExtension(userId);
+    }
+    if (this.platformUtilsService.getClientType() === ClientType.Browser) {
+      return await this.sharedUnlockSettingsService.allowIntegrateWithWebApp(userId);
+    }
+    return true;
   }
 }

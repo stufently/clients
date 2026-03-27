@@ -76,7 +76,7 @@ import {
   MasterPasswordServiceAbstraction,
 } from "@bitwarden/common/key-management/master-password/abstractions/master-password.service.abstraction";
 import { SessionTimeoutTypeService } from "@bitwarden/common/key-management/session-timeout";
-import { SharedUnlockFollowerService } from "@bitwarden/common/key-management/shared-unlock";
+import { SharedUnlockFollowerService, SharedUnlockSettingsService } from "@bitwarden/common/key-management/shared-unlock";
 import { DefaultSharedUnlockFollowerService } from "@bitwarden/common/key-management/shared-unlock/default-shared-unlock-follower.service";
 import {
   VaultTimeout,
@@ -442,6 +442,7 @@ const safeProviders: SafeProvider[] = [
       PlatformUtilsService,
       VaultTimeoutSettingsService,
       EnvironmentService,
+      SharedUnlockSettingsService,
     ],
   }),
   safeProvider({

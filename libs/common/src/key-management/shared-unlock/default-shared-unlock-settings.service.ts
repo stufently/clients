@@ -1,4 +1,4 @@
-import { map } from "rxjs";
+import { firstValueFrom, map } from "rxjs";
 
 import {
   SHARED_UNLOCK_SETTINGS_DISK,
@@ -73,5 +73,23 @@ export class DefaultSharedUnlockSettingsService extends SharedUnlockSettingsServ
     await this.stateProvider
       .getUser(userId, ALLOW_INTEGRATE_WITH_BROWSER_EXTENSION)
       .update(() => value);
+  }
+
+  async allowIntegrateWithWebApp(userId: UserId): Promise<boolean> {
+    return (await firstValueFrom(this.stateProvider.getUserState$(ALLOW_INTEGRATE_WITH_WEB_APP, userId))) ?? false;
+  }
+
+  async allowIntegrateWithDesktopApp(userId: UserId): Promise<boolean> {
+    return (
+      (await firstValueFrom(this.stateProvider.getUserState$(ALLOW_INTEGRATE_WITH_DESKTOP_APP, userId))) ?? false
+    );
+  }
+
+  async allowIntegrateWithBrowserExtension(userId: UserId): Promise<boolean> {
+    return (
+      (await firstValueFrom(
+        this.stateProvider.getUserState$(ALLOW_INTEGRATE_WITH_BROWSER_EXTENSION, userId),
+      )) ?? false
+    );
   }
 }

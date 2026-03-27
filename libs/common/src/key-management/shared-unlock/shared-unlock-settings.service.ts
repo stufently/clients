@@ -10,4 +10,8 @@ export abstract class SharedUnlockSettingsService {
   abstract setAllowIntegrateWithWebApp(value: boolean, userId: UserId): Promise<void>;
   abstract setAllowIntegrateWithDesktopApp(value: boolean, userId: UserId): Promise<void>;
   abstract setAllowIntegrateWithBrowserExtension(value: boolean, userId: UserId): Promise<void>;
+
+  abstract allowIntegrateWithWebApp(userId: UserId): Promise<boolean>;
+  abstract allowIntegrateWithDesktopApp(userId: UserId): Promise<boolean>;
+  abstract allowIntegrateWithBrowserExtension(userId: UserId): Promise<boolean>;
 }
