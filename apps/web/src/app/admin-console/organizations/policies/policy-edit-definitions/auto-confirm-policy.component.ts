@@ -61,6 +61,10 @@ export class AutoConfirmPolicyEditComponent extends BasePolicyEditComponent {
 
   protected readonly autoConfirmSvg = AutoConfirmSvg;
 
+  protected get autoConfirmPolicy(): AutoConfirmPolicy | undefined {
+    return this.policy() as AutoConfirmPolicy | undefined;
+  }
+
   private readonly step0Title: Signal<TemplateRef<unknown>> = viewChild.required("step0Title");
   private readonly step0Content: Signal<TemplateRef<unknown>> = viewChild.required("step0Content");
   private readonly step0Footer: Signal<TemplateRef<unknown>> = viewChild.required("step0Footer");
