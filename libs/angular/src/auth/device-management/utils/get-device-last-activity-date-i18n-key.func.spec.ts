@@ -25,6 +25,12 @@ describe("getDeviceLastActivityDateI18nKey", () => {
       const date = new Date(2026, 2, 26, 23, 0, 0);
       expect(getDeviceLastActivityDateI18nKey(date, now)).toBe("recentlyActiveToday");
     });
+
+    it("returns 'recentlyActiveToday' when activity date is one calendar day in the future (server clock skew)", () => {
+      // Server clock is 1 day ahead — daysAgo is -1, should still bucket as "today"
+      const date = new Date(2026, 2, 27, 14, 0, 0);
+      expect(getDeviceLastActivityDateI18nKey(date, now)).toBe("recentlyActiveToday");
+    });
   });
 
   describe("recentlyActiveThisWeek", () => {

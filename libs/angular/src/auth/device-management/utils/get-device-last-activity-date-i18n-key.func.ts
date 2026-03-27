@@ -28,7 +28,7 @@ export function getDeviceLastActivityDateI18nKey(
 
   const daysAgo = calendarDaysAgo(lastActivityDate, now);
 
-  if (daysAgo === 0) {
+  if (daysAgo <= 0) {
     return "recentlyActiveToday";
   }
   if (daysAgo < 7) {
