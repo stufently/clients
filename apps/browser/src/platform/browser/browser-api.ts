@@ -472,8 +472,15 @@ export class BrowserApi {
    */
   static async isPopupOpen(): Promise<boolean> {
     if (typeof (chrome.runtime as any).getContexts === "function") {
-      const contexts = await chrome.runtime.getContexts({});
-      return contexts.some((context) => context.contextType === "POPUP");
+      // Firefox MV2 exposes getContexts as a function but returns undefined instead of a Promise,
+      // because getContexts is MV3-only. Check the return value before awaiting.
+      const result = (chrome.runtime as any).getContexts({});
+      if (result instanceof Promise) {
+        const contexts = await result;
+        return (contexts ?? []).some(
+          (context: chrome.runtime.ExtensionContext) => context.contextType === "POPUP",
+        );
+      }
     }
 
     // MV2/Safari — background page can use getExtensionViews
@@ -492,22 +499,33 @@ export class BrowserApi {
    */
   static async isAnyViewFocused(): Promise<boolean> {
     if (typeof (chrome.runtime as any).getContexts === "function") {
-      const contexts = await chrome.runtime.getContexts({});
+      // Firefox MV2 exposes getContexts as a function but returns undefined instead of a Promise,
+      // because getContexts is MV3-only. Check the return value before awaiting.
+      const result = (chrome.runtime as any).getContexts({});
+      if (result instanceof Promise) {
+        const contexts = await result;
 
-      if (contexts.some((c) => c.contextType === "POPUP" || c.contextType === "SIDE_PANEL")) {
-        return true;
-      }
-
-      const tabs = contexts.filter(
-        (c) => c.contextType === "TAB" && c.documentUrl?.includes("uilocation=popout"),
-      );
-      for (const context of tabs) {
-        const win = await BrowserApi.getWindowById(context.windowId);
-        if (win?.focused) {
+        if (
+          contexts.some(
+            (c: chrome.runtime.ExtensionContext) =>
+              c.contextType === "POPUP" || c.contextType === "SIDE_PANEL",
+          )
+        ) {
           return true;
         }
+
+        const tabs = contexts.filter(
+          (c: chrome.runtime.ExtensionContext) =>
+            c.contextType === "TAB" && c.documentUrl?.includes("uilocation=popout"),
+        );
+        for (const context of tabs) {
+          const win = await BrowserApi.getWindowById(context.windowId);
+          if (win?.focused) {
+            return true;
+          }
+        }
+        return false;
       }
-      return false;
     }
 
     // MV2/Safari — background page can use getExtensionViews
