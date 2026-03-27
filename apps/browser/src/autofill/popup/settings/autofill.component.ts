@@ -1,13 +1,7 @@
 import { CommonModule } from "@angular/common";
 import { Component, DestroyRef, OnInit } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import {
-  FormBuilder,
-  FormControl,
-  FormGroup,
-  FormsModule,
-  ReactiveFormsModule,
-} from "@angular/forms";
+import { FormControl, FormGroup, FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { RouterModule } from "@angular/router";
 import {
   concatMap,
@@ -175,7 +169,6 @@ export class AutofillComponent implements OnInit {
     private messagingService: MessagingService,
     private vaultSettingsService: VaultSettingsService,
     private configService: ConfigService,
-    private formBuilder: FormBuilder,
     private destroyRef: DestroyRef,
     private nudgesService: NudgesService,
     private accountService: AccountService,
