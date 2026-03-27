@@ -11,7 +11,6 @@ import { AccessReportSummaryView } from "../view/access-report-summary.view";
  *  * - See {@link AccessReportSummaryView} from View Model
  */
 export class AccessReportSummaryData {
-  organizationId?: string;
   encryptedData?: string;
   encryptionKey?: string;
   date?: string;
@@ -21,7 +20,6 @@ export class AccessReportSummaryData {
       return;
     }
 
-    this.organizationId = data.organizationId;
     this.encryptedData = data.encryptedData;
     this.encryptionKey = data.encryptionKey;
     this.date = data.date;

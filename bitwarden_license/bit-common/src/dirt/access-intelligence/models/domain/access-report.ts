@@ -13,6 +13,7 @@ import {
 import { AccessReportData } from "../data/access-report.data";
 import { ApplicationHealthData } from "../data/application-health.data";
 import { MemberRegistryEntryData } from "../data/member-registry-entry.data";
+import { ReportFileData } from "../data/report-file.data";
 import { AccessReportSettingsView } from "../view/access-report-settings.view";
 import { AccessReportSummaryView } from "../view/access-report-summary.view";
 import { AccessReportView } from "../view/access-report.view";
@@ -26,7 +27,11 @@ export class AccessReport extends Domain {
   applications: EncString = new EncString("");
   summary: EncString = new EncString("");
   creationDate: Date;
+  revisionDate: Date | undefined;
   contentEncryptionKey?: EncString;
+  reportFile: ReportFileData | undefined;
+  /** Presigned download URL — transient, not persisted via toData(). */
+  reportFileDownloadUrl: string = "";
 
   constructor(obj?: AccessReportData) {
     super();
@@ -40,7 +45,10 @@ export class AccessReport extends Domain {
     this.applications = conditionalEncString(obj.applications) ?? new EncString("");
     this.summary = conditionalEncString(obj.summary) ?? new EncString("");
     this.creationDate = new Date(obj.creationDate);
+    this.revisionDate = obj.revisionDate ? new Date(obj.revisionDate) : undefined;
     this.contentEncryptionKey = conditionalEncString(obj.contentEncryptionKey);
+    this.reportFile = obj.reportFile;
+    this.reportFileDownloadUrl = obj.reportFileDownloadUrl;
   }
 
   /**
@@ -107,7 +115,9 @@ export class AccessReport extends Domain {
     data.applications = this.applications.encryptedString ?? "";
     data.summary = this.summary.encryptedString ?? "";
     data.creationDate = this.creationDate.toISOString();
+    data.revisionDate = this.revisionDate?.toISOString() ?? "";
     data.contentEncryptionKey = this.contentEncryptionKey?.encryptedString ?? "";
+    data.reportFile = this.reportFile;
     return data;
   }
 

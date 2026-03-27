@@ -15,7 +15,6 @@ import { AccessReportSummaryView } from "../view/access-report-summary.view";
  * - See {@link AccessReportSummaryView} for view model
  */
 export class AccessReportSummaryApi extends BaseResponse {
-  organizationId: string = "";
   encryptedData: string = "";
   encryptionKey: string = "";
   date: string = "";
@@ -23,7 +22,6 @@ export class AccessReportSummaryApi extends BaseResponse {
   constructor(data: any) {
     super(data);
 
-    this.organizationId = this.getResponseProperty("OrganizationId") ?? "";
     this.encryptedData = this.getResponseProperty("EncryptedData") ?? "";
     this.encryptionKey = this.getResponseProperty("EncryptionKey") ?? "";
     this.date = this.getResponseProperty("Date") ?? "";

@@ -16,7 +16,6 @@ import { AccessReportSummaryView } from "../view/access-report-summary.view";
  * - See {@link AccessReportSummaryView} from View Model
  */
 export class AccessReportSummary extends Domain {
-  organizationId: string = "";
   encryptedData: EncString | undefined;
   encryptionKey: EncString | undefined;
   date: Date = new Date(0);
@@ -27,7 +26,6 @@ export class AccessReportSummary extends Domain {
       return;
     }
 
-    this.organizationId = obj.organizationId ?? "";
     this.encryptedData = obj.encryptedData ? new EncString(obj.encryptedData) : undefined;
     this.encryptionKey = obj.encryptionKey ? new EncString(obj.encryptionKey) : undefined;
     this.date = obj.date ? new Date(obj.date) : new Date(0);
@@ -35,7 +33,6 @@ export class AccessReportSummary extends Domain {
 
   toData(): AccessReportSummaryData {
     const data = new AccessReportSummaryData();
-    data.organizationId = this.organizationId;
     data.encryptedData = this.encryptedData?.encryptedString ?? "";
     data.encryptionKey = this.encryptionKey?.encryptedString ?? "";
     data.date = this.date.toISOString();

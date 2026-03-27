@@ -4,6 +4,8 @@ import { AccessReport } from "../domain/access-report";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { AccessReportView } from "../view/access-report.view";
 
+import { ReportFileData } from "./report-file.data";
+
 /**
  * Serializable data model for the access report
  *
@@ -22,7 +24,11 @@ export class AccessReportData {
   //  applications: AccessReportSettingsData[]; // Previously OrganizationReportApplication Data type
   //  summary: AccessReportSummaryData; // Previously OrganizationReportSummary Data type
   creationDate: string = "";
+  revisionDate: string = "";
   contentEncryptionKey: string = "";
+  reportFile: ReportFileData | undefined;
+  /** Presigned download URL — not persisted, populated from API response only. */
+  reportFileDownloadUrl: string = "";
 
   constructor(response?: AccessReportApi) {
     if (response == null) {
@@ -35,7 +41,11 @@ export class AccessReportData {
     this.applications = response.applications;
     this.summary = response.summary;
     this.creationDate = response.creationDate;
+    this.revisionDate = response.revisionDate;
     this.contentEncryptionKey = response.contentEncryptionKey;
+    this.reportFile =
+      response.reportFile != null ? new ReportFileData(response.reportFile) : undefined;
+    this.reportFileDownloadUrl = response.reportFileDownloadUrl;
 
     //  [TODO] Update types when individual values are encrypted instead of the entire object
     //  this.summary = new AccessReportSummaryData(response.summaryData);

@@ -1,9 +1,11 @@
 // API layer
 export * from "./api/access-report.api";
+export * from "./api/access-report-file.api";
 export * from "./api/application-health.api";
 export * from "./api/access-report-settings.api";
 export * from "./api/access-report-summary.api";
 export * from "./api/access-report-metrics.api";
+export * from "./api/report-file.api";
 
 // Data layer
 export * from "./data/access-report.data";
@@ -12,6 +14,7 @@ export * from "./data/access-report-settings.data";
 export * from "./data/access-report-summary.data";
 export * from "./data/access-report-metrics.data";
 export * from "./data/member-registry-entry.data";
+export * from "./data/report-file.data";
 
 // Domain layer
 export * from "./domain/access-report";
