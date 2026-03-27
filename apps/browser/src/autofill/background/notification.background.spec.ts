@@ -219,7 +219,7 @@ describe("NotificationBackground", () => {
   });
 
   describe("queueMessageIsFromTabOrigin", () => {
-    const createQueueMessage = (tab: chrome.tabs.Tab, domain = "site-a.com") =>
+    const createQueueMessage = (tab: chrome.tabs.Tab, domain = "example.com") =>
       mock<AddLoginQueueMessage>({
         type: NotificationType.AddLogin,
         domain,
@@ -233,12 +233,12 @@ describe("NotificationBackground", () => {
     it.each([
       {
         name: "returns false when the tab navigated away from the queued domain (shared tab reference)",
-        tab: createChromeTabMock({ id: 1, url: "https://site-b.com" }),
+        tab: createChromeTabMock({ id: 1, url: "https://example.net" }),
         expected: false,
       },
       {
         name: "returns true when the tab URL matches the queued domain",
-        tab: createChromeTabMock({ id: 1, url: "https://site-a.com/login" }),
+        tab: createChromeTabMock({ id: 1, url: "https://example.com/login" }),
         expected: true,
       },
       {
