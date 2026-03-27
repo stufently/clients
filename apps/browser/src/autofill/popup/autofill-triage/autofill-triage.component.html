@@ -1,5 +1,5 @@
 <popup-page>
-  <popup-header slot="header" [pageTitle]="'autofillTriage' | i18n" [showBackButton]="true" />
+  <popup-header slot="header" [pageTitle]="'autofillTriage' | i18n" [showBackButton]="false" />
 
   @if (!triageResult()) {
     <bit-callout type="info" [title]="'noTriageResults' | i18n">
