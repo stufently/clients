@@ -6210,6 +6210,9 @@
     "message": "Analyzed"
   },
   "eligible": {
+    "message": "Eligible"
+  },
+  "eligibleForAutofill": {
     "message": "Eligible for Autofill"
   },
   "targetElement": {
