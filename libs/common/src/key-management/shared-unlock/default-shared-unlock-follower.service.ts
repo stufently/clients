@@ -38,6 +38,7 @@ export class DefaultSharedUnlockFollowerService implements SharedUnlockFollowerS
       this.platformUtilsService,
       this.vaultTimeoutSettingsService,
       this.environmentService,
+      true,
     );
 
     const follower = await SharedUnlockFollower.try_new(
