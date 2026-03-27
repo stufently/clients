@@ -21,6 +21,7 @@ import { DialogService } from "@bitwarden/components";
 import { newGuid } from "@bitwarden/guid";
 
 import { BasePolicyEditDefinition } from "./base-policy-edit.component";
+import { PolicyCategory } from "./pipes/policy-category";
 import { PoliciesComponent } from "./policies.component";
 import { SingleOrgPolicy } from "./policy-edit-definitions/single-org.component";
 import { PolicyEditDialogComponent } from "./policy-edit-dialog.component";
@@ -92,6 +93,7 @@ describe("PoliciesComponent", () => {
 
     mockPolicyListService = mock<PolicyListService>();
     mockPolicyListService.getPolicies.mockReturnValue([mockPolicy]);
+    (mockPolicyListService as any).sections = [];
 
     mockDialogService = mock<DialogService>();
     mockDialogService.open.mockReturnValue({ close: jest.fn() } as any);
@@ -185,12 +187,12 @@ describe("PoliciesComponent", () => {
     });
   });
 
-  describe("policies$", () => {
-    it("should return policies from PolicyListService", async () => {
-      const policies = await firstValueFrom(component["policies$"]);
+  describe("policySections$", () => {
+    it("should return sections from PolicyListService", async () => {
+      const sections = await firstValueFrom(component["policySections$"]);
 
-      expect(policies).toBeDefined();
-      expect(Array.isArray(policies)).toBe(true);
+      expect(sections).toBeDefined();
+      expect(Array.isArray(sections)).toBe(true);
     });
   });
 
@@ -386,6 +388,8 @@ describe("PoliciesComponent", () => {
         name: "Test Policy",
         description: "Test Description",
         type: PolicyType.TwoFactorAuthentication,
+        category: PolicyCategory.Authentication,
+        priority: 10,
         component: {} as any,
         showDescription: true,
         display$: () => of(true),
@@ -471,6 +475,8 @@ describe("PoliciesComponent", () => {
         name: "Test Policy",
         description: "Test Description",
         type: PolicyType.TwoFactorAuthentication,
+        category: PolicyCategory.Authentication,
+        priority: 10,
         component: {} as any,
         showDescription: true,
         display$: () => of(true),
@@ -495,6 +501,8 @@ describe("PoliciesComponent", () => {
         name: "Test Policy",
         description: "Test Description",
         type: PolicyType.TwoFactorAuthentication,
+        category: PolicyCategory.Authentication,
+        priority: 10,
         component: {} as any,
         showDescription: true,
         display$: () => of(true),
@@ -524,6 +532,8 @@ describe("PoliciesComponent", () => {
         name: "Custom Policy",
         description: "Custom Description",
         type: PolicyType.RequireSso,
+        category: PolicyCategory.Authentication,
+        priority: 10,
         component: {} as any,
         editDialogComponent: mockCustomDialog as any,
         showDescription: true,
@@ -549,6 +559,8 @@ describe("PoliciesComponent", () => {
         name: "Test Policy",
         description: "Test Description",
         type: PolicyType.SingleOrg,
+        category: PolicyCategory.Authentication,
+        priority: 10,
         component: {} as any,
         showDescription: true,
         display$: () => of(true),
