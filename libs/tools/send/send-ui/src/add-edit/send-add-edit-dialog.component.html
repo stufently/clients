@@ -11,7 +11,7 @@
       bitDialogHeaderEnd
       type="button"
       bitIconButton="bwi-close"
-      buttonType="main"
+      buttonType="primaryGhost"
       size="default"
       [label]="'close' | i18n"
       (click)="closeGenerator()"
@@ -70,7 +70,7 @@
         @if (config?.mode !== "add") {
           <button
             type="button"
-            buttonType="danger"
+            buttonType="dangerGhost"
             slot="end"
             bitIconButton="bwi-trash"
             [bitAction]="deleteSend"
