@@ -1,6 +1,6 @@
 import * as path from "path";
 
-import { ipcMain, globalShortcut, BrowserWindow } from "electron";
+import { ipcMain, globalShortcut, BrowserWindow, screen } from "electron";
 
 import { LogService } from "@bitwarden/logging";
 
@@ -82,9 +82,19 @@ export class MainDesktopMagnifyService {
 
   // Open the magnify window, which is its own project
   private async openMagnify() {
+    const width = 800;
+    const height = 600;
+
+    const cursorPoint = screen.getCursorScreenPoint();
+    const display = screen.getDisplayNearestPoint(cursorPoint);
+    const x = Math.round(display.workArea.x + (display.workArea.width - width) / 2);
+    const y = Math.round(display.workArea.y + (display.workArea.height - height) / 2);
+
     const win = new BrowserWindow({
-      width: 800,
-      height: 600,
+      width,
+      height,
+      x,
+      y,
       frame: false,
       transparent: isMac(),
       ...(isMac() ? { vibrancy: "hud" } : {}),
