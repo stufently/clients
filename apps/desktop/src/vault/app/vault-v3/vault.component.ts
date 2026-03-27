@@ -676,6 +676,10 @@ export class VaultComponent<C extends CipherViewLike> implements OnInit, OnDestr
     }
   }
 
+  restore = async (c: CipherViewLike) => {
+    await this.handleRestoreEvent(c as CipherView);
+  };
+
   async handleRestoreEvent(cipher: CipherView): Promise<boolean> {
     let toastMessage;
     if (!cipher.isDeleted) {
@@ -854,7 +858,7 @@ export class VaultComponent<C extends CipherViewLike> implements OnInit, OnDestr
     this.activeDrawerRef = VaultItemDialogComponent.openDrawer(this.dialogService, {
       mode,
       formConfig,
-      restore: (c) => this.handleRestoreEvent(c as CipherView),
+      restore: this.restore,
     });
     this.activeDrawerRef.closed.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((result) => {
       this.activeDrawerRef = undefined;
