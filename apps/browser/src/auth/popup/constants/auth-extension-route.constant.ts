@@ -2,13 +2,13 @@
 export const AuthExtensionRoute = Object.freeze({
   AccountSecurity: "account-security",
   /**
-   * `SettingsChangePassword` is used when the user intentionally navigates to Settings > Account Security
-   * to change their password.
+   * `AuthExtensionRoute.SettingsChangePassword` uses `ChangePasswordPageComponent` and is used when the user intentionally navigates
+   * to Settings > Account Security to change their password.
    *
-   * This is distinct from `AuthRoute.ChangePassword` (nested under `ExtensionAnonLayoutWrapperComponent`), which is used when
+   * This is distinct from `AuthRoute.ChangePassword`, which uses `ExtensionAnonLayoutWrapperComponent`, and is used when
    * `ForceSetPasswordReason` forces the user to change their password due to either `AdminForcePasswordReset` or `WeakMasterPassword`
    *
-   * TODO: eventually we should move to a parent/child routing structure, e.g. `/settings/change-password`
+   * TODO: PM-34240 - move auth settings to a nested routing structure, e.g. `/settings/account-security/change-password`
    */
   SettingsChangePassword: "settings-change-password",
   DeviceManagement: "device-management",
