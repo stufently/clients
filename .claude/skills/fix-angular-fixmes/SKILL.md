@@ -33,9 +33,9 @@ Group results by rule name. Two forms appear in this codebase:
 
 ```typescript
 // eslint-disable-next-line @angular-eslint/prefer-on-push-component-change-detection
-
 // TODO: Skipped for signal migration because:
 //  Accessor inputs cannot be migrated as they are too complex.
+// FIXME(https://bitwarden.atlassian.net/browse/CL-903): Migrate to Signals
 // eslint-disable-next-line @angular-eslint/prefer-signals
 ```
 
