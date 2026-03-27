@@ -5,11 +5,9 @@ import { combineLatest, defer, firstValueFrom, map, Observable, startWith, switc
 import { AutoConfirmSvg } from "@bitwarden/assets/svg";
 import { AutomaticUserConfirmationService } from "@bitwarden/auto-confirm";
 import { OrganizationService } from "@bitwarden/common/admin-console/abstractions/organization/organization.service.abstraction";
-import { PolicyApiServiceAbstraction } from "@bitwarden/common/admin-console/abstractions/policy/policy-api.service.abstraction";
 import { PolicyService } from "@bitwarden/common/admin-console/abstractions/policy/policy.service.abstraction";
 import { PolicyType } from "@bitwarden/common/admin-console/enums";
 import { Organization } from "@bitwarden/common/admin-console/models/domain/organization";
-import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { getUserId } from "@bitwarden/common/auth/services/account.service";
 import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
 import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
@@ -50,10 +48,8 @@ export class AutoConfirmPolicy extends BasePolicyEditDefinition {
 })
 export class AutoConfirmPolicyEditComponent extends BasePolicyEditComponent {
   constructor(
-    private readonly accountService: AccountService,
     private readonly organizationService: OrganizationService,
     private readonly policyService: PolicyService,
-    private readonly policyApiService: PolicyApiServiceAbstraction,
     private readonly autoConfirmService: AutomaticUserConfirmationService,
     private readonly router: Router,
   ) {
@@ -106,17 +102,17 @@ export class AutoConfirmPolicyEditComponent extends BasePolicyEditComponent {
       bodyContent: this.step0Content,
       footerContent: this.step0Footer,
       disableSave: this.saveDisabled$,
-      sideEffect: () => this.savePolicyStep(),
+      sideEffect: this.savePolicy,
     },
     {
       titleContent: this.step1Title,
       bodyContent: this.step1Content,
       footerContent: this.step1Footer,
-      sideEffect: () => this.navigateToExtensionPromptStep(),
+      sideEffect: this.navigateToExtensionPromptStep,
     },
   ];
 
-  private async savePolicyStep(): Promise<PolicyStepResult> {
+  protected override async savePolicy(): Promise<PolicyStepResult | void> {
     const userId = await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
 
     const organizations = await firstValueFrom(this.organizationService.organizations$(userId));
