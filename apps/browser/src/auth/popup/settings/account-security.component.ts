@@ -214,10 +214,10 @@ export class AccountSecurityComponent implements OnInit, OnDestroy {
       ),
       enablePhishingDetection: await firstValueFrom(this.phishingDetectionSettingsService.enabled$),
       allowIntegrateWithWebApp: await firstValueFrom(
-        this.sharedUnlockSettingsService.allowIntegrateWithWebApp$,
+        this.sharedUnlockSettingsService.allowIntegrateWithWebApp$(activeAccount.id),
       ),
       allowIntegrateWithDesktopApp: await firstValueFrom(
-        this.sharedUnlockSettingsService.allowIntegrateWithDesktopApp$,
+        this.sharedUnlockSettingsService.allowIntegrateWithDesktopApp$(activeAccount.id),
       ),
     };
     this.form.patchValue(initialValues, { emitEvent: false });
@@ -580,6 +580,7 @@ export class AccountSecurityComponent implements OnInit, OnDestroy {
       await this.sharedUnlockSettingsService.setAllowIntegrateWithDesktopApp(true, userId);
     } else {
       await this.sharedUnlockSettingsService.setAllowIntegrateWithDesktopApp(false, userId);
+      await this.vaultTimeoutSettingsService.clearVaultTimeoutSuppression(userId);
     }
   }
 

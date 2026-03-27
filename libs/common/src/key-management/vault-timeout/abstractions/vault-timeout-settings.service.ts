@@ -66,5 +66,9 @@ export abstract class VaultTimeoutSettingsService {
    * Suppress vault timeout until the given epoch timestamp (ms).
    * While suppressed, the vault timeout service will not lock or log out users.
    */
-  abstract suppressVaultTimeout(until: number, userId: UserId): void;
+  abstract suppressVaultTimeout(until: number, userId: UserId): Promise<void>;
+  /**
+   * Clear vault timeout suppression for the user, allowing vault timeout to occur as normal.
+   */
+  abstract clearVaultTimeoutSuppression(userId: UserId): Promise<void>;
 }
