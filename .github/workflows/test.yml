@@ -124,7 +124,7 @@ jobs:
           JEST_JUNIT_OUTPUT_NAME: ${{ matrix.test-group.junit }}
 
       - name: Report test results
-        uses: dorny/test-reporter@3d76b34a4535afbd0600d347b09a6ee5deb3ed7f # v2.6.0
+        uses: dorny/test-reporter@df6247429542221bc30d46a036ee47af1102c451 # v2.7.0
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository && !cancelled() }}
         with:
           name: Test Results - ${{ matrix.test-group.name }}
@@ -216,7 +216,7 @@ jobs:
           components: llvm-tools
 
       - name: Cache cargo registry
-        uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
+        uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
         with:
           workspaces: "apps/desktop/desktop_native -> target"
 

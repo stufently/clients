@@ -115,7 +115,7 @@ jobs:
         run: rustup --version
 
       - name: Cache cargo registry
-        uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
+        uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
 
       - name: Run cargo fmt
         working-directory: ./apps/desktop/desktop_native
@@ -142,7 +142,7 @@ jobs:
         run: cargo +nightly udeps --workspace --all-features --all-targets
 
       - name: Install cargo-deny
-        uses: taiki-e/install-action@205eb1d74c6feda89abb1f3a09360601953286c0 # v2.68.18
+        uses: taiki-e/install-action@06203676c62f0d3c765be3f2fcfbebbcb02d09f5 # v2.69.6
         with:
           tool: cargo-deny@0.18.6
 

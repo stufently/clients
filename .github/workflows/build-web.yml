@@ -268,7 +268,7 @@ jobs:
 
       - name: Log in to GHCR
         if: ${{ needs.setup.outputs.has_secrets == 'true' }}
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -365,7 +365,7 @@ jobs:
 
       - name: Install Cosign
         if: github.event_name != 'pull_request_target' && env.is_publish_branch == 'true'
-        uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
+        uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22 # v4.1.0
 
       - name: Sign image with Cosign
         if: github.event_name != 'pull_request_target' && env.is_publish_branch == 'true'
@@ -384,7 +384,7 @@ jobs:
       - name: Scan Docker image
         if: ${{ needs.setup.outputs.has_secrets == 'true' }}
         id: container-scan
-        uses: anchore/scan-action@0d444ed77d83ee2ba7f5ced0d90d640a1281d762 # v7.3.0
+        uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2 # v7.4.0
         with:
           image: ${{ steps.image-name.outputs.name }}
           fail-build: false
