@@ -16,7 +16,7 @@ import { ReceiveSharedData } from "@bitwarden/common/tools/receive/models/receiv
 import { ReceiveUrlData } from "@bitwarden/common/tools/receive/models/receive-url-data";
 import { ReceiveFileService } from "@bitwarden/common/tools/receive/services/receive-file.service";
 import { ReceiveService } from "@bitwarden/common/tools/receive/services/receive.service";
-import { Guid } from "@bitwarden/common/types/guid";
+import { ReceiveId } from "@bitwarden/common/types/guid";
 import {
   ButtonModule,
   FormFieldModule,
@@ -35,7 +35,7 @@ export class ReceiveFileUploadComponent implements OnInit {
   readonly receiveName = signal<string>("");
   readonly fileName = signal<string>("");
   readonly showUploadFileButton = signal<boolean>(false);
-  private readonly receiveId: Guid;
+  private readonly receiveId: ReceiveId;
   private readonly secretB64: string;
   private readonly sharedContentEncryptionKeyB64: string;
   private readonly file = signal<File | null>(null);
@@ -49,7 +49,7 @@ export class ReceiveFileUploadComponent implements OnInit {
 
   constructor(route: ActivatedRoute) {
     const params = route.snapshot.paramMap;
-    this.receiveId = (params.get("receiveId") ?? "") as Guid;
+    this.receiveId = (params.get("receiveId") ?? "") as ReceiveId;
     this.secretB64 = params.get("secretB64") ?? "";
     this.sharedContentEncryptionKeyB64 = params.get("sharedContentEncryptionKeyB64") ?? "";
   }

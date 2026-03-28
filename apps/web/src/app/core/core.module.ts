@@ -529,7 +529,7 @@ const safeProviders: SafeProvider[] = [
   safeProvider({
     provide: ReceiveFileService,
     useClass: DefaultReceiveFileService,
-    deps: [KeyGenerationService, EncryptService],
+    deps: [KeyGenerationService, EncryptService, FileDownloadService],
   }),
   safeProvider({
     provide: ReceiveApiService,
