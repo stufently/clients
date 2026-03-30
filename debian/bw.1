@@ -1,0 +1,128 @@
+.TH BW 1 "March 2026" "bitwarden-cli 2026.3.0" "User Commands"
+.SH NAME
+bw \- command-line interface for Bitwarden password manager
+.SH SYNOPSIS
+.B bw
+[\fIcommand\fR] [\fIoptions\fR]
+.SH DESCRIPTION
+.B bw
+is the official Bitwarden CLI for managing your vault from the command line
+or scripts. It provides full access to all Bitwarden features including
+passwords, secure notes, cards, and identities.
+.SH COMMANDS
+.TP
+.B login
+Log in to a Bitwarden user account.
+.TP
+.B logout
+Log out of the current user account.
+.TP
+.B lock
+Lock the vault and destroy active session keys.
+.TP
+.B unlock
+Unlock the vault and return a new session key.
+.TP
+.B sync
+Pull the latest vault data from the server.
+.TP
+.B generate
+Generate a password or passphrase.
+.TP
+.B list
+List objects from the vault (items, folders, collections, organizations).
+.TP
+.B get
+Get an object from the vault.
+.TP
+.B create
+Create an object in the vault.
+.TP
+.B edit
+Edit an object in the vault.
+.TP
+.B delete
+Delete an object from the vault.
+.TP
+.B restore
+Restore a deleted object from the trash.
+.TP
+.B move
+Move an item to a folder.
+.TP
+.B confirm
+Confirm an organization member.
+.TP
+.B import
+Import vault data from a file.
+.TP
+.B export
+Export vault data to a file.
+.TP
+.B share
+Move an item to an organization (deprecated, use \fBmove\fR).
+.TP
+.B send
+Manage Bitwarden Send.
+.TP
+.B receive
+Access a Bitwarden Send from a URL.
+.TP
+.B config
+Configure CLI settings.
+.TP
+.B update
+Check for updates.
+.TP
+.B completion
+Generate shell completion scripts.
+.TP
+.B status
+Show the current authentication status.
+.TP
+.B serve
+Start a local API server.
+.SH OPTIONS
+.TP
+.B \-\-help
+Display help information.
+.TP
+.B \-\-version
+Display version information.
+.TP
+.B \-\-session \fIKEY\fR
+Pass session key instead of reading from environment.
+.TP
+.B \-\-response
+Return a JSON formatted version of response output.
+.TP
+.B \-\-cleanexit
+Exit with a return code of 0 unless an error is thrown.
+.TP
+.B \-\-quiet
+Suppress output to stdout.
+.TP
+.B \-\-nointeraction
+Do not prompt for interactive user input.
+.SH ENVIRONMENT
+.TP
+.B BW_SESSION
+The session key obtained from \fBbw unlock\fR.
+.TP
+.B BW_CLIENTID
+API client ID for API key authentication.
+.TP
+.B BW_CLIENTSECRET
+API client secret for API key authentication.
+.SH FILES
+.TP
+.I ~/.config/Bitwarden CLI/data.json
+Local vault and configuration data.
+.SH SEE ALSO
+.B bitwarden-desktop\fR(1)
+.PP
+Full documentation: https://bitwarden.com/help/cli/
+.SH AUTHOR
+Bitwarden Inc. <hello@bitwarden.com>
+.SH LICENSE
+GPL-3.0

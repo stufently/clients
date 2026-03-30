@@ -6,8 +6,7 @@ export DH_VERBOSE = 1
 	dh $@
 
 override_dh_auto_configure:
-	# Install npm dependencies offline from vendored node_modules
-	# npm ci uses package-lock.json for reproducible installs
+	npm ci --ignore-scripts
 
 override_dh_auto_build:
 	cd apps/cli && NODE_ENV=production npx webpack
@@ -24,6 +23,9 @@ override_dh_auto_install:
 	echo '#!/bin/sh' > debian/bitwarden-cli/usr/bin/bw
 	echo 'exec /usr/bin/node /usr/lib/bitwarden-cli/bw.js "$$@"' >> debian/bitwarden-cli/usr/bin/bw
 	chmod 755 debian/bitwarden-cli/usr/bin/bw
+	# Install man page
+	mkdir -p debian/bitwarden-cli/usr/share/man/man1
+	install -m 644 debian/bw.1 debian/bitwarden-cli/usr/share/man/man1/bw.1
 
 override_dh_auto_clean:
 	rm -rf apps/cli/build

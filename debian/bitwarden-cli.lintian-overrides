@@ -1,0 +1,5 @@
+# Webpack bundle JS files have shebang lines but are not meant to be
+# executed directly — they are loaded by the Node.js runtime via the
+# /usr/bin/bw wrapper script.
+bitwarden-cli: script-not-executable [usr/lib/bitwarden-cli/bw.js]
+bitwarden-cli: script-not-executable [usr/lib/bitwarden-cli/502.js]
