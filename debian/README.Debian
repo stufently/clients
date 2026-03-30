@@ -1,0 +1,22 @@
+bitwarden-cli for Debian
+========================
+
+This package provides the Bitwarden CLI built from the upstream
+monorepo (https://github.com/bitwarden/clients) using the OSS
+(GPL-3.0) build variant.
+
+The CLI webpack bundle is installed to /usr/lib/bitwarden-cli/
+and launched via /usr/bin/bw wrapper script using the system
+Node.js runtime.
+
+Build Dependencies
+------------------
+This package bundles its npm dependencies as a webpack bundle
+at build time. The full dependency tree is documented in
+debian/copyright. See README.source for build reproduction
+instructions.
+
+Upstream
+--------
+CLI source: apps/cli/ in the bitwarden/clients monorepo.
+License: GPL-3.0 (OSS variant, NOT the Bitwarden commercial variant).

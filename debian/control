@@ -1,0 +1,25 @@
+Source: bitwarden-cli
+Section: utils
+Priority: optional
+Maintainer: Vladimir Kostelei <openfix@selectel.ru>
+Build-Depends: debhelper-compat (= 13),
+               nodejs (>= 18),
+               npm
+Standards-Version: 4.7.2
+Homepage: https://bitwarden.com/help/cli/
+Vcs-Git: https://github.com/stufently/clients.git -b debian/latest
+Vcs-Browser: https://github.com/stufently/clients
+Rules-Requires-Root: no
+
+Package: bitwarden-cli
+Architecture: amd64
+Depends: nodejs (>= 18), ${misc:Depends}
+Description: command-line interface for Bitwarden password manager
+ Bitwarden CLI is a powerful, full-featured command-line interface
+ for interacting with a Bitwarden vault. It can be used in scripts
+ and terminal workflows to manage passwords, secure notes, and
+ other vault items.
+ .
+ Features include login/unlock, sync, list/get/create/edit/delete
+ vault items, generate passwords, manage organizations, and
+ import/export vault data.

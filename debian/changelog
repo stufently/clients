@@ -1,0 +1,5 @@
+bitwarden-cli (2026.3.0-1) unstable; urgency=medium
+
+  * Initial release. (Closes: #1003143)
+
+ -- Vladimir Kostelei <openfix@selectel.ru>  Sat, 29 Mar 2026 00:00:00 +0000

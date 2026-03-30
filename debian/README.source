@@ -1,0 +1,19 @@
+Building bitwarden-cli from source
+===================================
+
+This package is built from the bitwarden/clients monorepo.
+The CLI application is located in apps/cli/.
+
+Build process:
+  1. npm ci (install dependencies from package-lock.json)
+  2. cd apps/cli && NODE_ENV=production npx webpack
+  3. Result: apps/cli/build/bw.js (webpack bundle)
+
+The webpack bundle includes all JavaScript dependencies inline.
+No runtime node_modules are needed -- only the system Node.js.
+
+To reproduce the build:
+  $ apt-get install nodejs npm
+  $ npm ci
+  $ cd apps/cli && NODE_ENV=production npx webpack
+  $ node build/bw.js --version
