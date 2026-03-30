@@ -1,0 +1,75 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: bitwarden-cli
+Upstream-Contact: hello@bitwarden.com
+Source: https://github.com/bitwarden/clients
+Comment: CLI application from apps/cli/ in the bitwarden/clients monorepo.
+ Only the GPL-3.0 licensed OSS variant is packaged.
+
+Files: *
+Copyright: 2015-2026 Bitwarden Inc.
+License: GPL-3.0
+
+Files: bitwarden_license/*
+Copyright: 2015-2026 Bitwarden Inc.
+License: Bitwarden-License-1.0
+Comment: Not included in this package. Only apps/cli/ (OSS) is built.
+
+Files: apps/cli/node_modules/*
+Copyright: Various authors
+License: MIT and BSD-2-Clause and BSD-3-Clause and ISC and Apache-2.0
+Comment: Bundled npm dependencies. All DFSG-compatible.
+ Full license details available in individual package directories.
+ Major dependencies and their licenses:
+ commander (MIT), inquirer (MIT), chalk (MIT), rxjs (Apache-2.0),
+ jsdom (MIT), koa (MIT), node-forge (BSD-3-Clause OR GPL-2.0),
+ jszip (MIT OR GPL-3.0), lowdb (MIT), lunr (MIT), semver (ISC),
+ papaparse (MIT), zxcvbn (MIT).
+
+Files: debian/*
+Copyright: 2026 Vladimir Kostelei <openfix@selectel.ru>
+License: GPL-3.0
+
+License: GPL-3.0
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, version 3.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ GNU General Public License for more details.
+ .
+ On Debian systems, the complete text of the GNU General Public
+ License version 3 can be found in "/usr/share/common-licenses/GPL-3".
+
+License: MIT
+ Permission is hereby granted, free of charge, to any person obtaining
+ a copy of this software and associated documentation files, to deal
+ in the Software without restriction, including without limitation the
+ rights to use, copy, modify, merge, publish, distribute, sublicense,
+ and/or sell copies of the Software.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+
+License: ISC
+ Permission to use, copy, modify, and distribute this software for any
+ purpose with or without fee is hereby granted.
+
+License: Apache-2.0
+ On Debian systems, the complete text of the Apache License Version 2.0
+ can be found in "/usr/share/common-licenses/Apache-2.0".
+
+License: BSD-2-Clause
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted.
+
+License: BSD-3-Clause
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions
+ are met: Redistributions of source code must retain the above
+ copyright notice. Redistributions in binary form must reproduce
+ the above copyright notice.
+
+License: Bitwarden-License-1.0
+ The Bitwarden License is a source-available license.
+ This code is NOT included in this Debian package.

@@ -1,0 +1,17 @@
+#!/bin/sh
+set -e
+
+echo "Test 1: bw --version"
+bw --version
+echo "PASS"
+
+echo "Test 2: bw --help"
+bw --help > /dev/null
+echo "PASS"
+
+echo "Test 3: bw status (unauthenticated)"
+OUTPUT=$(bw status 2>&1 || true)
+echo "$OUTPUT" | grep -q "unauthenticated\|locked\|serverUrl"
+echo "PASS"
+
+echo "All smoke tests passed."
