@@ -26,6 +26,12 @@ override_dh_auto_install:
 	# Install man page
 	mkdir -p debian/bitwarden-cli/usr/share/man/man1
 	install -m 644 debian/bw.1 debian/bitwarden-cli/usr/share/man/man1/bw.1
+	# Install bash completion
+	mkdir -p debian/bitwarden-cli/usr/share/bash-completion/completions
+	install -m 644 debian/bw.bash-completion debian/bitwarden-cli/usr/share/bash-completion/completions/bw
+	# Install zsh completion
+	mkdir -p debian/bitwarden-cli/usr/share/zsh/vendor-completions
+	install -m 644 debian/bw.zsh-completion debian/bitwarden-cli/usr/share/zsh/vendor-completions/_bw
 
 override_dh_auto_clean:
 	rm -rf apps/cli/build
