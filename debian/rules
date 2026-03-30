@@ -15,13 +15,28 @@ override_dh_auto_test:
 	node apps/cli/build/bw.js --version
 
 override_dh_auto_install:
-	# Install the webpack bundle and wrapper script
+	# Install the webpack bundle + runtime node_modules
 	mkdir -p debian/bitwarden-cli/usr/lib/bitwarden-cli
 	cp -r apps/cli/build/* debian/bitwarden-cli/usr/lib/bitwarden-cli/
+	# Copy production node_modules (webpack externalizes npm deps at runtime)
+	# Use a temporary copy to prune dev dependencies
+	cp -rL node_modules debian/bitwarden-cli/usr/lib/bitwarden-cli/node_modules
+	# Remove devDependencies, tests, docs, source maps to save space
+	cd debian/bitwarden-cli/usr/lib/bitwarden-cli && \
+	  find node_modules -maxdepth 2 -name "package.json" -exec grep -l '"_development":true' {} \; | \
+	    xargs -I{} dirname {} | xargs rm -rf 2>/dev/null || true
+	find debian/bitwarden-cli/usr/lib/bitwarden-cli/node_modules \
+	  \( -name "*.map" -o -name "*.ts" -not -name "*.d.ts" \
+	     -o -name "test" -o -name "tests" -o -name "__tests__" \
+	     -o -name "example" -o -name "examples" \
+	     -o -name ".github" -o -name ".git" \) \
+	  -exec rm -rf {} + 2>/dev/null || true
+	# Remove cross-arch binaries (cause dh_strip failures)
+	rm -rf debian/bitwarden-cli/usr/lib/bitwarden-cli/node_modules/7zip-bin 2>/dev/null || true
 	# Install launcher script
 	mkdir -p debian/bitwarden-cli/usr/bin
 	echo '#!/bin/sh' > debian/bitwarden-cli/usr/bin/bw
-	echo 'exec /usr/bin/node /usr/lib/bitwarden-cli/bw.js "$$@"' >> debian/bitwarden-cli/usr/bin/bw
+	echo 'exec /usr/bin/node --no-deprecation /usr/lib/bitwarden-cli/bw.js "$$@"' >> debian/bitwarden-cli/usr/bin/bw
 	chmod 755 debian/bitwarden-cli/usr/bin/bw
 	# Install man page
 	mkdir -p debian/bitwarden-cli/usr/share/man/man1
@@ -32,6 +47,13 @@ override_dh_auto_install:
 	# Install zsh completion
 	mkdir -p debian/bitwarden-cli/usr/share/zsh/vendor-completions
 	install -m 644 debian/bw.zsh-completion debian/bitwarden-cli/usr/share/zsh/vendor-completions/_bw
+
+override_dh_strip:
+	# Skip stripping — node_modules contains cross-arch binaries (7zip-bin)
+	# and no native ELF objects that benefit from stripping
+
+override_dh_shlibdeps:
+	# Skip shared lib deps check — pure JS application with no native libs
 
 override_dh_auto_clean:
 	rm -rf apps/cli/build
