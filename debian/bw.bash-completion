@@ -1,0 +1,170 @@
+# bash completion for bw (Bitwarden CLI)
+# Generated from bw command structure
+
+_bw() {
+    local cur prev words cword
+    _init_completion || return
+
+    local commands="sdk-version login logout lock unlock sync generate encode
+        config update completion status list get create edit delete restore
+        move confirm import export share archive send receive serve"
+
+    local global_opts="--pretty --raw --response --cleanexit --quiet
+        --nointeraction --session -v --version -h --help"
+
+    # Subcommands for 'send'
+    local send_commands="list template get receive create edit remove-password delete"
+
+    # Object types for list/get/create/edit/delete/restore
+    local list_objects="items folders collections organizations org-collections org-members"
+    local get_objects="item username password uri totp notes exposed attachment folder
+        collection org-collection organization template fingerprint send"
+    local create_objects="item attachment folder org-collection"
+    local edit_objects="item item-collections folder org-collection"
+    local delete_objects="item attachment folder org-collection"
+    local restore_objects="item"
+
+    # Determine command position
+    local cmd=""
+    local subcmd=""
+    local i
+    for ((i=1; i < cword; i++)); do
+        case "${words[i]}" in
+            -*)
+                continue
+                ;;
+            *)
+                if [[ -z "$cmd" ]]; then
+                    cmd="${words[i]}"
+                elif [[ -z "$subcmd" ]]; then
+                    subcmd="${words[i]}"
+                fi
+                ;;
+        esac
+    done
+
+    # Complete options based on current command
+    if [[ "$cur" == -* ]]; then
+        local opts="$global_opts"
+        case "$cmd" in
+            login)
+                opts="--method --code --sso --apikey --passwordenv --passwordfile --check -h --help"
+                ;;
+            unlock)
+                opts="--check --passwordenv --passwordfile -h --help"
+                ;;
+            sync)
+                opts="-f --force --last -h --help"
+                ;;
+            generate)
+                opts="-u --uppercase -l --lowercase -n --number -s --special
+                    -p --passphrase --length --words --minNumber --minSpecial
+                    --separator -c --capitalize --includeNumber --ambiguous -h --help"
+                ;;
+            config)
+                opts="--web-vault --api --identity --icons --notifications
+                    --events --key-connector -h --help"
+                ;;
+            completion)
+                opts="--shell -h --help"
+                ;;
+            list)
+                opts="--search --url --folderid --collectionid --organizationid
+                    --trash --archived -h --help"
+                ;;
+            get)
+                opts="--itemid --output --organizationid -h --help"
+                ;;
+            create)
+                opts="--file --itemid --organizationid -h --help"
+                ;;
+            edit)
+                opts="--organizationid -h --help"
+                ;;
+            delete)
+                opts="--itemid --organizationid -p --permanent -h --help"
+                ;;
+            confirm)
+                opts="--organizationid -h --help"
+                ;;
+            import)
+                opts="--formats --organizationid -h --help"
+                ;;
+            export)
+                opts="--output --format --password --organizationid -h --help"
+                ;;
+            send)
+                case "$subcmd" in
+                    get)
+                        opts="--output --text -h --help"
+                        ;;
+                    receive)
+                        opts="--password --passwordenv --passwordfile --obj --output -h --help"
+                        ;;
+                    create)
+                        opts="--file --text --hidden -h --help"
+                        ;;
+                    edit)
+                        opts="--itemid -h --help"
+                        ;;
+                    *)
+                        opts="-f --file -d --deleteInDays --password --emails
+                            -a --maxAccessCount --hidden -n --name --notes
+                            --fullObject -h --help"
+                        ;;
+                esac
+                ;;
+            receive)
+                opts="--password --passwordenv --passwordfile --obj --output -h --help"
+                ;;
+            serve)
+                opts="--hostname --port --disable-origin-protection -h --help"
+                ;;
+        esac
+        COMPREPLY=($(compgen -W "$opts" -- "$cur"))
+        return
+    fi
+
+    # Complete subcommands
+    case "$cmd" in
+        "")
+            COMPREPLY=($(compgen -W "$commands" -- "$cur"))
+            ;;
+        list)
+            [[ -z "$subcmd" ]] && COMPREPLY=($(compgen -W "$list_objects" -- "$cur"))
+            ;;
+        get)
+            [[ -z "$subcmd" ]] && COMPREPLY=($(compgen -W "$get_objects" -- "$cur"))
+            ;;
+        create)
+            [[ -z "$subcmd" ]] && COMPREPLY=($(compgen -W "$create_objects" -- "$cur"))
+            ;;
+        edit)
+            [[ -z "$subcmd" ]] && COMPREPLY=($(compgen -W "$edit_objects" -- "$cur"))
+            ;;
+        delete)
+            [[ -z "$subcmd" ]] && COMPREPLY=($(compgen -W "$delete_objects" -- "$cur"))
+            ;;
+        restore)
+            [[ -z "$subcmd" ]] && COMPREPLY=($(compgen -W "$restore_objects" -- "$cur"))
+            ;;
+        send)
+            [[ -z "$subcmd" ]] && COMPREPLY=($(compgen -W "$send_commands" -- "$cur"))
+            ;;
+        config)
+            [[ -z "$subcmd" ]] && COMPREPLY=($(compgen -W "server" -- "$cur"))
+            ;;
+        completion)
+            if [[ "$prev" == "--shell" ]]; then
+                COMPREPLY=($(compgen -W "zsh" -- "$cur"))
+            fi
+            ;;
+        export)
+            if [[ "$prev" == "--format" ]]; then
+                COMPREPLY=($(compgen -W "csv json encrypted_json" -- "$cur"))
+            fi
+            ;;
+    esac
+}
+
+complete -F _bw bw
