@@ -48,10 +48,12 @@ override_dh_auto_install:
 	     -o -name "Makefile" -o -name "bower.json" -o -name "component.json" \
 	     -o -name "yarn.lock" -o -name "package-lock.json" \) \
 	  -type f -delete 2>/dev/null || true
+	# Only @types (TS declarations), not "types" (some packages use it as
+	# runtime code dir, e.g. busboy/lib/types/multipart.js).
 	find debian/bitwarden-cli/usr/lib/bitwarden-cli/node_modules \
 	  -type d \
-	  \( -name "types" -o -name "@types" -o -name "docs" -o -name "doc" \
-	     -o -name "man" -o -name "benchmark" -o -name "benchmarks" \
+	  \( -name "@types" -o -name "docs" -o -name "doc" \
+	     -o -name "benchmark" -o -name "benchmarks" \
 	     -o -name "coverage" -o -name ".bin" \) \
 	  -exec rm -rf {} + 2>/dev/null || true
 	# Remove cross-arch prebuilt binaries (cause dh_strip failures)
