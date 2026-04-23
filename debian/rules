@@ -31,13 +31,13 @@ override_dh_auto_install:
 	     -o -name "example" -o -name "examples" \
 	     -o -name ".github" -o -name ".git" \) \
 	  -exec rm -rf {} + 2>/dev/null || true
-	# Aggressive prune: webpack bundle in bw.js already contains all business
-	# logic; node_modules only provides CommonJS runtime modules webpack
-	# externalized. Strip docs, type defs, build tooling, metadata.
+	# Conservative prune: only extensions that are provably never require()d
+	# at runtime. Avoid bare-name patterns (readme*, history*, changelog*) —
+	# they case-insensitively match real source files like jsdom's
+	# generated/History.js and break the bundle.
 	# KEEP: LICENSE/COPYING/NOTICE/AUTHORS — required by MIT/Apache/GPL terms.
 	find debian/bitwarden-cli/usr/lib/bitwarden-cli/node_modules \
-	  \( -iname "*.md" -o -iname "readme*" -o -iname "changelog*" \
-	     -o -iname "history*" -o -iname "*.markdown" \
+	  \( -iname "*.md" -o -iname "*.markdown" \
 	     -o -name "*.d.ts" -o -name "*.d.mts" -o -name "*.d.cts" \
 	     -o -name "*.flow" -o -name "*.coffee" \
 	     -o -name ".eslintrc*" -o -name ".prettierrc*" -o -name ".babelrc*" \
