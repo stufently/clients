@@ -1,3 +1,15 @@
+bitwarden-cli (2026.3.0-2) unstable; urgency=medium
+
+  * Bump nodejs dependency to (>= 20). Upstream requires Node.js >= 22.12,
+    and Node.js 18 triggers a WASM panic in `bw generate` due to the
+    getrandom crate's ES-module limitation.
+  * Aggressively prune bundled node_modules (remove *.md, *.d.ts, dotfiles,
+    build metadata, tsconfig, platform-foreign sass-embedded builds).
+    License/copyright files are preserved.
+  * Expand lintian overrides to cover bundled node_modules/* wildcards.
+
+ -- Vladimir Kostelei <openfix@selectel.ru>  Thu, 23 Apr 2026 00:00:00 +0000
+
 bitwarden-cli (2026.3.0-1) unstable; urgency=medium
 
   * Initial release. (Closes: #1003143)
