@@ -3,3 +3,17 @@
 # /usr/bin/bw wrapper script.
 bitwarden-cli: script-not-executable [usr/lib/bitwarden-cli/bw.js]
 bitwarden-cli: script-not-executable [usr/lib/bitwarden-cli/502.js]
+
+# Bundled node_modules shipped for runtime use. The vendored JS tooling
+# files contain shebangs for CLI invocation from their own repos, but we
+# never invoke them directly — only the bw.js webpack bundle imports them.
+bitwarden-cli: script-not-executable [usr/lib/bitwarden-cli/node_modules/*]
+
+# Dart Sass precompiled snapshots are Dart VM data files, not ELF shared
+# libraries. Lintian misidentifies them.
+bitwarden-cli: shared-library-lacks-prerequisites [usr/lib/bitwarden-cli/node_modules/sass-embedded-*/dart-sass/src/sass.snapshot]
+
+# PowerShell helper scripts bundled inside @bitwarden/browser and
+# @bitwarden/desktop workspaces. Not used by the CLI on Linux; shipped
+# because they come with the npm workspace tree.
+bitwarden-cli: unusual-interpreter pwsh [usr/lib/bitwarden-cli/node_modules/@bitwarden/*]
