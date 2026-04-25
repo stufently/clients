@@ -1,3 +1,11 @@
+bitwarden-cli (2026.4.1-1) unstable; urgency=medium
+
+  * New upstream release (cli-v2026.4.1). Upstream change since 2026.3.0
+    is a version bump only; no functional changes in apps/cli/ source.
+  * Rebuild against current upstream main.
+
+ -- Vladimir Kostelei <openfix@selectel.ru>  Sat, 25 Apr 2026 00:00:00 +0000
+
 bitwarden-cli (2026.3.0-2) unstable; urgency=medium
 
   * Bump nodejs dependency to (>= 20). Upstream requires Node.js >= 22.12,
