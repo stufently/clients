@@ -12,7 +12,7 @@ Vcs-Browser: https://github.com/stufently/clients
 Rules-Requires-Root: no
 
 Package: bitwarden-cli
-Architecture: amd64
+Architecture: any
 Depends: nodejs (>= 20), ${misc:Depends}
 Description: command-line interface for Bitwarden password manager
  Bitwarden CLI is a powerful, full-featured command-line interface
